@@ -1,4 +1,4 @@
-Wadi'ah وديعة
+# Wadi'ah وديعة
 
-Introduction:
-# (showing the goal), technology (e.g., programming language), launching instructions (briefly).
+## Introduction:
+// (showing the goal), technology (e.g., programming language), launching instructions (briefly).
