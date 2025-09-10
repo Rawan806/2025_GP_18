@@ -1,2 +1,4 @@
-# 2025_GP_18
-A comprehensive repository for our graduation project.
+Wadi'ah وديعة
+
+Introduction:
+# (showing the goal), technology (e.g., programming language), launching instructions (briefly).
