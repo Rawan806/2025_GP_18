@@ -2,7 +2,12 @@
 
 ## 1) Introduction
 
-Wadi’ah is a mobile-first, bilingual (AR/EN) lost-and-found system designed for the operational reality of Al-Masjid Al-Haram. The goal is to shorten the journey from report → match → secure handover by assisting staff with on-device image feature extraction for look-alike items, clear status tracking, and human-approved notifications. Visitor and staff modes live in a single app, and the solution is online-only to ensure real-time updates and full auditability.
+Wadi’ah is a smart lost-and-found system for Al-Masjid Al-Haram. It provides an AI-powered mobile app that helps pilgrims and staff report, track, and recover lost items quickly and securely, with bilingual (Arabic/English) support.
+
+## 2) Goal 
+
+The goal of Wadi’ah is to streamline the entire lost-and-found process by combining intelligent item matching, real-time status tracking, and secure verification into one integrated platform that improves efficiency for staff and enhances the experience for millions of visitors.
+
 
 ## 2) Technology
 
