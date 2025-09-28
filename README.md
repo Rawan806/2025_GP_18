@@ -10,7 +10,7 @@ Wadi’ah is a mobile-first, bilingual (AR/EN) lost-and-found system designed fo
 * **AI (on device):** TensorFlow Lite with a lightweight backbone (e.g., MobileNetV3-Small) to extract embeddings; optional OCR for visible text on items
 * **Cloud backend:** Firebase (Authentication, Cloud Firestore, Cloud Storage, Cloud Functions)
 * **Notifications:** Licensed SMS gateway for candidate-match alerts (PDPL-aware consent/retention)
-* **Security & audit:** Role-based access (visitor/staff/admin), PIN-verified office handover, immutable audit logs
+* **Security & audit:** Role-based access (visitor/staff), PIN-verified office handover, immutable audit logs
 * **Prototyping/Dev:** Google Colab (model pipeline prototyping), Android Studio/Xcode, GitHub, Figma
 
 ## 3) Launching Instructions (brief)
@@ -37,8 +37,8 @@ Wadi’ah is a mobile-first, bilingual (AR/EN) lost-and-found system designed fo
 
 4. **Run and verify**
 
-   * Launch the app on a device/emulator.
-   * Sign in and validate the two modes:
+   * Launch the app on a device.
+   * Sign in and validate the two flows:
 
      * Visitor: create a lost report with photos; observe status updates.
      * Staff: capture a found item; confirm that on-device feature extraction runs and records are created.
