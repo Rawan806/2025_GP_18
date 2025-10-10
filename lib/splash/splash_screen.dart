@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   const SizedBox(height: 24),
                   const Text(
                     // غيّري النص لو تبين صيغتك: ' وديعة.. ما استٌودع محفوظ'
-                    'وديعة.. ما استودع محفوظوش',
+                    'وديعة.. ما استودع محفوظ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF2A353A),
