@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
+import '../signup/signup_screen.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -12,7 +13,7 @@ class _SigninScreenState extends State<SigninScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  //  اللون المعتمد
+  // اللون الأساسي لتطبيق وديعة
   final Color mainGreen = const Color(0xFF255E4B);
 
   @override
@@ -32,19 +33,25 @@ class _SigninScreenState extends State<SigninScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // اللوقو
               Image.asset('assets/logo.png', width: 120),
+
               const SizedBox(height: 20),
 
+              // عنوان الصفحة
               const Text(
                 'تسجيل الدخول كزائر',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
+
               const SizedBox(height: 30),
 
+              // حقل البريد الإلكتروني
               TextField(
                 controller: emailController,
                 decoration: const InputDecoration(
@@ -52,9 +59,12 @@ class _SigninScreenState extends State<SigninScreen> {
                   border: OutlineInputBorder(),
                 ),
                 textAlign: TextAlign.right,
+                keyboardType: TextInputType.emailAddress,
               ),
+
               const SizedBox(height: 15),
 
+              // حقل كلمة المرور
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -64,8 +74,10 @@ class _SigninScreenState extends State<SigninScreen> {
                 ),
                 textAlign: TextAlign.right,
               ),
+
               const SizedBox(height: 20),
 
+              // زر تسجيل الدخول
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: mainGreen,
@@ -76,9 +88,10 @@ class _SigninScreenState extends State<SigninScreen> {
                   ),
                 ),
                 onPressed: () {
+                  // توجيه المستخدم إلى الصفحة الرئيسية بعد تسجيل الدخول
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => HomePage()),
+                    MaterialPageRoute(builder: (_) => const HomePage()),
                   );
                 },
                 child: const Text(
@@ -89,9 +102,16 @@ class _SigninScreenState extends State<SigninScreen> {
 
               const SizedBox(height: 10),
 
+              // زر إنشاء حساب جديد
               TextButton(
                 onPressed: () {
-                  debugPrint('انتقل إلى صفحة إنشاء حساب');
+                  // ✅ هنا نربط صفحة إنشاء الحساب
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SignUpScreen(),
+                    ),
+                  );
                 },
                 child: Text(
                   'ليس لديك حساب؟ سجل الآن',
@@ -109,3 +129,4 @@ class _SigninScreenState extends State<SigninScreen> {
     );
   }
 }
+

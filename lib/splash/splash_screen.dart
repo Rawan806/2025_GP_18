@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../signin/signin_screen.dart';
+import '../WelcomePage/welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -16,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => SigninScreen()),
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
       );
     });
   }
@@ -31,15 +32,11 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment(0.50, -0.00),
             end: Alignment(0.50, 1.00),
-            colors: [
-              Color(0xFFB5D4CB), // الفاتح العلوي
-              Color(0xFF5E6E6A), // الغامق السفلي
-            ],
+            colors: [Color(0xFFB5D4CB), Color(0xFF5E6E6A)],
           ),
         ),
         child: Stack(
           children: [
-            // المحتوى الرئيسي (الشعار + النص)
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -47,7 +44,6 @@ class _SplashScreenState extends State<SplashScreen> {
                   Image.asset('assets/logo.png', width: 180),
                   const SizedBox(height: 24),
                   const Text(
-                    // غيّري النص لو تبين صيغتك: ' وديعة.. ما استٌودع محفوظ'
                     'وديعة.. ما استودع محفوظ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -61,12 +57,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 ],
               ),
             ),
-
-        
           ],
         ),
       ),
     );
   }
 }
-
