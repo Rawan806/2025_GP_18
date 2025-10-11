@@ -27,6 +27,8 @@ flutter:
 
   assets:
     - assets/logo.png
+    - assets/background.jpg
+
 
   fonts:
     - family: NotoSansArabic

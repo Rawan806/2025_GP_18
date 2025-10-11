@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
 import '../signup/signup_screen.dart';
-
+// i added here as well
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
 
@@ -23,110 +23,142 @@ class _SigninScreenState extends State<SigninScreen> {
     super.dispose();
   }
 
+  void _handleLogin() {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى تعبئة البريد الإلكتروني وكلمة المرور'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // ✅ إذا تم إدخال البيانات — انتقل للصفحة الرئيسية
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomePage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // اللوقو
-              Image.asset('assets/logo.png', width: 120),
-
-              const SizedBox(height: 20),
-
-              // عنوان الصفحة
-              const Text(
-                'تسجيل الدخول كزائر',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+      body: Stack(
+        children: [
+          // الخلفية
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/background.jpg'),
+                fit: BoxFit.cover,
+                opacity: 1.0,
               ),
-
-              const SizedBox(height: 30),
-
-              // حقل البريد الإلكتروني
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'البريد الإلكتروني',
-                  border: OutlineInputBorder(),
-                ),
-                textAlign: TextAlign.right,
-                keyboardType: TextInputType.emailAddress,
-              ),
-
-              const SizedBox(height: 15),
-
-              // حقل كلمة المرور
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'كلمة المرور',
-                  border: OutlineInputBorder(),
-                ),
-                textAlign: TextAlign.right,
-              ),
-
-              const SizedBox(height: 20),
-
-              // زر تسجيل الدخول
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: mainGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: () {
-                  // توجيه المستخدم إلى الصفحة الرئيسية بعد تسجيل الدخول
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HomePage()),
-                  );
-                },
-                child: const Text(
-                  'دخول',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // زر إنشاء حساب جديد
-              TextButton(
-                onPressed: () {
-                  // ✅ هنا نربط صفحة إنشاء الحساب
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SignUpScreen(),
-                    ),
-                  );
-                },
-                child: Text(
-                  'ليس لديك حساب؟ سجل الآن',
-                  style: TextStyle(
-                    color: mainGreen,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          // طبقة تغميق
+          Container(
+            color: Colors.black.withOpacity(0.0),
+          ),
+          // المحتوى
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // اللوقو
+                  Image.asset('assets/logo.png', width: 120),
+
+                  const SizedBox(height: 20),
+
+                  // عنوان الصفحة
+                  const Text(
+                    'تسجيل الدخول كزائر',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // حقل البريد الإلكتروني
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'البريد الإلكتروني',
+                      border: OutlineInputBorder(),
+                    ),
+                    textAlign: TextAlign.right,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // حقل كلمة المرور
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'كلمة المرور',
+                      border: OutlineInputBorder(),
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // زر تسجيل الدخول
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: mainGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: _handleLogin, // ✅ استدعاء الدالة للتحقق
+                    child: const Text(
+                      'دخول',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // زر إنشاء حساب جديد
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SignUpScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'ليس لديك حساب؟ سجل الآن',
+                      style: TextStyle(
+                        color: mainGreen,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
-
