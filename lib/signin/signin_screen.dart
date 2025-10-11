@@ -13,7 +13,7 @@ class _SigninScreenState extends State<SigninScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // اللون الأساسي لتطبيق وديعة
+  
   final Color mainGreen = const Color(0xFF255E4B);
 
   @override
@@ -37,7 +37,6 @@ class _SigninScreenState extends State<SigninScreen> {
       return;
     }
 
-    // ✅ إذا تم إدخال البيانات — انتقل للصفحة الرئيسية
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -50,7 +49,7 @@ class _SigninScreenState extends State<SigninScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // الخلفية
+          
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -60,23 +59,22 @@ class _SigninScreenState extends State<SigninScreen> {
               ),
             ),
           ),
-          // طبقة تغميق
           Container(
             color: Colors.black.withOpacity(0.0),
           ),
-          // المحتوى
+
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // اللوقو
+                  
                   Image.asset('assets/logo.png', width: 120),
 
                   const SizedBox(height: 20),
 
-                  // عنوان الصفحة
+                  
                   const Text(
                     'تسجيل الدخول كزائر',
                     textAlign: TextAlign.center,
@@ -89,7 +87,7 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   const SizedBox(height: 30),
 
-                  // حقل البريد الإلكتروني
+                  
                   TextField(
                     controller: emailController,
                     decoration: const InputDecoration(
@@ -102,7 +100,7 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   const SizedBox(height: 15),
 
-                  // حقل كلمة المرور
+                  
                   TextField(
                     controller: passwordController,
                     obscureText: true,
@@ -115,7 +113,7 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   const SizedBox(height: 20),
 
-                  // زر تسجيل الدخول
+                  
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mainGreen,
@@ -125,7 +123,7 @@ class _SigninScreenState extends State<SigninScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    onPressed: _handleLogin, // ✅ استدعاء الدالة للتحقق
+                    onPressed: _handleLogin, // 
                     child: const Text(
                       'دخول',
                       style: TextStyle(fontSize: 16),
@@ -134,7 +132,7 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   const SizedBox(height: 10),
 
-                  // زر إنشاء حساب جديد
+                  
                   TextButton(
                     onPressed: () {
                       Navigator.push(
