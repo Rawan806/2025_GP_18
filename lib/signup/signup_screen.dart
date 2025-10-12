@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // ← لأجل inputFormatters
+import 'package:flutter/services.dart'; // لأجل inputFormatters
 import '../signin/signin_screen.dart';
 import '../HomePage/HomePage.dart';
 //i added background here
@@ -17,12 +17,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
-  final Color mainGreen = const Color(0xFF255E4B);
+  final Color mainGreen = const Color(0xFF243E36);
+  final Color borderBrown = const Color(0xFF272525);
 
   @override
   void initState() {
     super.initState();
-    // نجعل التطبيق يرسم خلف أشرطة النظام (status/navigation) ونخليها شفافة
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -117,8 +117,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     InputDecoration _dec(String label, IconData icon) => InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
+      filled: true,
+      fillColor: Colors.transparent,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderBrown, width: 1.6),
+      ),
+      labelStyle: TextStyle(color: borderBrown.withOpacity(0.85)),
     );
 
     //////////////////////////////////////////////
@@ -134,108 +148,115 @@ class _SignUpScreenState extends State<SignUpScreen> {
         iconTheme: const IconThemeData(color: Colors.black87),
         centerTitle: true,
       ),
-      body: Container(
-        constraints: const BoxConstraints.expand(), // ← يمـلأ الشاشة كلها
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/background.jpg'),
-            fit: BoxFit.cover,
-            opacity: 1.0,
-          ),
-        ),
-        child: SafeArea(
-          top: true,  // ← نحمي من الأعلى
-          bottom: false, // ← نخلي الخلفية تمتدّ تحت شريط النظام
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
-///////////////////////////////////////////////////////////////////////////
-                TextField(
-                  controller: nameController,
-                  decoration: _dec('الاسم الكامل', Icons.person),
-                  textDirection: TextDirection.rtl,
-                ),
-                const SizedBox(height: 15),
-
-                TextField(
-                  controller: emailController,
-                  decoration: _dec('البريد الإلكتروني', Icons.email),
-                  textDirection: TextDirection.rtl,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 15),
-
-                TextField(
-                  controller: phoneController,
-                  decoration: _dec('رقم الجوال', Icons.phone),
-                  textDirection: TextDirection.rtl,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters:  [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                ),
-                const SizedBox(height: 15),
-
-                // كلمة المرور
-                TextField(
-                  controller: passwordController,
-                  decoration: _dec('كلمة المرور', Icons.lock),
-                  obscureText: true,
-                  textDirection: TextDirection.rtl,
-                ),
-                const SizedBox(height: 15),
-
-                // تأكيد كلمة المرور
-                TextField(
-                  controller: confirmPasswordController,
-                  decoration: _dec('تأكيد كلمة المرور', Icons.lock_outline),
-                  obscureText: true,
-                  textDirection: TextDirection.rtl,
-                ),
-                const SizedBox(height: 30),
-
-                // إنشاء حساب فعليا
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _handleSignUp,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: mainGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('إنشاء حساب',
-                        style: TextStyle(fontSize: 18, color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // تسجيل الدخول
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SigninScreen()),
-                    );
-                  },
-                  child: Text(
-                    'لديك حساب بالفعل؟ تسجيل الدخول',
-                    style: TextStyle(
-                      color: mainGreen,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+      body: Stack(
+        children: [
+          Container(
+            constraints: const BoxConstraints.expand(), // يمـلا الشاشة كلها
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/background.jpg'),
+                fit: BoxFit.cover,
+                opacity: 1.0,
+              ),
             ),
           ),
-        ),
+          Container(
+            color: Colors.white24.withOpacity(0.25),
+          ),
+          SafeArea(
+            top: true,
+            bottom: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 40),
+///////////////////////////////////////////////////////////////////////////
+                  TextField(
+                    controller: nameController,
+                    decoration: _dec('الاسم الكامل', Icons.person),
+                    textDirection: TextDirection.rtl,
+                  ),
+                  const SizedBox(height: 15),
+
+                  TextField(
+                    controller: emailController,
+                    decoration: _dec('البريد الإلكتروني', Icons.email),
+                    textDirection: TextDirection.rtl,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 15),
+
+                  TextField(
+                    controller: phoneController,
+                    decoration: _dec('رقم الجوال', Icons.phone),
+                    textDirection: TextDirection.rtl,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters:  [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+
+                  // كلمة المرور
+                  TextField(
+                    controller: passwordController,
+                    decoration: _dec('كلمة المرور', Icons.lock),
+                    obscureText: true,
+                    textDirection: TextDirection.rtl,
+                  ),
+                  const SizedBox(height: 15),
+
+                  // تأكيد كلمة المرور
+                  TextField(
+                    controller: confirmPasswordController,
+                    decoration: _dec('تأكيد كلمة المرور', Icons.lock_outline),
+                    obscureText: true,
+                    textDirection: TextDirection.rtl,
+                  ),
+                  const SizedBox(height: 30),
+
+                  // إنشاء حساب فعليا
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _handleSignUp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: mainGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('إنشاء حساب',
+                          style: TextStyle(fontSize: 18, color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // تسجيل الدخول
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SigninScreen()),
+                      );
+                    },
+                    child: Text(
+                      'لديك حساب بالفعل؟ تسجيل الدخول',
+                      style: TextStyle(
+                        color: mainGreen,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

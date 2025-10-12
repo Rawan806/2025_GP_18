@@ -10,7 +10,9 @@ class LostForm extends StatefulWidget {
 }
 
 class _LostFormState extends State<LostForm> {
-  final Color mainGreen = const Color(0xFF255E4B);
+  final Color mainGreen = const Color(0xFF243E36);
+  final Color beigeColor = const Color(0xFFC3BFB0);
+  final Color borderBrown = const Color(0xFF272525);
 
   final _formKey = GlobalKey<FormState>();
 
@@ -39,8 +41,10 @@ class _LostFormState extends State<LostForm> {
       locale: const Locale('ar'),
     );
     if (pickedDate != null) {
-      final TimeOfDay? pickedTime =
-      await showTimePicker(context: context, initialTime: TimeOfDay.now());
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
       if (pickedTime != null) {
         setState(() {
           selectedDate = DateTime(
@@ -57,6 +61,22 @@ class _LostFormState extends State<LostForm> {
     }
   }
 
+  InputDecoration _inputDeco(String label, {IconData? icon}) {
+    return InputDecoration(
+      labelText: label,
+      suffixIcon: icon != null ? Icon(icon, color: mainGreen) : null,
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: borderBrown, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: borderBrown, width: 2),
+      ),
+      border: OutlineInputBorder(
+        borderSide: BorderSide(color: borderBrown),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     dateController.dispose();
@@ -68,9 +88,8 @@ class _LostFormState extends State<LostForm> {
 
   @override
   Widget build(BuildContext context) {
-    final outline = const OutlineInputBorder();
-
     return Scaffold(
+      backgroundColor: beigeColor,
       appBar: AppBar(
         backgroundColor: mainGreen,
         title: const Text('نموذج الإبلاغ'),
@@ -87,38 +106,29 @@ class _LostFormState extends State<LostForm> {
                 controller: dateController,
                 readOnly: true,
                 onTap: _pickDateTime,
-                decoration: InputDecoration(
-                  labelText: 'تاريخ ووقت الفقدان *',
-                  border: outline,
-                  suffixIcon: Icon(Icons.calendar_today, color: mainGreen),
-                ),
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'الرجاء اختيار التاريخ والوقت' : null,
+                decoration: _inputDeco('تاريخ ووقت الفقدان *', icon: Icons.calendar_today),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'الرجاء اختيار التاريخ والوقت'
+                    : null,
               ),
               const SizedBox(height: 15),
 
               TextFormField(
                 controller: itemNameController,
-                decoration: const InputDecoration(
-                  labelText: 'اسم الغرض المفقود *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'الرجاء إدخال اسم الغرض' : null,
+                decoration: _inputDeco('اسم الغرض المفقود *'),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'الرجاء إدخال اسم الغرض'
+                    : null,
               ),
               const SizedBox(height: 15),
 
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'التصنيف *',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _inputDeco('التصنيف *'),
                 items: categories
                     .map((c) => DropdownMenuItem<String>(
                   value: c,
                   child: Text(c),
-
                 ))
                     .toList(),
                 onChanged: (val) {
@@ -129,19 +139,15 @@ class _LostFormState extends State<LostForm> {
                     }
                   });
                 },
-                validator: (v) => (v == null || v.isEmpty)
-                    ? 'الرجاء اختيار التصنيف'
-                    : null,
+                validator: (v) =>
+                (v == null || v.isEmpty) ? 'الرجاء اختيار التصنيف' : null,
               ),
               const SizedBox(height: 15),
 
               if (_selectedCategory == 'أخرى') ...[
                 TextFormField(
                   controller: otherCategoryController,
-                  decoration: const InputDecoration(
-                    labelText: 'اذكر التصنيف',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: _inputDeco('اذكر التصنيف'),
                   validator: (v) => (_selectedCategory == 'أخرى' &&
                       (v == null || v.trim().isEmpty))
                       ? 'الرجاء كتابة التصنيف'
@@ -151,9 +157,7 @@ class _LostFormState extends State<LostForm> {
               ],
 
               OutlinedButton.icon(
-                onPressed: () {
-                  //  اربطها لاحقاً ب image_picker
-                },
+                onPressed: () {},
                 icon: Icon(Icons.upload, color: mainGreen),
                 label: Text('إرفاق صور للغرض', style: TextStyle(color: mainGreen)),
                 style: OutlinedButton.styleFrom(
@@ -177,10 +181,7 @@ class _LostFormState extends State<LostForm> {
               TextFormField(
                 controller: descriptionController,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'وصف إضافي (اختياري)',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _inputDeco('وصف إضافي (اختياري)'),
               ),
               const SizedBox(height: 25),
 

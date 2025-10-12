@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:wadiah_app/LostForm/LostForm.dart';
 import 'package:wadiah_app/signin/signin_screen.dart';
+import 'package:wadiah_app/Visitor_Profile/visitor_profile.dart';
+
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color mainGreen = Color(0xFF255E4B);
+    const Color mainGreen = Color(0xFF243E36);
+    const Color beigeColor = Color(0xFFC3BFB0); // لون الخلفية الجديد
 
     return Scaffold(
       appBar: AppBar(
@@ -18,22 +21,28 @@ class HomePage extends StatelessWidget {
 
       // السايد بار
       drawer: Drawer(
+        backgroundColor: beigeColor, // بيج
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Colors.white),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFAAA38C), //little different seems cool
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset('assets/logo.png', width: 72, height: 72),
                     const SizedBox(height: 8),
-                    Text('وديعة', style: TextStyle(
-                      color: mainGreen,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    )),
+                    Text(
+                      'وديعة',
+                      style: TextStyle(
+                        color: mainGreen,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -41,17 +50,19 @@ class HomePage extends StatelessWidget {
               ListTile(
                 leading: Icon(Icons.person, color: mainGreen),
                 title: const Text('الحساب'),
-                onTap: () {
-                  Navigator.pop(context); // إغلاق السايد بار
-                  // لاحقًا صفحة الحساب
-                },
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const VisitorProfile()),
+                    );
+                  },
               ),
               ListTile(
                 leading: Icon(Icons.chat_bubble_outline, color: mainGreen),
                 title: const Text('تواصل معنا'),
                 onTap: () {
                   Navigator.pop(context);
-                  // لاحقًا  صفحة التواصل
                 },
               ),
               const Divider(),
@@ -73,7 +84,7 @@ class HomePage extends StatelessWidget {
         ),
       ),
 
-      backgroundColor: Colors.white,
+      backgroundColor: beigeColor, //الصفحة بيج
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -94,9 +105,9 @@ class HomePage extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: mainGreen,
-                  side: BorderSide(color: mainGreen, width: 1.5),
+                  backgroundColor: mainGreen,
+                  foregroundColor: Colors.white,
+                  // side: const BorderSide(color: Colors.white, width: 1.2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -115,15 +126,16 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: mainGreen,
-                  side: const BorderSide(color: mainGreen, width: 1.5),
+                  backgroundColor: mainGreen,
+                  foregroundColor: Colors.white,
+                  // side: const BorderSide(color: Colors.white, width: 1.2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -134,6 +146,7 @@ class HomePage extends StatelessWidget {
                 child: const Text('متابعة بلاغ', style: TextStyle(fontSize: 20)),
               ),
             ),
+
           ],
         ),
       ),

@@ -32,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment(0.50, -0.00),
             end: Alignment(0.50, 1.00),
-            colors: [Color(0xFFB5D4CB), Color(0xFF5E6E6A)],
+            colors: [Color(0xFF798884), Color(0xFF837D70)],//0xFF243E36
           ),
         ),
         child: Stack(
@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     'وديعة.. ما استودع محفوظ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF2A353A),
+                      color: Color(0xFF333333),
                       fontSize: 20,
                       fontFamily: 'Noto Sans Arabic',
                       fontWeight: FontWeight.w600,

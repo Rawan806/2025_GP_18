@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
 import '../signup/signup_screen.dart';
-// i added here as well
+import '../welcomePage/welcome_screen.dart'; // عدّلي المسار إذا اختلف
+
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
 
@@ -13,8 +14,9 @@ class _SigninScreenState extends State<SigninScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  
-  final Color mainGreen = const Color(0xFF255E4B);
+  // ألوان الثيم حقتنا
+  final Color mainGreen = const Color(0xFF243E36);
+  final Color borderBrown = const Color(0xFF272525);
 
   @override
   void dispose() {
@@ -43,13 +45,33 @@ class _SigninScreenState extends State<SigninScreen> {
     );
   }
 
+  InputDecoration _dec(String label, IconData icon) => InputDecoration(
+    labelText: label,
+    prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
+    filled: true,
+    fillColor: Colors.transparent, // بدون تعبئة مصمتة
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown, width: 1.6),
+    ),
+    labelStyle: TextStyle(color: borderBrown.withOpacity(0.85)),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          
+          // الخلفية
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -59,71 +81,81 @@ class _SigninScreenState extends State<SigninScreen> {
               ),
             ),
           ),
+
           Container(
-            color: Colors.black.withOpacity(0.0),
+            color: Colors.white24.withOpacity(0.25),
+          ),
+
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                    );
+                  },
+                  icon: Directionality(
+                    textDirection: TextDirection.rtl, // يضمن اتجاه السهم لليمين
+                    child: const Icon(Icons.arrow_back, size: 22, color: Colors.black87),
+                  ),
+                  tooltip: 'رجوع',
+                ),
+              ),
+            ),
           ),
 
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  
-                  Image.asset('assets/logo.png', width: 120),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 20),
-
-                  
                   const Text(
-                    'تسجيل الدخول كزائر',
+                    'تسجيل الدخول',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
                       color: Colors.black87,
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
 
-                  
                   TextField(
                     controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'البريد الإلكتروني',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _dec('البريد الإلكتروني', Icons.email),
                     textAlign: TextAlign.right,
                     keyboardType: TextInputType.emailAddress,
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 14),
 
-                  
                   TextField(
                     controller: passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'كلمة المرور',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _dec('كلمة المرور', Icons.lock),
                     textAlign: TextAlign.right,
                   ),
 
                   const SizedBox(height: 20),
 
-                  
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mainGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: _handleLogin, // 
+                    onPressed: _handleLogin,
                     child: const Text(
                       'دخول',
                       style: TextStyle(fontSize: 16),
@@ -132,7 +164,6 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   const SizedBox(height: 10),
 
-                  
                   TextButton(
                     onPressed: () {
                       Navigator.push(
@@ -151,6 +182,8 @@ class _SigninScreenState extends State<SigninScreen> {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
