@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:wadiah_app/LostForm/LostForm.dart';
 import 'package:wadiah_app/signin/signin_screen.dart';
 import 'package:wadiah_app/Visitor_Profile/visitor_profile.dart';
+import 'package:wadiah_app/TrackReports/track_reports.dart';
+import 'package:wadiah_app/PreviousReports/previous_reports';
 
 
 class HomePage extends StatelessWidget {
@@ -58,6 +60,20 @@ class HomePage extends StatelessWidget {
                     );
                   },
               ),
+
+              
+              ListTile(
+                leading: Icon(Icons.article_outlined, color: mainGreen),
+                title: const Text('البلاغات السابقة'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PreviousReportsPage()),
+                    );
+                  },
+              ),
+
               ListTile(
                 leading: Icon(Icons.chat_bubble_outline, color: mainGreen),
                 title: const Text('تواصل معنا'),
@@ -92,7 +108,7 @@ class HomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 50),
-            Image.asset('assets/logo.png', width: 250, height: 250),
+            Image.asset('assets/logo.png', width: 150, height: 150),
             const SizedBox(height: 20),
             const Text(
               'حيث تُصان الودائع وتُرد الأمانات.',
@@ -142,8 +158,12 @@ class HomePage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 22),
                   elevation: 3,
                 ),
-                onPressed: () {},
-                child: const Text('متابعة بلاغ', style: TextStyle(fontSize: 20)),
+                onPressed: () {Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TrackReportScreen()),
+                  );
+                  },
+                child: const Text('متابعة البلاغات', style: TextStyle(fontSize: 20)),
               ),
             ),
 

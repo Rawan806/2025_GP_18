@@ -41,8 +41,8 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset('assets/logo.png', width: 180),
-                  const SizedBox(height: 24),
+                  Image.asset('assets/logo.png', width: 250),
+                  const SizedBox(height: 20),
                   const Text(
                     'وديعة.. ما استودع محفوظ',
                     textAlign: TextAlign.center,
