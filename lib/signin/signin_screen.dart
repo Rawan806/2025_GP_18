@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
 import '../signup/signup_screen.dart';
-import '../welcomePage/welcome_screen.dart'; // عدّلي المسار إذا اختلف
+import '../welcomePage/welcome_screen.dart';
+import '../staff/staff_login_screen.dart';
+import '../services/auth_service.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -13,6 +16,8 @@ class SigninScreen extends StatefulWidget {
 class _SigninScreenState extends State<SigninScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   // ألوان الثيم حقتنا
   final Color mainGreen = const Color(0xFF243E36);
@@ -25,7 +30,7 @@ class _SigninScreenState extends State<SigninScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -39,10 +44,77 @@ class _SigninScreenState extends State<SigninScreen> {
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // تسجيل الدخول باستخدام Firebase Auth
+      await _authService.signInWithEmailAndPassword(email, password);
+      
+      // الحصول على نوع المستخدم
+      String? userType = await _authService.getUserType();
+      
+      if (!mounted) return;
+
+      if (userType == 'staff') {
+        // إذا كان موظف، انتقل لصفحة الموظفين
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StaffLoginScreen()),
+        );
+      } else {
+        // إذا كان زائر، انتقل للصفحة الرئيسية
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'لا يوجد حساب بهذا البريد الإلكتروني';
+          break;
+        case 'wrong-password':
+          message = 'كلمة المرور غير صحيحة';
+          break;
+        case 'invalid-email':
+          message = 'البريد الإلكتروني غير صحيح';
+          break;
+        case 'user-disabled':
+          message = 'تم تعطيل هذا الحساب';
+          break;
+        default:
+          message = 'خطأ في تسجيل الدخول: ${e.message}';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ غير متوقع: $e'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   InputDecoration _dec(String label, IconData icon) => InputDecoration(
@@ -155,11 +227,20 @@ class _SigninScreenState extends State<SigninScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: _handleLogin,
-                    child: const Text(
-                      'دخول',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    onPressed: _isLoading ? null : _handleLogin,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'دخول',
+                            style: TextStyle(fontSize: 16),
+                          ),
                   ),
 
                   const SizedBox(height: 10),

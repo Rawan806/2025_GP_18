@@ -4,6 +4,7 @@ import 'package:wadiah_app/signin/signin_screen.dart';
 import 'package:wadiah_app/Visitor_Profile/visitor_profile.dart';
 import 'package:wadiah_app/TrackReports/track_reports.dart';
 import 'package:wadiah_app/PreviousReports/previous_reports';
+import 'package:wadiah_app/services/auth_service.dart';
 
 
 class HomePage extends StatelessWidget {
@@ -87,6 +88,7 @@ class HomePage extends StatelessWidget {
                 leading: Icon(Icons.logout, color: mainGreen),
                 title: const Text('تسجيل خروج'),
                 onTap: () {
+                  AuthService().signOut();
                   Navigator.pop(context);
                   Navigator.pushAndRemoveUntil(
                     context,

@@ -1,15 +1,21 @@
-// import 'package:flutter/material.dart'; *************WE'LL DO IT LATER***************
-//
-// class StaffLoginScreen extends StatelessWidget {
-//   const StaffLoginScreen({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return const Scaffold(
-//       backgroundColor: Colors.white,
-//       body: Center(
-//         child: Text('hi'),
-//       ),
-//     );
-//   }
-// }
+import 'package:flutter/material.dart';
+
+class StaffLoginScreen extends StatelessWidget {
+  const StaffLoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Text(
+          'صفحة الموظفين',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}

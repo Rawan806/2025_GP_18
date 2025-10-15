@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../signin/signin_screen.dart';
-import '../staff/staff_login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -11,10 +10,12 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final Animation<double> _logoFade;
   late final Animation<double> _titleFade;
   late final Animation<double> _subtitleFade;
   late final Animation<double> _buttonsFade;
 
+  late final Animation<Offset> _logoSlide;
   late final Animation<Offset> _titleSlide;
   late final Animation<Offset> _subtitleSlide;
   late final Animation<Offset> _buttonsSlide;
@@ -29,19 +30,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       duration: const Duration(milliseconds: 1200),
     );
 
+    _logoFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.25, curve: Curves.easeOut),
+    );
     _titleFade = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
+      curve: const Interval(0.15, 0.45, curve: Curves.easeOut),
     );
     _subtitleFade = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.25, 0.6, curve: Curves.easeOut),
+      curve: const Interval(0.3, 0.6, curve: Curves.easeOut),
     );
     _buttonsFade = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.45, 1.0, curve: Curves.easeOut),
+      curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
     );
 
+    _logoSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(_logoFade);
     _titleSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
         .animate(_titleFade);
     _subtitleSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
@@ -61,7 +68,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   Widget _fadeSlide(Animation<double> fade, Animation<Offset> slide, Widget child) {
     return FadeTransition(
       opacity: fade,
-      child: SlideTransition(position: slide, child: child),
+      child: SlideTransition(
+        position: slide,
+        child: child,
+      ),
     );
   }
 
@@ -70,7 +80,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     return Scaffold(
       body: Stack(
         children: [
-          // الخلفية فقط
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -80,62 +89,86 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               ),
             ),
           ),
-          // طبقة خفيفة لتنعيم الخلفية
-          Container(color: Colors.white.withOpacity(0.25)),
 
-          // المحتوى بالنصوص فقط
+          Container(
+            color: Colors.white24.withOpacity(0.25),
+          ),
+
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // العنوان الرئيسي
+                // اللوقو
                 _fadeSlide(
-                  _titleFade,
-                  _titleSlide,
-                  Text(
-                    'مرحبًا بك في وديعة',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      color: mainGreen,
-                      letterSpacing: 1.2,
-                      shadows: const [
-                        Shadow(
-                          blurRadius: 10,
-                          color: Colors.black26,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
+                  _logoFade,
+                  _logoSlide,
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      width: 350,
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                // العنوان
+                _fadeSlide(
+                  _titleFade,
+                  _titleSlide,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'وديعة ترحب بك!',
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w800,
+                        color: mainGreen,
+                        letterSpacing: 1.2,
+                        shadows: const [
+                          //Shadow(
+                          //   blurRadius: 8,
+                          //   color: Colors.black26,
+                          //   offset: Offset(2, 2),
+                          //,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
 
                 // النص الفرعي
                 _fadeSlide(
                   _subtitleFade,
                   _subtitleSlide,
-                  Text(
-                    'فضلًا اختر نوع المستخدم',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: mainGreen.withOpacity(0.95),
-                      shadows: const [
-                        Shadow(
-                          blurRadius: 6,
-                          color: Colors.black26,
-                          offset: Offset(1, 1),
-                        ),
-                      ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'اختر حسابك للمتابعة',
+                      style: TextStyle(
+                        fontSize: 27,
+                        color: mainGreen,
+                        fontWeight: FontWeight.w500,
+                        shadows: const [
+                          // Shadow(
+                          //   blurRadius: 5,
+                          //   color: Colors.black26,
+                          //   offset: Offset(1, 1),
+                          // ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 50),
+                const SizedBox(height: 36),
 
                 // الأزرار
                 _fadeSlide(
@@ -158,7 +191,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                           ),
                         ),
                         child: const Text(
-                          'زائر (مبلّغ)',
+                          'زائر',
                           style: TextStyle(
                             fontSize: 22,
                             color: Colors.white,
@@ -199,4 +232,3 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 }
-
