@@ -3,7 +3,7 @@ import 'package:wadiah_app/LostForm/LostForm.dart';
 import 'package:wadiah_app/signin/signin_screen.dart';
 import 'package:wadiah_app/Visitor_Profile/visitor_profile.dart';
 import 'package:wadiah_app/TrackReports/track_reports.dart';
-import 'package:wadiah_app/PreviousReports/previous_reports';
+import 'package:wadiah_app/PreviousReports/previous_reports.dart';
 
 
 class HomePage extends StatelessWidget {

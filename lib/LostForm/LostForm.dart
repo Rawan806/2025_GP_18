@@ -92,7 +92,14 @@ class _LostFormState extends State<LostForm> {
       backgroundColor: beigeColor,
       appBar: AppBar(
         backgroundColor: mainGreen,
-        title: const Text('نموذج الإبلاغ'),
+        title: Text(
+          'نموذج الإبلاغ',
+          style: const TextStyle(
+            color: Colors.white,         //خليته ابيض اوضح
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
