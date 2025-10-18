@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // لأجل inputFormatters
+import 'package:firebase_auth/firebase_auth.dart';
 import '../signin/signin_screen.dart';
 import '../HomePage/HomePage.dart';
+import '../services/auth_service.dart';
 //i added background here
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -16,6 +18,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
@@ -48,7 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return emailRegex.hasMatch(email);
   }
 
-  void _handleSignUp() {
+  void _handleSignUp() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final phone = phoneController.text.trim();
@@ -99,18 +103,78 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم إنشاء الحساب بنجاح')),
-    );
+    setState(() {
+      _isLoading = true;
+    });
 
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // إنشاء حساب جديد باستخدام Firebase Auth
+      await _authService.createUserWithEmailAndPassword(
+        email, 
+        password, 
+        name, 
+        phone, 
+        'visitor' // نوع المستخدم كزائر
+      );
+
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إنشاء الحساب بنجاح'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // الانتقال للصفحة الرئيسية
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
-            (route) => false,
+        (route) => false,
       );
-    });
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'weak-password':
+          message = 'كلمة المرور ضعيفة جداً';
+          break;
+        case 'email-already-in-use':
+          message = 'البريد الإلكتروني مستخدم من قبل';
+          break;
+        case 'invalid-email':
+          message = 'البريد الإلكتروني غير صحيح';
+          break;
+        default:
+          message = 'خطأ في إنشاء الحساب: ${e.message}';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ غير متوقع: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -222,15 +286,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _handleSignUp,
+                      onPressed: _isLoading ? null : _handleSignUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mainGreen,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('إنشاء حساب',
-                          style: TextStyle(fontSize: 18, color: Colors.white)),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('إنشاء حساب',
+                              style: TextStyle(fontSize: 18, color: Colors.white)),
                     ),
                   ),
                   const SizedBox(height: 20),

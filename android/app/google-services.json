@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265296325179",
+    "project_id": "wadiah-6225a",
+    "storage_bucket": "wadiah-6225a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265296325179:android:fd65af4a5a2cadd481ca1e",
+        "android_client_info": {
+          "package_name": "com.example.wadiah_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSyUaCx1Ulcq7yyZUe-ahYhEfvnt7E2u4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
