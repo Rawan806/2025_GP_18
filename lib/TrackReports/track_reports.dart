@@ -3,28 +3,35 @@ import 'package:flutter/material.dart';
 class TrackReportScreen extends StatelessWidget {
   const TrackReportScreen({super.key});
 
-  final Color mainGreen = const Color(0xFF255E4B); // الأخضر الرئيسي
+  final Color mainGreen = const Color(0xFF243E36); // اللون المعتمد
   final Color beigeColor = const Color(0xFFC3BFB0);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: beigeColor, // 🔸 خلفية الصفحة كلها بيج
+      backgroundColor: beigeColor,
       appBar: AppBar(
-        title: const Text('متابعة بلاغاتي'),
-        centerTitle: true,
         backgroundColor: mainGreen,
+        centerTitle: true,
+        title: Text(
+          'متابعة بلاغاتي',
+          style: const TextStyle(
+            color: Colors.white,         //خليته ابيض اوضح
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
 
       body: Column(
         children: [
-          // 🟢 قائمة البلاغات
+
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: ListView(
                 children: [
-                  // ===== بطاقة البلاغ رقم 1 =====
+                  //  البلاغ رقم 1
                   Container(
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.only(bottom: 12),
@@ -58,7 +65,7 @@ class TrackReportScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // ===== بطاقة البلاغ رقم 2 =====
+                  //   البلاغ رقم 2
                   Container(
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.only(bottom: 12),
@@ -85,7 +92,7 @@ class TrackReportScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // ===== بطاقة البلاغ رقم 3 =====
+                  //  بطاقة البلاغ رقم 3
                   Container(
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.only(bottom: 12),
@@ -116,14 +123,13 @@ class TrackReportScreen extends StatelessWidget {
             ),
           ),
 
-          // 🟤 كونتينر الدعاء في الأسفل
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFE9D8C3), // بني فاتح
-                borderRadius: BorderRadius.circular(18), // زوايا أنعم
+                color: const Color(0xFFE9D8C3),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black12,

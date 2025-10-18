@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class PreviousReportsPage extends StatelessWidget {
   const PreviousReportsPage({super.key});
 
- final Color mainGreen = const Color(0xFF255E4B);
+ final Color mainGreen = const Color(0xFF243E36);
  final Color beigeColor = const Color(0xFFC3BFB0);
 
   @override
@@ -29,7 +29,7 @@ class PreviousReportsPage extends StatelessWidget {
           'لا توجد بلاغات حالياً',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey,
+            color: Colors.black38,
           ),
         ),
       ),
