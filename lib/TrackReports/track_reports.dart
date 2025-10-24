@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class TrackReportScreen extends StatelessWidget {
   const TrackReportScreen({super.key});
@@ -8,20 +9,25 @@ class TrackReportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: beigeColor,
-      appBar: AppBar(
-        backgroundColor: mainGreen,
-        centerTitle: true,
-        title: Text(
-          'متابعة بلاغاتي',
-          style: const TextStyle(
-            color: Colors.white,         //خليته ابيض اوضح
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: beigeColor,
+        appBar: AppBar(
+          backgroundColor: mainGreen,
+          centerTitle: true,
+          title: Text(
+            AppLocalizations.translate('trackMyReports', currentLocale.languageCode),
+            style: const TextStyle(
+              color: Colors.white,         //خليته ابيض اوضح
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
         ),
-      ),
 
       body: Column(
         children: [
@@ -50,7 +56,7 @@ class TrackReportScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'رقم البلاغ: 1023',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: 1023',
                           style: TextStyle(
                             fontSize: 16,
                             color: mainGreen,
@@ -58,9 +64,9 @@ class TrackReportScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text('المفقود: هاتف سامسونج أسود'),
+                        Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: ${isArabic ? 'هاتف سامسونج أسود' : 'Samsung Black Phone'}'),
                         const SizedBox(height: 6),
-                        const Text('الحالة: قيد المراجعة'),
+                        Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: ${AppLocalizations.translate('underReview', currentLocale.languageCode)}'),
                       ],
                     ),
                   ),
@@ -82,12 +88,12 @@ class TrackReportScreen extends StatelessWidget {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('رقم البلاغ: 1024', style: TextStyle(fontWeight: FontWeight.bold)),
-                        SizedBox(height: 6),
-                        Text('المفقود: بطاقة هوية'),
-                        SizedBox(height: 6),
-                        Text('الحالة: جارٍ البحث'),
+                      children: [
+                        Text('${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: 1024', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: ${isArabic ? 'بطاقة هوية' : 'ID Card'}'),
+                        const SizedBox(height: 6),
+                        Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: ${AppLocalizations.translate('searching', currentLocale.languageCode)}'),
                       ],
                     ),
                   ),
@@ -109,12 +115,12 @@ class TrackReportScreen extends StatelessWidget {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('رقم البلاغ: 1025', style: TextStyle(fontWeight: FontWeight.bold)),
-                        SizedBox(height: 6),
-                        Text('المفقود: حقيبة صغيرة'),
-                        SizedBox(height: 6),
-                        Text('الحالة: جاهز للاستلام'),
+                      children: [
+                        Text('${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: 1025', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: ${isArabic ? 'حقيبة صغيرة' : 'Small Bag'}'),
+                        const SizedBox(height: 6),
+                        Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: ${AppLocalizations.translate('readyForPickup', currentLocale.languageCode)}'),
                       ],
                     ),
                   ),
@@ -142,7 +148,7 @@ class TrackReportScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'ما زلت تبحث عن مفقودك؟ رددّ دعاء الضالة',
+                    AppLocalizations.translate('duaaMessage', currentLocale.languageCode),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -152,7 +158,7 @@ class TrackReportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '"اللهم ربّ الضالة, رد علي ضالتي"',
+                    AppLocalizations.translate('duaaText', currentLocale.languageCode),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
@@ -168,6 +174,7 @@ class TrackReportScreen extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class PreviousReportsPage extends StatelessWidget {
   const PreviousReportsPage({super.key});
@@ -8,28 +9,34 @@ class PreviousReportsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: beigeColor,
-      appBar: AppBar(
-        backgroundColor: mainGreen, 
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'البلاغات السابقة',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: beigeColor,
+        appBar: AppBar(
+          backgroundColor: mainGreen, 
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            AppLocalizations.translate('previousReports', currentLocale.languageCode),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
 
-      body: const Center(
-        child: Text(
-          'لا توجد بلاغات حالياً',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black38,
+        body: Center(
+          child: Text(
+            AppLocalizations.translate('noPreviousReports', currentLocale.languageCode),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black38,
+            ),
           ),
         ),
       ),

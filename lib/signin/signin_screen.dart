@@ -1,7 +1,12 @@
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
 import '../signup/signup_screen.dart';
-import '../welcomePage/welcome_screen.dart'; // عدّلي المسار إذا اختلف
+import '../welcomePage/welcome_screen.dart';
+import '../staff/staff_login_screen.dart';
+import '../services/auth_service.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -13,6 +18,8 @@ class SigninScreen extends StatefulWidget {
 class _SigninScreenState extends State<SigninScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   // ألوان الثيم حقتنا
   final Color mainGreen = const Color(0xFF243E36);
@@ -25,7 +32,7 @@ class _SigninScreenState extends State<SigninScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -39,10 +46,77 @@ class _SigninScreenState extends State<SigninScreen> {
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // تسجيل الدخول باستخدام Firebase Auth
+      await _authService.signInWithEmailAndPassword(email, password);
+      
+      // الحصول على نوع المستخدم
+      String? userType = await _authService.getUserType();
+      
+      if (!mounted) return;
+
+      if (userType == 'staff') {
+        // إذا كان موظف، انتقل لصفحة الموظفين
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StaffLoginScreen()),
+        );
+      } else {
+        // إذا كان زائر، انتقل للصفحة الرئيسية
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'لا يوجد حساب بهذا البريد الإلكتروني';
+          break;
+        case 'wrong-password':
+          message = 'كلمة المرور غير صحيحة';
+          break;
+        case 'invalid-email':
+          message = 'البريد الإلكتروني غير صحيح';
+          break;
+        case 'user-disabled':
+          message = 'تم تعطيل هذا الحساب';
+          break;
+        default:
+          message = 'خطأ في تسجيل الدخول: ${e.message}';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ غير متوقع: $e'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   InputDecoration _dec(String label, IconData icon) => InputDecoration(
@@ -67,9 +141,14 @@ class _SigninScreenState extends State<SigninScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Stack(
         children: [
           // الخلفية
           Container(
@@ -116,10 +195,10 @@ class _SigninScreenState extends State<SigninScreen> {
                 children: [
                   const SizedBox(height: 16),
 
-                  const Text(
-                    'تسجيل الدخول',
+                  Text(
+                    AppLocalizations.translate('signIn', currentLocale.languageCode),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -130,8 +209,8 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   TextField(
                     controller: emailController,
-                    decoration: _dec('البريد الإلكتروني', Icons.email),
-                    textAlign: TextAlign.right,
+                    decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     keyboardType: TextInputType.emailAddress,
                   ),
 
@@ -140,8 +219,8 @@ class _SigninScreenState extends State<SigninScreen> {
                   TextField(
                     controller: passwordController,
                     obscureText: true,
-                    decoration: _dec('كلمة المرور', Icons.lock),
-                    textAlign: TextAlign.right,
+                    decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
 
                   const SizedBox(height: 20),
@@ -155,11 +234,20 @@ class _SigninScreenState extends State<SigninScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: _handleLogin,
-                    child: const Text(
-                      'دخول',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    onPressed: _isLoading ? null : _handleLogin,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            AppLocalizations.translate('login', currentLocale.languageCode),
+                            style: const TextStyle(fontSize: 16),
+                          ),
                   ),
 
                   const SizedBox(height: 10),
@@ -174,7 +262,7 @@ class _SigninScreenState extends State<SigninScreen> {
                       );
                     },
                     child: Text(
-                      'ليس لديك حساب؟ سجل الآن',
+                      AppLocalizations.translate('noAccount', currentLocale.languageCode),
                       style: TextStyle(
                         color: mainGreen,
                         fontSize: 14,
@@ -190,6 +278,7 @@ class _SigninScreenState extends State<SigninScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

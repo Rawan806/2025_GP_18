@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../signin/signin_screen.dart';
 import '../staff/staff_login_screen.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -67,7 +68,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
       body: Stack(
         children: [
           // الخلفية فقط
@@ -93,7 +99,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                   _titleFade,
                   _titleSlide,
                   Text(
-                    'مرحبًا بك في وديعة',
+                    '${AppLocalizations.translate('welcome', currentLocale.languageCode)} ${AppLocalizations.translate('appTitle', currentLocale.languageCode)}',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 42,
@@ -157,9 +163,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'زائر (مبلّغ)',
-                          style: TextStyle(
+                        child: Text(
+                          AppLocalizations.translate('visitor', currentLocale.languageCode),
+                          style: const TextStyle(
                             fontSize: 22,
                             color: Colors.white,
                           ),
@@ -180,8 +186,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'موظف',
+                        child: Text(
+                          AppLocalizations.translate('staff', currentLocale.languageCode),
                           style: TextStyle(
                             fontSize: 22,
                             color: Colors.white,
@@ -196,6 +202,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           ),
         ],
       ),
+    ),
     );
   }
 }

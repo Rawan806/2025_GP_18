@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // لأجل inputFormatters
+import 'package:firebase_auth/firebase_auth.dart';
 import '../signin/signin_screen.dart';
 import '../HomePage/HomePage.dart';
+import '../services/auth_service.dart';
+import '../l10n/app_localizations_helper.dart';
 //i added background here
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -16,6 +19,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
@@ -48,7 +53,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return emailRegex.hasMatch(email);
   }
 
-  void _handleSignUp() {
+  void _handleSignUp() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final phone = phoneController.text.trim();
@@ -99,22 +104,85 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم إنشاء الحساب بنجاح')),
-    );
+    setState(() {
+      _isLoading = true;
+    });
 
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // إنشاء حساب جديد باستخدام Firebase Auth
+      await _authService.createUserWithEmailAndPassword(
+        email, 
+        password, 
+        name, 
+        phone, 
+        'visitor' // نوع المستخدم كزائر
+      );
+
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إنشاء الحساب بنجاح'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // الانتقال للصفحة الرئيسية
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
-            (route) => false,
+        (route) => false,
       );
-    });
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'weak-password':
+          message = 'كلمة المرور ضعيفة جداً';
+          break;
+        case 'email-already-in-use':
+          message = 'البريد الإلكتروني مستخدم من قبل';
+          break;
+        case 'invalid-email':
+          message = 'البريد الإلكتروني غير صحيح';
+          break;
+        default:
+          message = 'خطأ في إنشاء الحساب: ${e.message}';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ غير متوقع: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
     InputDecoration _dec(String label, IconData icon) => InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
@@ -137,17 +205,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     //////////////////////////////////////////////
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text('إنشاء حساب جديد', style: TextStyle(color: Colors.black87)),
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        extendBody: true,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
-        centerTitle: true,
-      ),
+        appBar: AppBar(
+          title: Text(
+            AppLocalizations.translate('signUp', currentLocale.languageCode), 
+            style: const TextStyle(color: Colors.black87)
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black87),
+          centerTitle: true,
+        ),
       body: Stack(
         children: [
           Container(
@@ -175,23 +248,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
 ///////////////////////////////////////////////////////////////////////////
                   TextField(
                     controller: nameController,
-                    decoration: _dec('الاسم الكامل', Icons.person),
-                    textDirection: TextDirection.rtl,
+                    decoration: _dec(AppLocalizations.translate('fullName', currentLocale.languageCode), Icons.person),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 15),
 
                   TextField(
                     controller: emailController,
-                    decoration: _dec('البريد الإلكتروني', Icons.email),
-                    textDirection: TextDirection.rtl,
+                    decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 15),
 
                   TextField(
                     controller: phoneController,
-                    decoration: _dec('رقم الجوال', Icons.phone),
-                    textDirection: TextDirection.rtl,
+                    decoration: _dec(AppLocalizations.translate('phoneNumber', currentLocale.languageCode), Icons.phone),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     keyboardType: TextInputType.phone,
                     inputFormatters:  [
                       FilteringTextInputFormatter.digitsOnly,
@@ -203,18 +276,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // كلمة المرور
                   TextField(
                     controller: passwordController,
-                    decoration: _dec('كلمة المرور', Icons.lock),
+                    decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
                     obscureText: true,
-                    textDirection: TextDirection.rtl,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 15),
 
                   // تأكيد كلمة المرور
                   TextField(
                     controller: confirmPasswordController,
-                    decoration: _dec('تأكيد كلمة المرور', Icons.lock_outline),
+                    decoration: _dec(AppLocalizations.translate('confirmPassword', currentLocale.languageCode), Icons.lock_outline),
                     obscureText: true,
-                    textDirection: TextDirection.rtl,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 30),
 
@@ -222,15 +295,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _handleSignUp,
+                      onPressed: _isLoading ? null : _handleSignUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mainGreen,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('إنشاء حساب',
-                          style: TextStyle(fontSize: 18, color: Colors.white)),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(AppLocalizations.translate('createAccount', currentLocale.languageCode),
+                              style: const TextStyle(fontSize: 18, color: Colors.white)),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -244,7 +326,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       );
                     },
                     child: Text(
-                      'لديك حساب بالفعل؟ تسجيل الدخول',
+                      AppLocalizations.translate('hasAccount', currentLocale.languageCode),
                       style: TextStyle(
                         color: mainGreen,
                         fontSize: 14,
@@ -258,6 +340,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }
