@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "tagline": "Where deposits are kept and trusts are returned.",
+  "signIn": "Sign in",
+  "email": "Email",
+  "password": "Password",
+  "login": "Login",
+  "noAccount": "Don't have an account? Sign up",
+  "reportLost": "Report a lost item",
+  "trackReport": "Track a report",
+  "lostFormTitle": "Report Form",
+  "dateTime": "Date & time of loss *",
+  "itemName": "Lost item name *",
+  "attachPhotos": "Attach photos",
+  "tipText": "Tip: To help find your item, attach an old photo if available, or search for a similar image online and attach it.",
+  "extraDesc": "Additional description (optional)",
+  "submit": "Submit",
+  "account": "Account",
+  "contactUs": "Contact us",
+  "logout": "Log out"
+}
