@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:wadiah_app/HomePage/HomePage.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class LostForm extends StatefulWidget {
   const LostForm({super.key});
@@ -24,13 +25,15 @@ class _LostFormState extends State<LostForm> {
   DateTime? selectedDate;
   String? _selectedCategory;
 
-  final List<String> categories = const [
-    'إلكترونيات',
-    'مجوهرات',
-    'حقائب',
-    'بطاقات/وثائق',
-    'أخرى',
-  ];
+  List<String> _getCategories(String languageCode) {
+    return [
+      AppLocalizations.translate('electronics', languageCode),
+      AppLocalizations.translate('jewelry', languageCode),
+      AppLocalizations.translate('bags', languageCode),
+      AppLocalizations.translate('documentsCards', languageCode),
+      AppLocalizations.translate('other', languageCode),
+    ];
+  }
 
   Future<void> _pickDateTime() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -55,7 +58,7 @@ class _LostFormState extends State<LostForm> {
             pickedTime.minute,
           );
           dateController.text =
-              DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
+              intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
         });
       }
     }
@@ -88,20 +91,26 @@ class _LostFormState extends State<LostForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: beigeColor,
-      appBar: AppBar(
-        backgroundColor: mainGreen,
-        title: Text(
-          'نموذج الإبلاغ',
-          style: const TextStyle(
-            color: Colors.white,         //خليته ابيض اوضح
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    final categories = _getCategories(currentLocale.languageCode);
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: beigeColor,
+        appBar: AppBar(
+          backgroundColor: mainGreen,
+          title: Text(
+            AppLocalizations.translate('reportForm', currentLocale.languageCode),
+            style: const TextStyle(
+              color: Colors.white,         //خليته ابيض اوضح
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -113,25 +122,25 @@ class _LostFormState extends State<LostForm> {
                 controller: dateController,
                 readOnly: true,
                 onTap: _pickDateTime,
-                decoration: _inputDeco('تاريخ ووقت الفقدان *', icon: Icons.calendar_today),
+                decoration: _inputDeco(AppLocalizations.translate('lostDateTime', currentLocale.languageCode), icon: Icons.calendar_today),
                 validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'الرجاء اختيار التاريخ والوقت'
+                    ? AppLocalizations.translate('pleaseSelectDateTime', currentLocale.languageCode)
                     : null,
               ),
               const SizedBox(height: 15),
 
               TextFormField(
                 controller: itemNameController,
-                decoration: _inputDeco('اسم الغرض المفقود *'),
+                decoration: _inputDeco(AppLocalizations.translate('lostItemName', currentLocale.languageCode)),
                 validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'الرجاء إدخال اسم الغرض'
+                    ? AppLocalizations.translate('pleaseEnterItemName', currentLocale.languageCode)
                     : null,
               ),
               const SizedBox(height: 15),
 
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: _inputDeco('التصنيف *'),
+                decoration: _inputDeco(AppLocalizations.translate('category', currentLocale.languageCode)),
                 items: categories
                     .map((c) => DropdownMenuItem<String>(
                   value: c,
@@ -141,23 +150,23 @@ class _LostFormState extends State<LostForm> {
                 onChanged: (val) {
                   setState(() {
                     _selectedCategory = val;
-                    if (_selectedCategory != 'أخرى') {
+                    if (_selectedCategory != AppLocalizations.translate('other', currentLocale.languageCode)) {
                       otherCategoryController.clear();
                     }
                   });
                 },
                 validator: (v) =>
-                (v == null || v.isEmpty) ? 'الرجاء اختيار التصنيف' : null,
+                (v == null || v.isEmpty) ? AppLocalizations.translate('pleaseSelectCategory', currentLocale.languageCode) : null,
               ),
               const SizedBox(height: 15),
 
-              if (_selectedCategory == 'أخرى') ...[
+              if (_selectedCategory == AppLocalizations.translate('other', currentLocale.languageCode)) ...[
                 TextFormField(
                   controller: otherCategoryController,
-                  decoration: _inputDeco('اذكر التصنيف'),
-                  validator: (v) => (_selectedCategory == 'أخرى' &&
+                  decoration: _inputDeco(AppLocalizations.translate('otherCategory', currentLocale.languageCode)),
+                  validator: (v) => (_selectedCategory == AppLocalizations.translate('other', currentLocale.languageCode) &&
                       (v == null || v.trim().isEmpty))
-                      ? 'الرجاء كتابة التصنيف'
+                      ? AppLocalizations.translate('pleaseSpecifyCategory', currentLocale.languageCode)
                       : null,
                 ),
                 const SizedBox(height: 15),
@@ -166,7 +175,7 @@ class _LostFormState extends State<LostForm> {
               OutlinedButton.icon(
                 onPressed: () {},
                 icon: Icon(Icons.upload, color: mainGreen),
-                label: Text('إرفاق صور للغرض', style: TextStyle(color: mainGreen)),
+                label: Text(AppLocalizations.translate('attachPhotos', currentLocale.languageCode), style: TextStyle(color: mainGreen)),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: mainGreen),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -175,7 +184,7 @@ class _LostFormState extends State<LostForm> {
               const SizedBox(height: 10),
 
               Text(
-                'ملاحظة: للمساعدة في العثور على الغرض المفقود، يُفضّل إرفاق صورة قديمة إن وُجدت، أو البحث عن صورة مشابهة من الإنترنت وإرفاقها.',
+                AppLocalizations.translate('photoNote', currentLocale.languageCode),
                 style: TextStyle(
                   color: Colors.grey.shade700,
                   fontSize: 12,
@@ -188,7 +197,7 @@ class _LostFormState extends State<LostForm> {
               TextFormField(
                 controller: descriptionController,
                 maxLines: 4,
-                decoration: _inputDeco('وصف إضافي (اختياري)'),
+                decoration: _inputDeco(AppLocalizations.translate('additionalDescription', currentLocale.languageCode)),
               ),
               const SizedBox(height: 25),
 
@@ -202,15 +211,15 @@ class _LostFormState extends State<LostForm> {
                   final valid = _formKey.currentState?.validate() ?? false;
                   if (!valid) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('يرجى تعبئة الحقول المطلوبة')),
+                      SnackBar(content: Text(AppLocalizations.translate('fillAllFields', currentLocale.languageCode))),
                     );
                     return;
                   }
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('تم إرسال البلاغ بنجاح'),
-                      duration: Duration(seconds: 1),
+                    SnackBar(
+                      content: Text(AppLocalizations.translate('reportSubmitted', currentLocale.languageCode)),
+                      duration: const Duration(seconds: 1),
                     ),
                   );
 
@@ -222,12 +231,13 @@ class _LostFormState extends State<LostForm> {
                     );
                   });
                 },
-                child: const Text('إرسال البلاغ', style: TextStyle(fontSize: 18)),
+                child: Text(AppLocalizations.translate('submitReport', currentLocale.languageCode), style: const TextStyle(fontSize: 18)),
               ),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 }

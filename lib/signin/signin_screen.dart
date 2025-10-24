@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
@@ -5,6 +6,7 @@ import '../signup/signup_screen.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../staff/staff_login_screen.dart';
 import '../services/auth_service.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -139,9 +141,14 @@ class _SigninScreenState extends State<SigninScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Stack(
         children: [
           // الخلفية
           Container(
@@ -188,10 +195,10 @@ class _SigninScreenState extends State<SigninScreen> {
                 children: [
                   const SizedBox(height: 16),
 
-                  const Text(
-                    'تسجيل الدخول',
+                  Text(
+                    AppLocalizations.translate('signIn', currentLocale.languageCode),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -202,8 +209,8 @@ class _SigninScreenState extends State<SigninScreen> {
 
                   TextField(
                     controller: emailController,
-                    decoration: _dec('البريد الإلكتروني', Icons.email),
-                    textAlign: TextAlign.right,
+                    decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     keyboardType: TextInputType.emailAddress,
                   ),
 
@@ -212,8 +219,8 @@ class _SigninScreenState extends State<SigninScreen> {
                   TextField(
                     controller: passwordController,
                     obscureText: true,
-                    decoration: _dec('كلمة المرور', Icons.lock),
-                    textAlign: TextAlign.right,
+                    decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
 
                   const SizedBox(height: 20),
@@ -237,9 +244,9 @@ class _SigninScreenState extends State<SigninScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'دخول',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            AppLocalizations.translate('login', currentLocale.languageCode),
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
 
@@ -255,7 +262,7 @@ class _SigninScreenState extends State<SigninScreen> {
                       );
                     },
                     child: Text(
-                      'ليس لديك حساب؟ سجل الآن',
+                      AppLocalizations.translate('noAccount', currentLocale.languageCode),
                       style: TextStyle(
                         color: mainGreen,
                         fontSize: 14,
@@ -271,6 +278,7 @@ class _SigninScreenState extends State<SigninScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

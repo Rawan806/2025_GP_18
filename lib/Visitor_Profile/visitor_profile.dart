@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class VisitorProfile extends StatelessWidget {
   const VisitorProfile({super.key});
@@ -9,17 +10,22 @@ class VisitorProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: beige,
-      appBar: AppBar(
-        backgroundColor: mainGreen,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'إعدادات الحساب',
-          style: TextStyle(color: Colors.white),
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: beige,
+        appBar: AppBar(
+          backgroundColor: mainGreen,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            AppLocalizations.translate('accountSettings', currentLocale.languageCode),
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
-      ),
       body: Stack(
         children: [
           Container(height: 120, color: mainGreen),
@@ -75,7 +81,7 @@ class VisitorProfile extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 Text(
-                  'المعلومات الشخصية',
+                  AppLocalizations.translate('personalInfo', currentLocale.languageCode),
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.black.withOpacity(0.6),
@@ -85,35 +91,32 @@ class VisitorProfile extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(1.4),
-                      1: FlexColumnWidth(1.6),
-                    },
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    children: const [
-                      TableRow(children: [
-                        _ProfileLabel('الاسم'),
-                        _ProfileValue('روان'),
-                      ]),
-                      TableRow(children: [
-                        SizedBox(height: 14), SizedBox(height: 14),
-                      ]),
-                      TableRow(children: [
-                        _ProfileLabel('رقم الجوال'),
-                        _ProfileValue('0500000000'),
-                      ]),
-                      TableRow(children: [
-                        SizedBox(height: 14), SizedBox(height: 14),
-                      ]),
-                      TableRow(children: [
-                        _ProfileLabel('البريد الإلكتروني'),
-                        _ProfileValue('rawan@gmail.com'),
-                      ]),
-                    ],
-                  ),
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(1.4),
+                    1: FlexColumnWidth(1.6),
+                  },
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  children: [
+                    TableRow(children: [
+                      _ProfileLabel(AppLocalizations.translate('name', currentLocale.languageCode)),
+                      const _ProfileValue('روان'),
+                    ]),
+                    const TableRow(children: [
+                      SizedBox(height: 14), SizedBox(height: 14),
+                    ]),
+                    TableRow(children: [
+                      _ProfileLabel(AppLocalizations.translate('phoneNumber', currentLocale.languageCode)),
+                      const _ProfileValue('0500000000'),
+                    ]),
+                    const TableRow(children: [
+                      SizedBox(height: 14), SizedBox(height: 14),
+                    ]),
+                    TableRow(children: [
+                      _ProfileLabel(AppLocalizations.translate('email', currentLocale.languageCode)),
+                      const _ProfileValue('rawan@gmail.com'),
+                    ]),
+                  ],
                 ),
 
                 const SizedBox(height: 36),
@@ -133,7 +136,10 @@ class VisitorProfile extends StatelessWidget {
                       shape: const StadiumBorder(),
                       elevation: 2,
                     ),
-                    child: const Text('تعديل المعلومات الشخصية', style: TextStyle(fontSize: 16)),
+                    child: Text(
+                      AppLocalizations.translate('editPersonalInfo', currentLocale.languageCode), 
+                      style: const TextStyle(fontSize: 16)
+                    ),
                   ),
                 ),
 
@@ -154,7 +160,10 @@ class VisitorProfile extends StatelessWidget {
                       shape: const StadiumBorder(),
                       elevation: 2,
                     ),
-                    child: const Text('تعديل كلمة المرور', style: TextStyle(fontSize: 16)),
+                    child: Text(
+                      AppLocalizations.translate('changePassword', currentLocale.languageCode), 
+                      style: const TextStyle(fontSize: 16)
+                    ),
                   ),
                 ),
 
@@ -164,6 +173,7 @@ class VisitorProfile extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -174,9 +184,12 @@ class _ProfileLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
     return Text(
       text,
-      textAlign: TextAlign.right,
+      textAlign: isArabic ? TextAlign.right : TextAlign.left,
       style: TextStyle(
         fontSize: 16,
         color: Colors.black.withOpacity(0.65),
@@ -192,9 +205,12 @@ class _ProfileValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
     return Text(
       text,
-      textAlign: TextAlign.left,
+      textAlign: isArabic ? TextAlign.left : TextAlign.right,
       style: const TextStyle(
         fontSize: 18,
         color: Colors.black87,
