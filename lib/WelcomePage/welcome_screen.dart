@@ -197,8 +197,94 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
+<<<<<<< Updated upstream
                 ],
               ),
+=======
+                ),
+
+                const SizedBox(height: 16),
+
+                // النص الفرعي
+                _fadeSlide(
+                  _subtitleFade,
+                  _subtitleSlide,
+                  Text(
+                    'فضلًا اختر نوع المستخدم',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: mainGreen.withOpacity(0.95),
+                      shadows: const [
+                        Shadow(
+                          blurRadius: 6,
+                          color: Colors.black26,
+                          offset: Offset(1, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 50),
+
+                // الأزرار
+                _fadeSlide(
+                  _buttonsFade,
+                  _buttonsSlide,
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SigninScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mainGreen,
+                          minimumSize: const Size(240, 60),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          AppLocalizations.translate('visitor', currentLocale.languageCode),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                           context,
+                           MaterialPageRoute(builder: (context) => const StaffLoginScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mainGreen,
+                          minimumSize: const Size(240, 60),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          AppLocalizations.translate('staff', currentLocale.languageCode),
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+>>>>>>> Stashed changes
             ),
           ],
         ),
