@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../signin/signin_screen.dart';
 import '../staff/found_item_page.dart';
 import '../l10n/app_localizations_helper.dart';
+import '../staff/staff_login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -89,7 +90,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             // طبقة خفيفة لتنعيم الخلفية
             Container(color: Colors.white.withOpacity(0.25)),
 
-            // المحتوى بالنصوص فقط
+            // المحتوى
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -99,7 +100,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     _titleFade,
                     _titleSlide,
                     Text(
-                      '${AppLocalizations.translate('welcome', currentLocale.languageCode)} ${AppLocalizations.translate('appTitle', currentLocale.languageCode)}',
+                      '${AppLocalizations.translate('welcome', currentLocale.languageCode)} '
+                      '${AppLocalizations.translate('appTitle', currentLocale.languageCode)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 42,
@@ -149,11 +151,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     _buttonsSlide,
                     Column(
                       children: [
+                        // زر الزائر
                         ElevatedButton(
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SigninScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const SigninScreen(),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -171,12 +176,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 20),
+
                         ElevatedButton(
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const FoundItemPage()),
+                              MaterialPageRoute(
+                                builder: (_) => const StaffLoginScreen(),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -197,94 +206,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
-<<<<<<< Updated upstream
                 ],
               ),
-=======
-                ),
-
-                const SizedBox(height: 16),
-
-                // النص الفرعي
-                _fadeSlide(
-                  _subtitleFade,
-                  _subtitleSlide,
-                  Text(
-                    'فضلًا اختر نوع المستخدم',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: mainGreen.withOpacity(0.95),
-                      shadows: const [
-                        Shadow(
-                          blurRadius: 6,
-                          color: Colors.black26,
-                          offset: Offset(1, 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 50),
-
-                // الأزرار
-                _fadeSlide(
-                  _buttonsFade,
-                  _buttonsSlide,
-                  Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const SigninScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: mainGreen,
-                          minimumSize: const Size(240, 60),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          AppLocalizations.translate('visitor', currentLocale.languageCode),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                           context,
-                           MaterialPageRoute(builder: (context) => const StaffLoginScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: mainGreen,
-                          minimumSize: const Size(240, 60),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          AppLocalizations.translate('staff', currentLocale.languageCode),
-                          style: TextStyle(
-                            fontSize: 22,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
->>>>>>> Stashed changes
             ),
           ],
         ),

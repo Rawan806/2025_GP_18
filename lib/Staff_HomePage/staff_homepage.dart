@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import '../staff/found_item_page.dart';
+import '../welcomePage/welcome_screen.dart';
+import '../staff/search_reports_page.dart'; 
 
 class StaffHomePage extends StatelessWidget {
   const StaffHomePage({super.key});
@@ -9,26 +11,21 @@ class StaffHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const totalReports = 24;
-    const pendingReports = 5;
-    const matchedReports = 7;
-    const closedReports = 12;
-
     final latestReports = [
       {
-        'id': '#R-1024',
+        'id': '1023',
         'title': 'ساعة يد فضية',
         'status': 'قيد المراجعة',
         'date': 'اليوم - 12:30 م',
       },
       {
-        'id': '#R-1023',
+        'id': '1024',
         'title': 'محفظة جلد بنية',
         'status': 'مطابقة مبدئية',
         'date': 'أمس - 4:10 م',
       },
       {
-        'id': '#R-1022',
+        'id': '1025',
         'title': 'حقيبة ظهر سوداء',
         'status': 'مغلقة',
         'date': 'أمس - 10:05 ص',
@@ -42,7 +39,7 @@ class StaffHomePage extends StatelessWidget {
           backgroundColor: mainGreen,
           foregroundColor: Colors.white,
           title: const Text(
-            'واجهة الموظف',
+            'الرئيسية - الموظف',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           centerTitle: true,
@@ -50,7 +47,12 @@ class StaffHomePage extends StatelessWidget {
           actions: [
             IconButton(
               onPressed: () {
-                // TODO: ربط تسجيل الخروج لاحقًا
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const WelcomeScreen(),
+                  ),
+                );
               },
               icon: const Icon(Icons.logout),
               tooltip: 'تسجيل الخروج',
@@ -76,25 +78,20 @@ class StaffHomePage extends StatelessWidget {
                 children: [
                   const SizedBox(height: 8),
 
-                  // Quick Actions
-                  const Text(
-                    'الإجراءات السريعة',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: _QuickActionCard(
                           color: mainGreen,
-                          icon: Icons.add_box_outlined,
-                          label: 'تسجيل لقطة جديدة',
+                          icon: Icons.link,
+                          label: 'مطابقة بلاغ',
                           onTap: () {
-                            // TODO: الانتقال لصفحة "New Found Item"
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FoundItemPage(),
+                              ),
+                            );
                           },
                         ),
                       ),
@@ -105,7 +102,13 @@ class StaffHomePage extends StatelessWidget {
                           icon: Icons.search,
                           label: 'بحث في البلاغات',
                           onTap: () {
-                            // TODO: الانتقال لصفحة "Search Reports"
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const SearchReportsPage(),
+                              ),
+                            );
                           },
                         ),
                       ),
@@ -114,63 +117,7 @@ class StaffHomePage extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Dashboard Cards
-                  const Text(
-                    'لوحة التقارير',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DashboardCard(
-                          title: 'إجمالي البلاغات',
-                          value: totalReports.toString(),
-                          icon: Icons.list_alt,
-                          color: mainGreen,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _DashboardCard(
-                          title: 'قيد المتابعة',
-                          value: pendingReports.toString(),
-                          icon: Icons.hourglass_bottom,
-                          color: Colors.orange.shade800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DashboardCard(
-                          title: 'بلاغات مطابقة',
-                          value: matchedReports.toString(),
-                          icon: Icons.link,
-                          color: Colors.blueGrey.shade700,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _DashboardCard(
-                          title: 'بلاغات مغلقة',
-                          value: closedReports.toString(),
-                          icon: Icons.check_circle,
-                          color: Colors.green.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Latest Reports
+                  // أحدث البلاغات
                   const Text(
                     'أحدث البلاغات',
                     style: TextStyle(
@@ -184,7 +131,7 @@ class StaffHomePage extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: latestReports.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final report = latestReports[index];
                       return _ReportListTile(
@@ -260,67 +207,6 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-class _DashboardCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _DashboardCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 6,
-            color: Colors.black12,
-            offset: Offset(0, 3),
-          ),
-        ],
-        border: Border.all(color: color.withOpacity(0.65), width: 1.2),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: color.withOpacity(0.12),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ReportListTile extends StatelessWidget {
   final String id;
   final String title;
@@ -339,71 +225,46 @@ class _ReportListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white, // نفس TrackReportScreen
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
-            blurRadius: 4,
             color: Colors.black12,
+            blurRadius: 4,
             offset: Offset(0, 2),
           ),
         ],
-        border: Border.all(
-          color: mainColor.withOpacity(0.5),
-          width: 0.9,
-        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: mainColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              id,
-              style: TextStyle(
-                fontSize: 11,
-                color: mainColor.withOpacity(0.95),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
+          // رقم البلاغ
           Text(
-            status,
+            'رقم البلاغ: $id',
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
               color: mainColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // العنصر المفقود
+          Text('العنصر المفقود: $title'),
+          const SizedBox(height: 6),
+
+          // الحالة
+          Text('الحالة: $status'),
+          const SizedBox(height: 6),
+
+          // التاريخ
+          Text(
+            'التاريخ: $date',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
             ),
           ),
         ],

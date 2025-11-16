@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../welcomePage/welcome_screen.dart';
-import '../Staff_HomePage/staff_homepage.dart'; // تم التصحيح هنا
+import '../Staff_HomePage/staff_homepage.dart';
 
 class StaffLoginScreen extends StatefulWidget {
   const StaffLoginScreen({super.key});
@@ -25,31 +25,28 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
   }
 
   InputDecoration _dec(String label, IconData icon) => InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.9),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: borderBrown, width: 1.8),
-        ),
-        labelStyle: TextStyle(
-          color: borderBrown.withOpacity(0.85),
-          fontWeight: FontWeight.w500,
-        ),
-      );
+    labelText: label,
+    prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
+    filled: true,
+    fillColor: Colors.white.withOpacity(0.9),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown, width: 1.8),
+    ),
+    labelStyle: TextStyle(
+      color: borderBrown.withOpacity(0.85),
+      fontWeight: FontWeight.w500,
+    ),
+  );
 
   void _onLoginPressed() {
     if (!_formKey.currentState!.validate()) return;
@@ -57,9 +54,7 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
     // بعد ما يتم التحقق من صحة الحقول، ننتقل لواجهة الموظف
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => const StaffHomePage(),
-      ),
+      MaterialPageRoute(builder: (_) => const StaffHomePage()),
     );
   }
 
@@ -81,9 +76,7 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
                 ),
               ),
             ),
-            Container(
-              color: Colors.white24.withOpacity(0.25),
-            ),
+            Container(color: Colors.white24.withOpacity(0.25)),
 
             // زر الرجوع
             SafeArea(
@@ -114,8 +107,10 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
             // الفورم
             Center(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -166,8 +161,7 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: mainGreen,
                           foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
