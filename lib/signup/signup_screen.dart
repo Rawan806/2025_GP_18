@@ -183,7 +183,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
 
-    InputDecoration _dec(String label, IconData icon) => InputDecoration(
+    InputDecoration dec(String label, IconData icon) => InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
       filled: true,
@@ -255,14 +255,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 ///////////////////////////////////////////////////////////////////////////
                     TextField(
                       controller: nameController,
-                      decoration: _dec(AppLocalizations.translate('fullName', currentLocale.languageCode), Icons.person),
+                      decoration: dec(AppLocalizations.translate('fullName', currentLocale.languageCode), Icons.person),
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),
                     const SizedBox(height: 15),
 
                     TextField(
                       controller: emailController,
-                      decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                      decoration: dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       keyboardType: TextInputType.emailAddress,
                     ),
@@ -270,7 +270,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     TextField(
                       controller: phoneController,
-                      decoration: _dec(AppLocalizations.translate('phoneNumber', currentLocale.languageCode), Icons.phone),
+                      decoration: dec(AppLocalizations.translate('phoneNumber', currentLocale.languageCode), Icons.phone),
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       keyboardType: TextInputType.phone,
                       inputFormatters:  [
@@ -283,7 +283,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     // كلمة المرور
                     TextField(
                       controller: passwordController,
-                      decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                      decoration: dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
                       obscureText: true,
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),
@@ -292,7 +292,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     // تأكيد كلمة المرور
                     TextField(
                       controller: confirmPasswordController,
-                      decoration: _dec(AppLocalizations.translate('confirmPassword', currentLocale.languageCode), Icons.lock_outline),
+                      decoration: dec(AppLocalizations.translate('confirmPassword', currentLocale.languageCode), Icons.lock_outline),
                       obscureText: true,
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),

@@ -103,7 +103,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: DropdownButtonFormField<String>(
-                value: selectedStatus,
+                initialValue: selectedStatus,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
@@ -176,7 +176,6 @@ class _ReportCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ReportCard({
-    super.key,
     required this.mainGreen,
     required this.report,
     required this.onTap,
