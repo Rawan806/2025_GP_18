@@ -1,4 +1,3 @@
-// lib/staff/found_item_page.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +6,7 @@ import '../AI_services/found_item_service.dart';
 
 class FoundItemPage extends StatefulWidget {
   const FoundItemPage({super.key});
+
   @override
   State<FoundItemPage> createState() => _FoundItemPageState();
 }
@@ -48,15 +48,24 @@ class _FoundItemPageState extends State<FoundItemPage> {
     fillColor: Colors.white.withOpacity(.88),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide: BorderSide(
+        color: borderBrown.withOpacity(0.7),
+        width: 1.2,
+      ),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide: BorderSide(
+        color: borderBrown.withOpacity(0.7),
+        width: 1.2,
+      ),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown, width: 1.6),
+      borderSide: BorderSide(
+        color: borderBrown,
+        width: 1.6,
+      ),
     ),
     labelStyle: TextStyle(color: borderBrown.withOpacity(0.85)),
   );
@@ -77,10 +86,11 @@ class _FoundItemPageState extends State<FoundItemPage> {
 
   Future<void> _runAI() async {
     if (_image == null) return;
+
     setState(() => _busy = true);
     try {
       final bytes = await _image!.readAsBytes();
-      final res = await _ai.suggest(bytes);
+      final res = await _ai.suggest(bytes); // List<Map<String, dynamic>>
 
       final suggestions = res
           .map((m) => (m['label'] ?? '').toString())
@@ -88,43 +98,57 @@ class _FoundItemPageState extends State<FoundItemPage> {
           .toList();
 
       String? aiColor;
-      for (final m in res) {
-        if (m['color'] is String) {
-          aiColor = m['color'] as String;
-          break;
+      if (res.isNotEmpty) {
+        final c = res.first['color'];
+        if (c is String && c.isNotEmpty) {
+          aiColor = c;
         }
       }
 
       setState(() {
-        _typeChips =
-        suggestions.length > 3 ? suggestions.take(3).toList() : suggestions;
+        _typeChips = suggestions.length > 3
+            ? suggestions.take(3).toList()
+            : suggestions;
         _colorSuggest = aiColor;
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('AI error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AI error: $e')),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _save() async {
+  void _showMsg(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+
+  bool _validate() {
     if (_image == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please add a photo')));
-      return;
+      _showMsg('Please add a photo');
+      return false;
     }
     if (_typeCtrl.text.trim().isEmpty ||
         _colorCtrl.text.trim().isEmpty ||
         _foundLocCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Type/Color/Location are required')));
-      return;
+      _showMsg('Type/Color/Location are required');
+      return false;
     }
+    return true;
+  }
+
+  Future<void> _save() async {
+    if (!_validate()) return;
 
     setState(() => _busy = true);
     try {
       final url = await _service.uploadImage(_image!);
-      await _service.saveFoundItem(
+
+      final item = FoundItem(
         type: _typeCtrl.text.trim(),
         color: _colorCtrl.text.trim(),
         description: _descCtrl.text.trim(),
@@ -136,15 +160,23 @@ class _FoundItemPageState extends State<FoundItemPage> {
         aiColor: _colorSuggest,
       );
 
+      await _service.saveFoundItemModel(item);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved successfully'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('Saved successfully'),
+          backgroundColor: Colors.green,
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Save failed: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -156,12 +188,19 @@ class _FoundItemPageState extends State<FoundItemPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Register Found Item', style: TextStyle(color: Colors.black87)),
+        title: const Text(
+          'Register Found Item',
+          style: TextStyle(color: Colors.black87),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _image != null ? _runAI : null, tooltip: 'Re-run AI'),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _image != null ? _runAI : null,
+            tooltip: 'Re-run AI',
+          ),
         ],
       ),
       body: Stack(
@@ -173,50 +212,107 @@ class _FoundItemPageState extends State<FoundItemPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 AspectRatio(
-                  aspectRatio: 16/9,
+                  aspectRatio: 16 / 9,
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.black12,
                       borderRadius: BorderRadius.circular(12),
-                      image: _image != null ? DecorationImage(image: FileImage(_image!), fit: BoxFit.cover) : null,
+                      image: _image != null
+                          ? DecorationImage(
+                        image: FileImage(_image!),
+                        fit: BoxFit.cover,
+                      )
+                          : null,
                     ),
-                    child: _image == null ? const Center(child: Text('No image selected')) : null,
+                    child: _image == null
+                        ? const Center(child: Text('No image selected'))
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.photo_camera), label: const Text('Camera'), onPressed: () => _pick(true))),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.photo_camera),
+                        label: const Text('Camera'),
+                        onPressed: () => _pick(true),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.photo), label: const Text('Gallery'), onPressed: () => _pick(false))),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.photo),
+                        label: const Text('Gallery'),
+                        onPressed: () => _pick(false),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
                 if (_typeChips.isNotEmpty) ...[
-                  const Text('Suggested types:', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Suggested types:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   Wrap(
                     spacing: 8,
-                    children: _typeChips.map((t) => ActionChip(label: Text(t), onPressed: () => _typeCtrl.text = t)).toList(),
+                    children: _typeChips
+                        .map(
+                          (t) => ActionChip(
+                        label: Text(t),
+                        onPressed: () => _typeCtrl.text = t,
+                      ),
+                    )
+                        .toList(),
                   ),
                   const SizedBox(height: 8),
                 ],
 
                 if (_colorSuggest != null) ...[
-                  const Text('Suggested color:', style: TextStyle(fontWeight: FontWeight.w600)),
-                  Wrap(children: [ActionChip(label: Text(_colorSuggest!), onPressed: () => _colorCtrl.text = _colorSuggest!)],),
+                  const Text(
+                    'Suggested color:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Wrap(
+                    children: [
+                      ActionChip(
+                        label: Text(_colorSuggest!),
+                        onPressed: () => _colorCtrl.text = _colorSuggest!,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                 ],
 
-                TextField(controller: _typeCtrl, decoration: _dec('Item type (e.g., wallet, phone)')),
+                TextField(
+                  controller: _typeCtrl,
+                  decoration:
+                  _dec('Item type (e.g., wallet, phone, ring...)'),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _colorCtrl, decoration: _dec('Color')),
+                TextField(
+                  controller: _colorCtrl,
+                  decoration: _dec('Color'),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _descCtrl, decoration: _dec('Description / distinctive marks'), maxLines: 3),
+                TextField(
+                  controller: _descCtrl,
+                  decoration:
+                  _dec('Description / distinctive marks'),
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _foundLocCtrl, decoration: _dec('Found location (area/desk)')),
+                TextField(
+                  controller: _foundLocCtrl,
+                  decoration: _dec('Found location (area/desk)'),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _storageLocCtrl, decoration: _dec('Storage location (office shelf/bin)')),
+                TextField(
+                  controller: _storageLocCtrl,
+                  decoration: _dec('Storage location (office shelf/bin)'),
+                ),
                 const SizedBox(height: 10),
 
                 OutlinedButton.icon(
@@ -226,13 +322,26 @@ class _FoundItemPageState extends State<FoundItemPage> {
                     final d = await showDatePicker(
                       context: context,
                       initialDate: _foundAt,
-                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                      firstDate: DateTime.now()
+                          .subtract(const Duration(days: 30)),
+                      lastDate:
+                      DateTime.now().add(const Duration(days: 1)),
                     );
                     if (d == null) return;
-                    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_foundAt));
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_foundAt),
+                    );
                     if (t == null) return;
-                    setState(() => _foundAt = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+                    setState(() {
+                      _foundAt = DateTime(
+                        d.year,
+                        d.month,
+                        d.day,
+                        t.hour,
+                        t.minute,
+                      );
+                    });
                   },
                 ),
 
@@ -240,9 +349,17 @@ class _FoundItemPageState extends State<FoundItemPage> {
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: mainGreen),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: mainGreen,
+                    ),
                     onPressed: _busy ? null : _save,
-                    child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
