@@ -96,12 +96,14 @@ class _FoundItemPageState extends State<FoundItemPage> {
       }
 
       setState(() {
-        _typeChips = suggestions.length > 3 ? suggestions.take(3).toList() : suggestions;
+        _typeChips =
+        suggestions.length > 3 ? suggestions.take(3).toList() : suggestions;
         _colorSuggest = aiColor;
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI error: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('AI error: $e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
