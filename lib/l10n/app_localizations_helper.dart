@@ -29,7 +29,7 @@ class AppLocalizations {
       'back': 'رجوع',
       
       // Welcome
-      'welcome': 'مرحباً بك',
+      'welcome': ' مرحباً بك في',
       'getStarted': 'ابدأ الآن',
       'visitor': 'زائر',
       'staff': 'موظف',
