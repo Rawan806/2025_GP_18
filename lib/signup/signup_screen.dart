@@ -111,11 +111,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       // إنشاء حساب جديد باستخدام Firebase Auth
       await _authService.createUserWithEmailAndPassword(
-        email, 
-        password, 
-        name, 
-        phone, 
-        'visitor' // نوع المستخدم كزائر
+          email,
+          password,
+          name,
+          phone,
+          'visitor' // نوع المستخدم كزائر
       );
 
       if (!mounted) return;
@@ -132,7 +132,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
+            (route) => false,
       );
     } on FirebaseAuthException catch (e) {
       String message;
@@ -149,7 +149,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         default:
           message = 'خطأ في إنشاء الحساب: ${e.message}';
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -182,25 +182,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
-    
-    InputDecoration _dec(String label, IconData icon) => InputDecoration(
+
+    InputDecoration dec(String label, IconData icon) => InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
       filled: true,
-      fillColor: Colors.transparent,
+      // خلفية أفتح عشان التباين مع الصورة
+      fillColor: Colors.white.withOpacity(0.9),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+
+      // إطار أوضح وأسمك شوي
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+        borderSide: BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderBrown, width: 1.6),
+        borderSide: BorderSide(color: borderBrown, width: 1.8),
       ),
-      labelStyle: TextStyle(color: borderBrown.withOpacity(0.85)),
+      labelStyle: TextStyle(
+        color: borderBrown.withOpacity(0.85),
+        fontWeight: FontWeight.w500,
+      ),
     );
 
     //////////////////////////////////////////////
@@ -213,134 +220,134 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            AppLocalizations.translate('signUp', currentLocale.languageCode), 
-            style: const TextStyle(color: Colors.black87)
+              AppLocalizations.translate('signUp', currentLocale.languageCode),
+              style: const TextStyle(color: Colors.black87)
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black87),
           centerTitle: true,
         ),
-      body: Stack(
-        children: [
-          Container(
-            constraints: const BoxConstraints.expand(), // يمـلا الشاشة كلها
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/background.jpg'),
-                fit: BoxFit.cover,
-                opacity: 1.0,
+        body: Stack(
+          children: [
+            Container(
+              constraints: const BoxConstraints.expand(), // يمـلا الشاشة كلها
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/background.jpg'),
+                  fit: BoxFit.cover,
+                  opacity: 1.0,
+                ),
               ),
             ),
-          ),
-          Container(
-            color: Colors.white24.withOpacity(0.25),
-          ),
-          SafeArea(
-            top: true,
-            bottom: false,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 40),
+            Container(
+              color: Colors.white24.withOpacity(0.25),
+            ),
+            SafeArea(
+              top: true,
+              bottom: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 40),
 ///////////////////////////////////////////////////////////////////////////
-                  TextField(
-                    controller: nameController,
-                    decoration: _dec(AppLocalizations.translate('fullName', currentLocale.languageCode), Icons.person),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                  ),
-                  const SizedBox(height: 15),
+                    TextField(
+                      controller: nameController,
+                      decoration: dec(AppLocalizations.translate('fullName', currentLocale.languageCode), Icons.person),
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    ),
+                    const SizedBox(height: 15),
 
-                  TextField(
-                    controller: emailController,
-                    decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 15),
+                    TextField(
+                      controller: emailController,
+                      decoration: dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 15),
 
-                  TextField(
-                    controller: phoneController,
-                    decoration: _dec(AppLocalizations.translate('phoneNumber', currentLocale.languageCode), Icons.phone),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters:  [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
+                    TextField(
+                      controller: phoneController,
+                      decoration: dec(AppLocalizations.translate('phoneNumber', currentLocale.languageCode), Icons.phone),
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters:  [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
 
-                  // كلمة المرور
-                  TextField(
-                    controller: passwordController,
-                    decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
-                    obscureText: true,
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                  ),
-                  const SizedBox(height: 15),
+                    // كلمة المرور
+                    TextField(
+                      controller: passwordController,
+                      decoration: dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                      obscureText: true,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    ),
+                    const SizedBox(height: 15),
 
-                  // تأكيد كلمة المرور
-                  TextField(
-                    controller: confirmPasswordController,
-                    decoration: _dec(AppLocalizations.translate('confirmPassword', currentLocale.languageCode), Icons.lock_outline),
-                    obscureText: true,
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                  ),
-                  const SizedBox(height: 30),
+                    // تأكيد كلمة المرور
+                    TextField(
+                      controller: confirmPasswordController,
+                      decoration: dec(AppLocalizations.translate('confirmPassword', currentLocale.languageCode), Icons.lock_outline),
+                      obscureText: true,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    ),
+                    const SizedBox(height: 30),
 
-                  // إنشاء حساب فعليا
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSignUp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: mainGreen,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // إنشاء حساب فعليا
+                    SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleSignUp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mainGreen,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : Text(AppLocalizations.translate('createAccount', currentLocale.languageCode),
+                            style: const TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // تسجيل الدخول
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SigninScreen()),
+                        );
+                      },
+                      child: Text(
+                        AppLocalizations.translate('hasAccount', currentLocale.languageCode),
+                        style: TextStyle(
+                          color: mainGreen,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(AppLocalizations.translate('createAccount', currentLocale.languageCode),
-                              style: const TextStyle(fontSize: 18, color: Colors.white)),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // تسجيل الدخول
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SigninScreen()),
-                      );
-                    },
-                    child: Text(
-                      AppLocalizations.translate('hasAccount', currentLocale.languageCode),
-                      style: TextStyle(
-                        color: mainGreen,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 }

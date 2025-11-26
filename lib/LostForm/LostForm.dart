@@ -139,7 +139,7 @@ class _LostFormState extends State<LostForm> {
               const SizedBox(height: 15),
 
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: _inputDeco(AppLocalizations.translate('category', currentLocale.languageCode)),
                 items: categories
                     .map((c) => DropdownMenuItem<String>(

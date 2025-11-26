@@ -1,6 +1,9 @@
 
 # Wadi’ah: Smart Lost & Found (Al-Masjid Al-Haram)
 
+<img width="1031" height="591" alt="image" src="https://github.com/user-attachments/assets/c0da54dd-c461-49e3-9e4a-966d6099c636" />
+
+
 ## 1) Introduction
 
 Wadi’ah is a smart lost-and-found system for Al-Masjid Al-Haram. It provides an AI-powered mobile app that helps pilgrims and staff report, track, and recover lost items quickly and securely, with bilingual (Arabic/English) support.

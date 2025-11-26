@@ -1,42 +1,50 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // لازم يجي بعد Android/Kotlin
     id("dev.flutter.flutter-gradle-plugin")
+    // Firebase Google Services
     id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.wadiah_app"
+
+    // يقرأ الإعدادات المتوافقة مع نسخة Flutter/AGP الحالية
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // استخدمي Java 17 (مطلوب للإصدارات الحديثة)
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Application Id حق تطبيقكم
         applicationId = "com.example.wadiah_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        //minSdk = flutter.minSdkVersion
-        minSdk = 23
+
+        // خليه يعتمد قيم Flutter (عادة minSdk 21 وما فوق)
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // مؤقتًا نستخدم توقيع debug عشان يشتغل run/release
             signingConfig = signingConfigs.getByName("debug")
+            // لو احتجتِ تقليل الحجم:
+            // isMinifyEnabled = false
+            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        debug {
+            // إعدادات debug عادي
         }
     }
 }
@@ -46,11 +54,8 @@ flutter {
 }
 
 dependencies {
-  // Import the Firebase BoM
-  implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
-
-
-  // TODO: Add the dependencies for Firebase products you want to use
-  // When using the BoM, don't specify versions in Firebase dependencies
-  // https://firebase.google.com/docs/android/setup#available-libraries
+    // Firebase BoM لإدارة تعارض الإصدارات على الطرف الأصلي
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    // لا تضيفي مكتبات فايربيز يدوياً هنا بإصدارات؛
+    // Flutter plugins (firebase_core/auth/firestore/storage) تتولى الموضوع.
 }

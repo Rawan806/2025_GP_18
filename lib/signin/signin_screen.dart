@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
@@ -53,10 +52,10 @@ class _SigninScreenState extends State<SigninScreen> {
     try {
       // تسجيل الدخول باستخدام Firebase Auth
       await _authService.signInWithEmailAndPassword(email, password);
-      
+
       // الحصول على نوع المستخدم
       String? userType = await _authService.getUserType();
-      
+
       if (!mounted) return;
 
       if (userType == 'staff') {
@@ -90,7 +89,7 @@ class _SigninScreenState extends State<SigninScreen> {
         default:
           message = 'خطأ في تسجيل الدخول: ${e.message}';
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -123,162 +122,169 @@ class _SigninScreenState extends State<SigninScreen> {
     labelText: label,
     prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
     filled: true,
-    fillColor: Colors.transparent, // بدون تعبئة مصمتة
+    // هنا نفس ستايل التسجيل: نخلي الخلفية شبه مصمتة عشان تبان فوق الصورة
+    fillColor: Colors.white.withOpacity(0.9),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide: BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown, width: 1.6),
+      borderSide: BorderSide(color: borderBrown, width: 1.8),
     ),
-    labelStyle: TextStyle(color: borderBrown.withOpacity(0.85)),
+    labelStyle: TextStyle(
+      color: borderBrown.withOpacity(0.85),
+      fontWeight: FontWeight.w500,
+    ),
   );
 
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
-    
+
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
-        children: [
-          // الخلفية
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/background.jpg'),
-                fit: BoxFit.cover,
-                opacity: 1.0,
-              ),
-            ),
-          ),
-
-          Container(
-            color: Colors.white24.withOpacity(0.25),
-          ),
-
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: IconButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                    );
-                  },
-                  icon: Directionality(
-                    textDirection: TextDirection.rtl, // يضمن اتجاه السهم لليمين
-                    child: const Icon(Icons.arrow_back, size: 22, color: Colors.black87),
-                  ),
-                  tooltip: 'رجوع',
+          children: [
+            // الخلفية
+            Container
+              (
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/background.jpg'),
+                  fit: BoxFit.cover,
+                  opacity: 1.0,
                 ),
               ),
             ),
-          ),
 
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 16),
+            Container(
+              color: Colors.white24.withOpacity(0.25),
+            ),
 
-                  Text(
-                    AppLocalizations.translate('signIn', currentLocale.languageCode),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  TextField(
-                    controller: emailController,
-                    decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: mainGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _handleLogin,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            AppLocalizations.translate('login', currentLocale.languageCode),
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  TextButton(
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: IconButton(
                     onPressed: () {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const SignUpScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                       );
                     },
-                    child: Text(
-                      AppLocalizations.translate('noAccount', currentLocale.languageCode),
-                      style: TextStyle(
-                        color: mainGreen,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    icon: Directionality(
+                      textDirection: TextDirection.rtl, // يضمن اتجاه السهم لليمين
+                      child: const Icon(Icons.arrow_back, size: 22, color: Colors.black87),
                     ),
+                    tooltip: 'رجوع',
                   ),
-
-                  const SizedBox(height: 8),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+
+                    Text(
+                      AppLocalizations.translate('signIn', currentLocale.languageCode),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    TextField(
+                      controller: emailController,
+                      decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: mainGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: _isLoading ? null : _handleLogin,
+                      child: _isLoading
+                          ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                          : Text(
+                        AppLocalizations.translate('login', currentLocale.languageCode),
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignUpScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        AppLocalizations.translate('noAccount', currentLocale.languageCode),
+                        style: TextStyle(
+                          color: mainGreen,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 }
