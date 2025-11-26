@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:wadiah_app/HomePage/HomePage.dart';
 import '../l10n/app_localizations_helper.dart';
 
@@ -24,6 +28,9 @@ class _LostFormState extends State<LostForm> {
 
   DateTime? selectedDate;
   String? _selectedCategory;
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
 
   List<String> _getCategories(String languageCode) {
     return [
@@ -61,6 +68,139 @@ class _LostFormState extends State<LostForm> {
               intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
         });
       }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadImageToFirebase(File image) async {
+    try {
+      final String fileName = 'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
+      
+      final UploadTask uploadTask = storageRef.putFile(image);
+      final TaskSnapshot snapshot = await uploadTask;
+      
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('Error uploading image: $e');
+      return null;
+    }
+  }
+
+  Future<void> _submitForm() async {
+    final currentLocale = Localizations.localeOf(context);
+    final valid = _formKey.currentState?.validate() ?? false;
+    
+    if (!valid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.translate('fillAllFields', currentLocale.languageCode))),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      String? imageUrl;
+      
+      // رفع الصورة إذا كانت موجودة
+      if (_selectedImage != null) {
+        imageUrl = await _uploadImageToFirebase(_selectedImage!);
+        if (imageUrl == null) {
+          throw Exception('Failed to upload image');
+        }
+      }
+
+      // إعداد البيانات للحفظ
+      final String finalCategory = _selectedCategory == AppLocalizations.translate('other', currentLocale.languageCode)
+          ? otherCategoryController.text.trim()
+          : _selectedCategory!;
+
+      final now = DateTime.now();
+      
+      // حفظ البيانات في Firestore
+      final docRef = await FirebaseFirestore.instance.collection('lostItems').add({
+        'title': itemNameController.text.trim(),
+        'type': finalCategory,
+        'category': finalCategory,
+        'description': descriptionController.text.trim().isEmpty 
+            ? 'No description provided' 
+            : descriptionController.text.trim(),
+        'reportLocation': 'User Report', 
+        'foundLocation': '', 
+        'imagePath': imageUrl ?? '',
+        'status': AppLocalizations.translate('underReview', currentLocale.languageCode),
+        'date': _formatDateTime(selectedDate!),
+        'lostDate': Timestamp.fromDate(selectedDate!),
+        'createdAt': _formatDateTime(now),
+        'updatedAt': _formatDateTime(now),
+        'itemCategory': 'lost', // للتمييز بين المفقودات والموجودات
+        'userId': 'current_user_id', // استبدله بـ ID المستخدم الفعلي من Firebase Auth
+      });
+
+      // تحديث المستند بالـ ID
+      await docRef.update({'id': docRef.id});
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.translate('reportSubmitted', currentLocale.languageCode)),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+            (route) => false,
+          );
+        }
+      });
+
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    
+    if (diff.inDays == 0) {
+      return 'اليوم - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'أمس - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${dt.day}/${dt.month}/${dt.year} - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     }
   }
 
@@ -139,7 +279,7 @@ class _LostFormState extends State<LostForm> {
               const SizedBox(height: 15),
 
               DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
+                value: _selectedCategory,
                 decoration: _inputDeco(AppLocalizations.translate('category', currentLocale.languageCode)),
                 items: categories
                     .map((c) => DropdownMenuItem<String>(
@@ -172,10 +312,35 @@ class _LostFormState extends State<LostForm> {
                 const SizedBox(height: 15),
               ],
 
+              // عرض الصورة المختارة
+              if (_selectedImage != null) ...[
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: mainGreen, width: 2),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      _selectedImage!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+
               OutlinedButton.icon(
-                onPressed: () {},
-                icon: Icon(Icons.upload, color: mainGreen),
-                label: Text(AppLocalizations.translate('attachPhotos', currentLocale.languageCode), style: TextStyle(color: mainGreen)),
+                onPressed: _pickImage,
+                icon: Icon(_selectedImage == null ? Icons.upload : Icons.edit, color: mainGreen),
+                label: Text(
+                  _selectedImage == null 
+                      ? AppLocalizations.translate('attachPhotos', currentLocale.languageCode)
+                      : 'تغيير الصورة',
+                  style: TextStyle(color: mainGreen),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: mainGreen),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -207,31 +372,20 @@ class _LostFormState extends State<LostForm> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: () {
-                  final valid = _formKey.currentState?.validate() ?? false;
-                  if (!valid) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppLocalizations.translate('fillAllFields', currentLocale.languageCode))),
-                    );
-                    return;
-                  }
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.translate('reportSubmitted', currentLocale.languageCode)),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-
-                  Future.delayed(const Duration(seconds: 1), () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HomePage()),
-                          (route) => false,
-                    );
-                  });
-                },
-                child: Text(AppLocalizations.translate('submitReport', currentLocale.languageCode), style: const TextStyle(fontSize: 18)),
+                onPressed: _isUploading ? null : _submitForm,
+                child: _isUploading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        AppLocalizations.translate('submitReport', currentLocale.languageCode), 
+                        style: const TextStyle(fontSize: 18),
+                      ),
               ),
             ],
           ),

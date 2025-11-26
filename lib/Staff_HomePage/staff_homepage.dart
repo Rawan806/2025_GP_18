@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../staff/found_item_page.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../staff/search_reports_page.dart';
 import '../staff/report_details_page.dart';
+import '../l10n/app_localizations_helper.dart';
+import '../main.dart';
 
 class StaffHomePage extends StatelessWidget {
   const StaffHomePage({super.key});
@@ -10,66 +13,98 @@ class StaffHomePage extends StatelessWidget {
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
 
+  void _showLanguageDialog(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.translate('language', currentLocale.languageCode)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Text('🇸🇦'),
+                title: Text(AppLocalizations.translate('arabic', currentLocale.languageCode)),
+                onTap: () {
+                  MyApp.of(context).setLocale(const Locale('ar'));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Text('🇺🇸'),
+                title: Text(AppLocalizations.translate('english', currentLocale.languageCode)),
+                onTap: () {
+                  MyApp.of(context).setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final latestReports = [
-      {
-        'id': '1023',
-        'title': 'ساعة يد فضية',
-        'status': 'قيد المراجعة',
-        'date': 'اليوم - 12:30 م',
-        'type': 'إكسسوار',
-        'color': 'فضي',
-        'description': 'ساعة يد فضية ماركة غير معروفة، بحالة جيدة.',
-        'reportLocation': 'الساحة الشمالية',
-        'foundLocation': 'بوابة 3',
-        'createdAt': 'اليوم - 12:20 م',
-        'updatedAt': 'اليوم - 12:30 م',
-        'imagePath': 'assets/sample_watch.jpg',
-      },
-      {
-        'id': '1024',
-        'title': 'محفظة جلد بنية',
-        'status': 'مطابقة مبدئية',
-        'date': 'أمس - 4:10 م',
-        'type': 'محفظة',
-        'color': 'بني',
-        'description': 'محفظة جلدية تحتوي على بطاقات هوية وبطاقات بنكية.',
-        'reportLocation': 'ممر الطابق الأول',
-        'foundLocation': 'منطقة المصلى',
-        'createdAt': 'أمس - 3:55 م',
-        'updatedAt': 'أمس - 4:10 م',
-        'imagePath': 'assets/sample_wallet.jpg',
-      },
-      {
-        'id': '1025',
-        'title': 'حقيبة ظهر سوداء',
-        'status': 'مغلقة',
-        'date': 'أمس - 10:05 ص',
-        'type': 'حقيبة ظهر',
-        'color': 'أسود',
-        'description': 'حقيبة ظهر سوداء تحتوي على كتب وملاحظات دراسية.',
-        'reportLocation': 'مواقف الحافلات',
-        'foundLocation': 'المدخل الرئيسي',
-        'createdAt': 'أمس - 9:40 ص',
-        'updatedAt': 'أمس - 10:05 ص',
-        'imagePath': 'assets/sample_bag.jpg',
-      },
-    ];
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+        .collection('lostItems')
+        .orderBy('createdAt', descending: true)
+        .limit(10)
+        .snapshots(),
+      builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Center(
+        child: Text(AppLocalizations.translate('error', currentLocale.languageCode)),
+        );
+      }
+
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final latestReports = snapshot.data?.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+        'id': doc.id,
+        'title': data['title'] ?? '',
+        'status': data['status'] ?? '',
+        'date': data['date'] ?? '',
+        'type': data['type'] ?? '',
+        'color': data['color'] ?? '',
+        'description': data['description'] ?? '',
+        'reportLocation': data['reportLocation'] ?? '',
+        'foundLocation': data['foundLocation'] ?? '',
+        'createdAt': data['createdAt'] ?? '',
+        'updatedAt': data['updatedAt'] ?? '',
+        'imagePath': data['imagePath'] ?? '',
+        };
+      }).toList() ?? [];
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: mainGreen,
           foregroundColor: Colors.white,
-          title: const Text(
-            'الرئيسية - الموظف',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          title: Text(
+            AppLocalizations.translate('staffHome', currentLocale.languageCode),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           centerTitle: true,
           automaticallyImplyLeading: false,
           actions: [
+            IconButton(
+              onPressed: () => _showLanguageDialog(context),
+              icon: const Icon(Icons.language),
+              tooltip: AppLocalizations.translate('language', currentLocale.languageCode),
+            ),
             IconButton(
               onPressed: () {
                 Navigator.pushReplacement(
@@ -80,7 +115,7 @@ class StaffHomePage extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.logout),
-              tooltip: 'تسجيل الخروج',
+              tooltip: AppLocalizations.translate('logout', currentLocale.languageCode),
             ),
           ],
         ),
@@ -108,7 +143,7 @@ class StaffHomePage extends StatelessWidget {
                         child: _QuickActionCard(
                           color: mainGreen,
                           icon: Icons.link,
-                          label: 'مطابقة بلاغ',
+                          label: AppLocalizations.translate('matchReport', currentLocale.languageCode),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -124,7 +159,7 @@ class StaffHomePage extends StatelessWidget {
                         child: _QuickActionCard(
                           color: borderBrown,
                           icon: Icons.search,
-                          label: 'بحث في البلاغات',
+                          label: AppLocalizations.translate('searchReports', currentLocale.languageCode),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -141,9 +176,9 @@ class StaffHomePage extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  const Text(
-                    'أحدث البلاغات',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.translate('latestReports', currentLocale.languageCode),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -186,6 +221,8 @@ class StaffHomePage extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }
@@ -261,6 +298,8 @@ class _ReportListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -281,7 +320,7 @@ class _ReportListTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'رقم البلاغ: $id',
+              '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $id',
               style: TextStyle(
                 fontSize: 16,
                 color: mainColor,
@@ -289,12 +328,12 @@ class _ReportListTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text('العنصر المفقود: $title'),
+            Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: $title'),
             const SizedBox(height: 6),
-            Text('الحالة: $status'),
+            Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: $status'),
             const SizedBox(height: 6),
             Text(
-              'التاريخ: $date',
+              '${AppLocalizations.translate('date', currentLocale.languageCode)}: $date',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[700],

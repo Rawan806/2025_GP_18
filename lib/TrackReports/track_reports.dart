@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
 
 class TrackReportScreen extends StatelessWidget {
@@ -6,6 +7,19 @@ class TrackReportScreen extends StatelessWidget {
 
   final Color mainGreen = const Color(0xFF243E36); // اللون المعتمد
   final Color beigeColor = const Color(0xFFC3BFB0);
+
+  Color _getStatusColor(String status) {
+    if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+      return Colors.orange;
+    } else if (status.contains('جاري البحث') || status.contains('Searching')) {
+      return Colors.blue;
+    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+      return Colors.green;
+    } else if (status.contains('مغلق') || status.contains('Closed')) {
+      return Colors.grey;
+    }
+    return Colors.black87;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,101 +45,163 @@ class TrackReportScreen extends StatelessWidget {
 
       body: Column(
         children: [
-
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  //  البلاغ رقم 1
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('lostItems')
+                  .where('itemCategory', isEqualTo: 'lost')
+                  .where('userId', isEqualTo: 'current_user_id') // استبدله بـ ID المستخدم الفعلي
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(color: mainGreen),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
+                      style: TextStyle(color: Colors.red),
                     ),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Icon(Icons.search_off, size: 80, color: Colors.grey),
+                        const SizedBox(height: 16),
                         Text(
-                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: 1023',
+                          isArabic ? 'لا توجد بلاغات حالياً' : 'No reports yet',
                           style: TextStyle(
-                            fontSize: 16,
-                            color: mainGreen,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: ${isArabic ? 'هاتف سامسونج أسود' : 'Samsung Black Phone'}'),
-                        const SizedBox(height: 6),
-                        Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: ${AppLocalizations.translate('underReview', currentLocale.languageCode)}'),
                       ],
                     ),
-                  ),
+                  );
+                }
 
-                  //   البلاغ رقم 2
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: 1024', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: ${isArabic ? 'بطاقة هوية' : 'ID Card'}'),
-                        const SizedBox(height: 6),
-                        Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: ${AppLocalizations.translate('searching', currentLocale.languageCode)}'),
-                      ],
-                    ),
-                  ),
+                final reports = snapshot.data!.docs;
 
-                  //  بطاقة البلاغ رقم 3
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ListView.builder(
+                    itemCount: reports.length,
+                    itemBuilder: (context, index) {
+                      final report = reports[index].data() as Map<String, dynamic>;
+                      final reportId = report['id'] ?? reports[index].id;
+                      final title = report['title'] ?? '';
+                      final status = report['status'] ?? '';
+                      final date = report['date'] ?? '';
+                      final imagePath = report['imagePath'] ?? '';
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: 1025', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: ${isArabic ? 'حقيبة صغيرة' : 'Small Bag'}'),
-                        const SizedBox(height: 6),
-                        Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: ${AppLocalizations.translate('readyForPickup', currentLocale.languageCode)}'),
-                      ],
-                    ),
+                        child: Row(
+                          children: [
+                            // صورة العنصر
+                            if (imagePath.isNotEmpty)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  imagePath,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(Icons.image_not_supported, color: Colors.grey),
+                                    );
+                                  },
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: mainGreen.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(Icons.inventory_2, color: mainGreen, size: 30),
+                              ),
+                            const SizedBox(width: 12),
+                            
+                            // تفاصيل البلاغ
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${reportId.substring(0, reportId.length > 8 ? 8 : reportId.length)}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: mainGreen,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: $title',
+                                    style: const TextStyle(fontSize: 15),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${AppLocalizations.translate('status', currentLocale.languageCode)}: $status',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: _getStatusColor(status),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (date.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      date,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
 
