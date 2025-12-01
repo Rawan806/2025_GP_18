@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../Staff_HomePage/staff_homepage.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class StaffLoginScreen extends StatefulWidget {
   const StaffLoginScreen({super.key});
@@ -60,8 +61,11 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
+    
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
@@ -98,7 +102,7 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
                       size: 22,
                       color: Colors.black87,
                     ),
-                    tooltip: 'رجوع',
+                    tooltip: AppLocalizations.translate('back', currentLocale.languageCode),
                   ),
                 ),
               ),
@@ -117,10 +121,10 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 16),
-                      const Text(
-                        'تسجيل دخول الموظف',
+                      Text(
+                        AppLocalizations.translate('staffLoginTitle', currentLocale.languageCode),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w700,
                           color: Colors.black87,
@@ -130,11 +134,11 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
 
                       TextFormField(
                         controller: _idController,
-                        decoration: _dec('رقم الموظف (ID)', Icons.badge),
-                        textAlign: TextAlign.right,
+                        decoration: _dec(AppLocalizations.translate('staffId', currentLocale.languageCode), Icons.badge),
+                        textAlign: isArabic ? TextAlign.right : TextAlign.left,
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'الرجاء إدخال رقم الموظف';
+                            return AppLocalizations.translate('enterStaffId', currentLocale.languageCode);
                           }
                           return null;
                         },
@@ -144,12 +148,12 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
 
                       TextFormField(
                         controller: _passwordController,
-                        decoration: _dec('كلمة المرور', Icons.lock),
+                        decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
                         obscureText: true,
-                        textAlign: TextAlign.right,
+                        textAlign: isArabic ? TextAlign.right : TextAlign.left,
                         validator: (v) {
                           if (v == null || v.isEmpty) {
-                            return 'الرجاء إدخال كلمة المرور';
+                            return AppLocalizations.translate('enterPassword', currentLocale.languageCode);
                           }
                           return null;
                         },
@@ -167,9 +171,9 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
                           ),
                         ),
                         onPressed: _onLoginPressed,
-                        child: const Text(
-                          'دخول',
-                          style: TextStyle(fontSize: 16),
+                        child: Text(
+                          AppLocalizations.translate('login', currentLocale.languageCode),
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations_helper.dart';
 
 class ReportDetailsPage extends StatefulWidget {
   final Map<String, dynamic> report;
@@ -15,21 +16,8 @@ class ReportDetailsPage extends StatefulWidget {
 }
 
 class _ReportDetailsPageState extends State<ReportDetailsPage> {
-  late String _selectedStatus;
+  String _selectedStatus = '';
   final TextEditingController _notesController = TextEditingController();
-
-  final List<String> _statuses = const [
-    'قيد الانتظار',
-    'قيد المراجعة',
-    'مطابق',
-    'مغلقة',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedStatus = widget.report['status'] as String? ?? 'قيد المراجعة';
-  }
 
   @override
   void dispose() {
@@ -39,7 +27,20 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = Localizations.localeOf(context);
+    final isArabic = currentLocale.languageCode == 'ar';
     final report = widget.report;
+    
+    if (_selectedStatus.isEmpty) {
+      _selectedStatus = widget.report['status'] as String? ?? AppLocalizations.translate('underReview', currentLocale.languageCode);
+    }
+    
+    final _statuses = [
+      AppLocalizations.translate('pending', currentLocale.languageCode),
+      AppLocalizations.translate('underReview', currentLocale.languageCode),
+      AppLocalizations.translate('matched', currentLocale.languageCode),
+      AppLocalizations.translate('closed', currentLocale.languageCode),
+    ];
 
     final String id = report['id'] ?? '';
     final String title = report['title'] ?? '';
@@ -53,13 +54,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     final String? imagePath = report['imagePath'] as String?;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: widget.mainGreen,
           foregroundColor: Colors.white,
           title: Text(
-            'تفاصيل البلاغ #$id',
+            '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$id',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           centerTitle: true,
@@ -140,7 +141,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'رقم البلاغ: $id',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $id',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade800,
@@ -149,18 +150,18 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
                         const SizedBox(height: 16),
 
-                        _InfoRow(label: 'النوع', value: type),
-                        _InfoRow(label: 'اللون', value: color),
-                        _InfoRow(label: 'موقع الإبلاغ', value: reportLocation),
-                        _InfoRow(label: 'موقع العثور', value: foundLocation),
-                        _InfoRow(label: 'تاريخ الإنشاء', value: createdAt),
-                        _InfoRow(label: 'آخر تحديث', value: updatedAt),
+                        _InfoRow(label: AppLocalizations.translate('type', currentLocale.languageCode), value: type),
+                        _InfoRow(label: AppLocalizations.translate('color', currentLocale.languageCode), value: color),
+                        _InfoRow(label: AppLocalizations.translate('reportLocation', currentLocale.languageCode), value: reportLocation),
+                        _InfoRow(label: AppLocalizations.translate('foundLocation', currentLocale.languageCode), value: foundLocation),
+                        _InfoRow(label: AppLocalizations.translate('createdAt', currentLocale.languageCode), value: createdAt),
+                        _InfoRow(label: AppLocalizations.translate('updatedAt', currentLocale.languageCode), value: updatedAt),
 
                         const SizedBox(height: 16),
 
-                        const Text(
-                          'الوصف',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.translate('description', currentLocale.languageCode),
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -174,9 +175,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         const SizedBox(height: 20),
 
                         // الحالة
-                        const Text(
-                          'حالة البلاغ',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.translate('reportStatus', currentLocale.languageCode),
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -229,18 +230,18 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             // TODO: افتحي شاشة/دايلوج لطلب أدلة إضافية من المبلّغ
                           },
                           icon: const Icon(Icons.add_photo_alternate_outlined),
-                          label: const Text(
-                            'طلب أدلة إضافية',
-                            style: TextStyle(fontSize: 15),
+                          label: Text(
+                            AppLocalizations.translate('requestAdditionalEvidence', currentLocale.languageCode),
+                            style: const TextStyle(fontSize: 15),
                           ),
                         ),
 
                         const SizedBox(height: 20),
 
                         // ملاحظات الموظف
-                        const Text(
-                          'ملاحظات الموظف (داخلية)',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.translate('staffNotesInternal', currentLocale.languageCode),
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
@@ -249,9 +250,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         TextField(
                           controller: _notesController,
                           maxLines: 4,
+                          textAlign: isArabic ? TextAlign.right : TextAlign.left,
                           decoration: InputDecoration(
-                            hintText:
-                            'اكتب أي ملاحظات داخلية عن البلاغ أو المراجع...',
+                            hintText: AppLocalizations.translate('writeNotesPlaceholder', currentLocale.languageCode),
                             filled: true,
                             fillColor: Colors.white,
                             alignLabelWithHint: true,
@@ -268,7 +269,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                               // TODO: حفظ الملاحظات في Firestore مثلاً
                             },
                             icon: const Icon(Icons.save_outlined),
-                            label: const Text('حفظ الملاحظات'),
+                            label: Text(AppLocalizations.translate('saveNotes', currentLocale.languageCode)),
                           ),
                         ),
 
@@ -341,9 +342,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             // TODO: مستقبلاً افتحي شاشة إدخال PIN لتأكيد التسليم
                           },
                           icon: const Icon(Icons.verified_user_outlined),
-                          label: const Text(
-                            'تأكيد تسليم العنصر (PIN)',
-                            style: TextStyle(fontSize: 15),
+                          label: Text(
+                            AppLocalizations.translate('confirmDeliveryWithPin', currentLocale.languageCode),
+                            style: const TextStyle(fontSize: 15),
                           ),
                         ),
                       ],

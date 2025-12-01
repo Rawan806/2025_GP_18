@@ -202,6 +202,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Log out'**
   String get logout;
+
+  /// No description provided for @staffLoginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff Login'**
+  String get staffLoginTitle;
+
+  /// No description provided for @staffId.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff ID'**
+  String get staffId;
+
+  /// No description provided for @enterStaffId.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter staff ID'**
+  String get enterStaffId;
+
+  /// No description provided for @enterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter password'**
+  String get enterPassword;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @staffHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff Home'**
+  String get staffHome;
+
+  /// No description provided for @matchReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Match Report'**
+  String get matchReport;
+
+  /// No description provided for @searchReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Reports'**
+  String get searchReports;
+
+  /// No description provided for @latestReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest Reports'**
+  String get latestReports;
+
+  /// No description provided for @reportNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Number'**
+  String get reportNumber;
+
+  /// No description provided for @lostItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost Item'**
+  String get lostItem;
+
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
+  /// No description provided for @date.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get date;
+
+  /// No description provided for @registerFoundItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Register Found Item'**
+  String get registerFoundItem;
+
+  /// No description provided for @rerunAI.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-run AI'**
+  String get rerunAI;
+
+  /// No description provided for @noImageSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No image selected'**
+  String get noImageSelected;
+
+  /// No description provided for @camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @suggestedTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested types:'**
+  String get suggestedTypes;
+
+  /// No description provided for @suggestedColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested color:'**
+  String get suggestedColor;
+
+  /// No description provided for @itemType.
+  ///
+  /// In en, this message translates to:
+  /// **'Item type (e.g., wallet, phone)'**
+  String get itemType;
+
+  /// No description provided for @color.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get color;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description / distinctive marks'**
+  String get description;
+
+  /// No description provided for @foundLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Found location (area/desk)'**
+  String get foundLocation;
+
+  /// No description provided for @storageLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location (office shelf/bin)'**
+  String get storageLocation;
+
+  /// No description provided for @foundTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Found time'**
+  String get foundTime;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @pleaseAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Please add a photo'**
+  String get pleaseAddPhoto;
+
+  /// No description provided for @typeColorLocationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Type/Color/Location are required'**
+  String get typeColorLocationRequired;
+
+  /// No description provided for @savedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved successfully'**
+  String get savedSuccessfully;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get saveFailed;
+
+  /// No description provided for @reportDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Details'**
+  String get reportDetailsTitle;
+
+  /// No description provided for @type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get type;
+
+  /// No description provided for @reportLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Location'**
+  String get reportLocation;
+
+  /// No description provided for @createdAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created At'**
+  String get createdAt;
+
+  /// No description provided for @updatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated At'**
+  String get updatedAt;
+
+  /// No description provided for @reportStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Status'**
+  String get reportStatus;
+
+  /// No description provided for @pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pending;
+
+  /// No description provided for @underReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Under Review'**
+  String get underReview;
+
+  /// No description provided for @matched.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched'**
+  String get matched;
+
+  /// No description provided for @closed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get closed;
+
+  /// No description provided for @requestAdditionalEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Additional Evidence'**
+  String get requestAdditionalEvidence;
+
+  /// No description provided for @staffNotesInternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff Notes (Internal)'**
+  String get staffNotesInternal;
+
+  /// No description provided for @writeNotesPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Write any internal notes about the report...'**
+  String get writeNotesPlaceholder;
+
+  /// No description provided for @saveNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Notes'**
+  String get saveNotes;
+
+  /// No description provided for @confirmDeliveryWithPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delivery with PIN'**
+  String get confirmDeliveryWithPin;
+
+  /// No description provided for @searchByNameOrNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or report number'**
+  String get searchByNameOrNumber;
+
+  /// No description provided for @allStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'All Statuses'**
+  String get allStatuses;
+
+  /// No description provided for @preliminaryMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Preliminary Match'**
+  String get preliminaryMatch;
+
+  /// No description provided for @noMatchingResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching results.'**
+  String get noMatchingResults;
+
+  /// No description provided for @item.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get item;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
