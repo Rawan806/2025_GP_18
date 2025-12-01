@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     
     try {
-      // التأكد من تهيئة Firebase
+      //  Firebase
       await _authService.ensureInitialized();
       
       if (_authService.isLoggedIn) { 

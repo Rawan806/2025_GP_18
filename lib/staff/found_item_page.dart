@@ -2,13 +2,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../AI_services/ai_suggester.dart';
 import '../AI_services/found_item_service.dart';
-import '../l10n/app_localizations_helper.dart';
 
 class FoundItemPage extends StatefulWidget {
   const FoundItemPage({super.key});
+
   @override
   State<FoundItemPage> createState() => _FoundItemPageState();
 }
@@ -29,7 +28,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
   final _picker = ImagePicker();
 
   File? _image;
-  List<String> _typeChips = [];
+  List<String> _typeChips = []; // بدائل فقط
   String? _colorSuggest;
   bool _busy = false;
 
@@ -50,11 +49,13 @@ class _FoundItemPageState extends State<FoundItemPage> {
     fillColor: Colors.white.withOpacity(.88),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide:
+      BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide:
+      BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
@@ -73,6 +74,8 @@ class _FoundItemPageState extends State<FoundItemPage> {
       _image = File(x.path);
       _typeChips = [];
       _colorSuggest = null;
+      _typeCtrl.clear();
+      _colorCtrl.clear();
     });
     await _runAI();
   }
@@ -84,11 +87,13 @@ class _FoundItemPageState extends State<FoundItemPage> {
       final bytes = await _image!.readAsBytes();
       final res = await _ai.suggest(bytes);
 
+      // the labels
       final suggestions = res
           .map((m) => (m['label'] ?? '').toString())
           .where((s) => s.isNotEmpty)
           .toList();
 
+      // catch the color
       String? aiColor;
       for (final m in res) {
         if (m['color'] is String) {
@@ -97,10 +102,25 @@ class _FoundItemPageState extends State<FoundItemPage> {
         }
       }
 
+      // new method
       setState(() {
-        _typeChips =
-        suggestions.length > 3 ? suggestions.take(3).toList() : suggestions;
+        // 1) أفضل اقتراح يروح مباشرة في حقل الـ type لو كان الحقل فاضي
+        if (suggestions.isNotEmpty && _typeCtrl.text.trim().isEmpty) {
+          _typeCtrl.text = suggestions.first;
+        }
+
+        // 2) البدائل: أولهم تم استخدامه بالفعل، فنبدأ من الثاني، وبحد أقصى 2
+        if (suggestions.length > 1) {
+          _typeChips = suggestions.skip(1).take(2).toList();
+        } else {
+          _typeChips = [];
+        }
+
+        // 3) اللون: تعبية الحقل لو فاضي + chip واحدة
         _colorSuggest = aiColor;
+        if (aiColor != null && _colorCtrl.text.trim().isEmpty) {
+          _colorCtrl.text = aiColor;
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -112,115 +132,65 @@ class _FoundItemPageState extends State<FoundItemPage> {
   }
 
   Future<void> _save() async {
-    final currentLocale = Localizations.localeOf(context);
-    
-    // التحقق من وجود الصورة
     if (_image == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.translate('pleaseAddPhoto', currentLocale.languageCode)))
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please add a photo')));
       return;
     }
-    
-    // التحقق من الحقول الأساسية
     if (_typeCtrl.text.trim().isEmpty ||
         _colorCtrl.text.trim().isEmpty ||
         _foundLocCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.translate('typeColorLocationRequired', currentLocale.languageCode)))
-      );
-      return;
-    }
-    
-    // التحقق من أن الـ AI قد تم تشغيله (الأنواع المقترحة موجودة)
-    if (_typeChips.isEmpty && _colorSuggest == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please wait for AI analysis to complete'))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Type/Color/Location are required')));
       return;
     }
 
     setState(() => _busy = true);
-    
     try {
-      // رفع الصورة إلى Firebase Storage
-      final imageUrl = await _service.uploadImage(_image!);
-      
-      // إنشاء مستند جديد في Firestore
-      final docRef = await FirebaseFirestore.instance.collection('foundItems').add({
-        'title': _typeCtrl.text.trim(),
-        'type': _typeCtrl.text.trim(),
-        'color': _colorCtrl.text.trim(),
-        'description': _descCtrl.text.trim().isEmpty ? 'No description provided' : _descCtrl.text.trim(),
-        'foundLocation': _foundLocCtrl.text.trim(),
-        'reportLocation': _foundLocCtrl.text.trim(), // نفس موقع العثور
-        'storageLocation': _storageLocCtrl.text.trim().isEmpty ? 'Not specified' : _storageLocCtrl.text.trim(),
-        'imagePath': imageUrl,
-        'status': AppLocalizations.translate('underReview', currentLocale.languageCode),
-        'date': _formatDateTime(_foundAt),
-        'createdAt': _formatDateTime(DateTime.now()),
-        'updatedAt': _formatDateTime(DateTime.now()),
-        'foundAt': Timestamp.fromDate(_foundAt),
-        'itemCategory': 'found', // للتمييز بين المفقودات والموجودات
-      });
-      
-      // تحديث المستند بالـ ID الخاص به
-      await docRef.update({'id': docRef.id});
+      final url = await _service.uploadImage(_image!);
+      await _service.saveFoundItem(
+        type: _typeCtrl.text.trim(),
+        color: _colorCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+        foundLocation: _foundLocCtrl.text.trim(),
+        foundAt: _foundAt,
+        storageLocation: _storageLocCtrl.text.trim(),
+        imageUrl: url,
+        aiTypes: _typeChips,
+        aiColor: _colorSuggest,
+      );
 
       if (!mounted) return;
-      final locale = Localizations.localeOf(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.translate('savedSuccessfully', locale.languageCode)), 
-          backgroundColor: Colors.green
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Saved successfully'),
+          backgroundColor: Colors.green));
       Navigator.pop(context);
-      
     } catch (e) {
       if (!mounted) return;
-      final locale = Localizations.localeOf(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${AppLocalizations.translate('saveFailed', locale.languageCode)}: $e'), 
-          backgroundColor: Colors.red
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Save failed: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-  
-  String _formatDateTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    
-    if (diff.inDays == 0) {
-      return 'اليوم - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-    } else if (diff.inDays == 1) {
-      return 'أمس - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-    } else {
-      return '${dt.day}/${dt.month}/${dt.year} - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentLocale = Localizations.localeOf(context);
-    final isArabic = currentLocale.languageCode == 'ar';
-    
-    return Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text(AppLocalizations.translate('registerFoundItem', currentLocale.languageCode), style: const TextStyle(color: Colors.black87)),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Register Found Item',
+            style: TextStyle(color: Colors.black87)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-          actions: [
-            IconButton(icon: const Icon(Icons.refresh), onPressed: _image != null ? _runAI : null, tooltip: AppLocalizations.translate('rerunAI', currentLocale.languageCode)),
-          ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _image != null ? _runAI : null,
+            tooltip: 'Re-run AI',
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -231,66 +201,137 @@ class _FoundItemPageState extends State<FoundItemPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 AspectRatio(
-                  aspectRatio: 16/9,
+                  aspectRatio: 16 / 9,
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.black12,
                       borderRadius: BorderRadius.circular(12),
-                      image: _image != null ? DecorationImage(image: FileImage(_image!), fit: BoxFit.cover) : null,
+                      image: _image != null
+                          ? DecorationImage(
+                        image: FileImage(_image!),
+                        fit: BoxFit.cover,
+                      )
+                          : null,
                     ),
-                    child: _image == null ? Center(child: Text(AppLocalizations.translate('noImageSelected', currentLocale.languageCode))) : null,
+                    child: _image == null
+                        ? const Center(child: Text('No image selected'))
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.photo_camera), label: Text(AppLocalizations.translate('camera', currentLocale.languageCode)), onPressed: () => _pick(true))),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.photo_camera),
+                        label: const Text('Camera'),
+                        onPressed: () => _pick(true),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.photo), label: Text(AppLocalizations.translate('gallery', currentLocale.languageCode)), onPressed: () => _pick(false))),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.photo),
+                        label: const Text('Gallery'),
+                        onPressed: () => _pick(false),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
                 if (_typeChips.isNotEmpty) ...[
-                  Text(AppLocalizations.translate('suggestedTypes', currentLocale.languageCode), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Suggested types (alternatives):',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   Wrap(
                     spacing: 8,
-                    children: _typeChips.map((t) => ActionChip(label: Text(t), onPressed: () => _typeCtrl.text = t)).toList(),
+                    children: _typeChips
+                        .map(
+                          (t) => ActionChip(
+                        label: Text(t),
+                        onPressed: () => _typeCtrl.text = t,
+                      ),
+                    )
+                        .toList(),
                   ),
                   const SizedBox(height: 8),
                 ],
 
                 if (_colorSuggest != null) ...[
-                  Text(AppLocalizations.translate('suggestedColor', currentLocale.languageCode), style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Wrap(children: [ActionChip(label: Text(_colorSuggest!), onPressed: () => _colorCtrl.text = _colorSuggest!)],),
+                  const Text(
+                    'Suggested color:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Wrap(
+                    children: [
+                      ActionChip(
+                        label: Text(_colorSuggest!),
+                        onPressed: () => _colorCtrl.text = _colorSuggest!,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                 ],
 
-                TextField(controller: _typeCtrl, decoration: _dec(AppLocalizations.translate('itemType', currentLocale.languageCode)), textAlign: isArabic ? TextAlign.right : TextAlign.left),
+                TextField(
+                  controller: _typeCtrl,
+                  decoration:
+                  _dec('Item type (e.g., wallet, phone, backpack)'),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _colorCtrl, decoration: _dec(AppLocalizations.translate('color', currentLocale.languageCode)), textAlign: isArabic ? TextAlign.right : TextAlign.left),
+                TextField(
+                  controller: _colorCtrl,
+                  decoration: _dec('Color'),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _descCtrl, decoration: _dec(AppLocalizations.translate('description', currentLocale.languageCode)), maxLines: 3, textAlign: isArabic ? TextAlign.right : TextAlign.left),
+                TextField(
+                  controller: _descCtrl,
+                  decoration:
+                  _dec('Description / distinctive marks'),
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _foundLocCtrl, decoration: _dec(AppLocalizations.translate('foundLocation', currentLocale.languageCode)), textAlign: isArabic ? TextAlign.right : TextAlign.left),
+                TextField(
+                  controller: _foundLocCtrl,
+                  decoration: _dec('Found location (area/desk)'),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: _storageLocCtrl, decoration: _dec(AppLocalizations.translate('storageLocation', currentLocale.languageCode)), textAlign: isArabic ? TextAlign.right : TextAlign.left),
+                TextField(
+                  controller: _storageLocCtrl,
+                  decoration:
+                  _dec('Storage location (office shelf/bin)'),
+                ),
                 const SizedBox(height: 10),
 
                 OutlinedButton.icon(
                   icon: const Icon(Icons.schedule),
-                  label: Text('${AppLocalizations.translate('foundTime', currentLocale.languageCode)}: ${_foundAt.toLocal()}'),
+                  label: Text('Found time: ${_foundAt.toLocal()}'),
                   onPressed: () async {
                     final d = await showDatePicker(
                       context: context,
                       initialDate: _foundAt,
-                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                      firstDate: DateTime.now()
+                          .subtract(const Duration(days: 30)),
+                      lastDate:
+                      DateTime.now().add(const Duration(days: 1)),
                     );
                     if (d == null) return;
-                    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_foundAt));
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_foundAt),
+                    );
                     if (t == null) return;
-                    setState(() => _foundAt = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+                    setState(
+                          () => _foundAt = DateTime(
+                        d.year,
+                        d.month,
+                        d.day,
+                        t.hour,
+                        t.minute,
+                      ),
+                    );
                   },
                 ),
 
@@ -298,16 +339,21 @@ class _FoundItemPageState extends State<FoundItemPage> {
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: mainGreen),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: mainGreen,
+                    ),
                     onPressed: _busy ? null : _save,
-                    child: Text(AppLocalizations.translate('save', currentLocale.languageCode), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    child: const Text(
+                      'Save',
+                      style:
+                      TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
                 ),
               ],
             ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

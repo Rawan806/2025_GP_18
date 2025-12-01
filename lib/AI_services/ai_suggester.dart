@@ -10,14 +10,28 @@ class AISuggester {
   Interpreter? _interpreter;
   List<String> _labels = [];
 
-  static const String _modelAsset  = 'assets/models/model.tflite';
+  static const String _modelAsset = 'assets/models/model.tflite';
   static const String _labelsAsset = 'assets/models/labels.txt';
   static const int _inputWidth = 224;
   static const int _inputHeight = 224;
   static const bool _expectsFloat = true;
 
+
+
+  Future<void> _ensureLoaded() async {
+    if (_interpreter != null && _labels.isNotEmpty) return;
+
+    _interpreter = await Interpreter.fromAsset(_modelAsset);
+
+    final txt = await rootBundle.loadString(_labelsAsset);
+    _labels = txt
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
   /// نربط بعض ImageNet labels بأنواع مفقودات تناسب الحرم
-  /// (هنا نفلتر الـ church / traffic light وأصحابهم 🤚)
   static const Map<String, String> _labelToLostType = {
     'wallet': 'محفظة',
     'backpack': 'حقيبة ظهر',
@@ -34,18 +48,7 @@ class AISuggester {
     'watch': 'ساعة',
   };
 
-  Future<void> _ensureLoaded() async {
-    if (_interpreter != null && _labels.isNotEmpty) return;
 
-    _interpreter = await Interpreter.fromAsset(_modelAsset);
-
-    final txt = await rootBundle.loadString(_labelsAsset);
-    _labels = txt
-        .split('\n')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-  }
 
   /// ترجع:
   /// [
@@ -53,12 +56,13 @@ class AISuggester {
   ///   { 'label': 'حقيبة ظهر', ... },
   ///   ...
   /// ]
+  // didnt workkk ^
+
   Future<List<Map<String, dynamic>>> suggest(Uint8List imageBytes) async {
     await _ensureLoaded();
     final interpreter = _interpreter!;
     final outputT = interpreter.getOutputTensors().first;
 
-    // تجهيز الـ input
     final input = _preprocess(
       imageBytes,
       width: _inputWidth,
@@ -108,7 +112,7 @@ class AISuggester {
     // فلترة + mapping إلى "أنواع مفقودات" مفهومة
     final mapped = _mapToLostTypes(rawList);
 
-    // لو لقينا انواع مناسبة نستخدمها، غير كذا نرجع أول 3 raw كـ fallback
+    // لو لقينا أنواع مناسبة نستخدمها، غير كذا نرجع أول 3 raw كـ fallback
     final finalList = mapped.isNotEmpty ? mapped : rawList.take(3).toList();
 
     // تقدير اللون من الصورة نفسها
@@ -117,14 +121,14 @@ class AISuggester {
       final first = finalList.first;
       finalList[0] = {
         ...first,
-        'color': colorName, // هنا يتقرأ في FoundItemPage كـ aiColor
+        'color': colorName, // يتقرأ في FoundItemPage كـ aiColor
       };
     }
 
     return finalList;
   }
 
-  /// نحول ImageNet labels إلى أنواع مفقودات (محفظة، جوال، ...).
+  /// نحول ImageNet labels إلى أنواع مفقودات (محفظة، جوال، وغيره).
   List<Map<String, dynamic>> _mapToLostTypes(
       List<Map<String, dynamic>> raw,
       ) {
@@ -135,7 +139,8 @@ class AISuggester {
       final rawLabel = (m['label'] as String).toLowerCase();
       final score = (m['score'] as double?) ?? 0.0;
 
-      // Threshold بسيط عشان ما ناخذ احتمالات ضعيفة
+      // Threshold
+      // to add more accuracy and eliminate options with low probability
       if (score < 0.15) continue;
 
       String? mapped;
@@ -158,45 +163,65 @@ class AISuggester {
     return result;
   }
 
-  /// نحسب لون تقريبي للصورة (أسود، أبيض، رمادي، أحمر، أزرق...).
+
   String? _estimateColorName(Uint8List bytes) {
     final image = img.decodeImage(bytes);
     if (image == null) return null;
 
-    int sumR = 0, sumG = 0, sumB = 0;
-    int samples = 0;
+    // i took the center pixeles
+    // after multiple attempts I found out these numbers are the best so far
+    final int startX = (image.width * 0.30).round();
+    final int endX   = (image.width * 0.70).round();
+    final int startY = (image.height * 0.20).round();
+    final int endY   = (image.height * 0.80).round();
 
-    // نأخذ عينة كل 4 بيكسلات تقريباً عشان الأداء
-    for (var y = 0; y < image.height; y += 4) {
-      for (var x = 0; x < image.width; x += 4) {
+    double sumR = 0, sumG = 0, sumB = 0;
+    double sumW = 0;
+
+    // a sample every 2 pixels this is what the LLM suggested as a big support
+    for (var y = startY; y < endY; y += 2) {
+      for (var x = startX; x < endX; x += 2) {
         final p = image.getPixel(x, y);
-        sumR += img.getRed(p);
-        sumG += img.getGreen(p);
-        sumB += img.getBlue(p);
-        samples++;
+        final r = img.getRed(p).toDouble();
+        final g = img.getGreen(p).toDouble();
+        final b = img.getBlue(p).toDouble();
+
+        final brightness = (r + g + b) / 3.0;
+
+        // the darker pixels are the weight they gain
+        // cuz most object will be darker than the background
+        final weight = 1.0 + (255.0 - brightness) / 255.0;
+
+        sumR += r * weight;
+        sumG += g * weight;
+        sumB += b * weight;
+        sumW += weight;
       }
     }
 
-    if (samples == 0) return null;
+    if (sumW == 0) return null;
 
-    final r = sumR / samples;
-    final g = sumG / samples;
-    final b = sumB / samples;
+    final double r = sumR / sumW;
+    final double g = sumG / sumW;
+    final double b = sumB / sumW;
 
-    final brightness = (r + g + b) / 3.0;
-    final maxC = math.max(r, math.max(g, b));
-    final minC = math.min(r, math.min(g, b));
-    final delta = maxC - minC;
+    final double brightness = (r + g + b) / 3.0;
+    final double maxC = math.max(r, math.max(g, b));
+    final double minC = math.min(r, math.min(g, b));
+    final double delta = maxC - minC;
 
-    // ألوان أساسية (داكن/فاتح/رمادي)
+    // ألوان أساسية (داكن/فاتح)
     if (brightness < 40) return 'أسود';
-    if (brightness > 215) return 'أبيض';
-    if (delta < 20) return 'رمادي';
+    if (brightness > 230) return 'أبيض';
+
+    // it should've been grey but the pixels are confusing for our human eyes
+    // so i decided to write black
+    if (delta < 10) return 'أسود';
 
     // حساب Hue تقريبي
     double hue;
     if (maxC == r) {
-      hue = 60.0 * ((g - b) / delta % 6);
+      hue = 60.0 * (((g - b) / delta) % 6);
     } else if (maxC == g) {
       hue = 60.0 * ((b - r) / delta + 2);
     } else {
@@ -208,11 +233,13 @@ class AISuggester {
     if (hue < 50) return 'برتقالي';
     if (hue < 70) return 'أصفر';
     if (hue < 170) return 'أخضر';
-    if (hue < 210) return 'سماوي';
-    if (hue < 260) return 'أزرق';
+    if (hue < 200) return 'سماوي';
+    if (hue < 240) return 'أزرق';
     if (hue < 300) return 'بنفسجي';
     return 'بني';
   }
+
+
 
   List _preprocess(
       Uint8List bytes, {
