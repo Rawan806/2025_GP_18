@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../staff/found_item_page.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../staff/search_reports_page.dart';
@@ -15,18 +16,28 @@ class StaffHomePage extends StatelessWidget {
 
   void _showLanguageDialog(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(AppLocalizations.translate('language', currentLocale.languageCode)),
+          title: Text(
+            AppLocalizations.translate(
+              'language',
+              currentLocale.languageCode,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Text('🇸🇦'),
-                title: Text(AppLocalizations.translate('arabic', currentLocale.languageCode)),
+                title: Text(
+                  AppLocalizations.translate(
+                    'arabic',
+                    currentLocale.languageCode,
+                  ),
+                ),
                 onTap: () {
                   MyApp.of(context).setLocale(const Locale('ar'));
                   Navigator.pop(context);
@@ -34,7 +45,12 @@ class StaffHomePage extends StatelessWidget {
               ),
               ListTile(
                 leading: const Text('🇺🇸'),
-                title: Text(AppLocalizations.translate('english', currentLocale.languageCode)),
+                title: Text(
+                  AppLocalizations.translate(
+                    'english',
+                    currentLocale.languageCode,
+                  ),
+                ),
                 onTap: () {
                   MyApp.of(context).setLocale(const Locale('en'));
                   Navigator.pop(context);
@@ -51,177 +67,227 @@ class StaffHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
-    
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-        .collection('lostItems')
-        .orderBy('createdAt', descending: true)
-        .limit(10)
-        .snapshots(),
+          .collection('lostItems')
+          .orderBy('createdAt', descending: true)
+          .limit(10)
+          .snapshots(),
       builder: (context, snapshot) {
-      if (snapshot.hasError) {
-        return Center(
-        child: Text(AppLocalizations.translate('error', currentLocale.languageCode)),
-        );
-      }
-
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      final latestReports = snapshot.data?.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return {
-        'id': doc.id,
-        'title': data['title'] ?? '',
-        'status': data['status'] ?? '',
-        'date': data['date'] ?? '',
-        'type': data['type'] ?? '',
-        'color': data['color'] ?? '',
-        'description': data['description'] ?? '',
-        'reportLocation': data['reportLocation'] ?? '',
-        'foundLocation': data['foundLocation'] ?? '',
-        'createdAt': data['createdAt'] ?? '',
-        'updatedAt': data['updatedAt'] ?? '',
-        'imagePath': data['imagePath'] ?? '',
-        };
-      }).toList() ?? [];
-
-    return Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: mainGreen,
-          foregroundColor: Colors.white,
-          title: Text(
-            AppLocalizations.translate('staffHome', currentLocale.languageCode),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          ),
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              onPressed: () => _showLanguageDialog(context),
-              icon: const Icon(Icons.language),
-              tooltip: AppLocalizations.translate('language', currentLocale.languageCode),
-            ),
-            IconButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WelcomeScreen(),
+        if (snapshot.hasError) {
+          return Directionality(
+            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+            child: Scaffold(
+              body: Center(
+                child: Text(
+                  AppLocalizations.translate(
+                    'error',
+                    currentLocale.languageCode,
                   ),
-                );
-              },
-              icon: const Icon(Icons.logout),
-              tooltip: AppLocalizations.translate('logout', currentLocale.languageCode),
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/background.jpg'),
-                  fit: BoxFit.cover,
-                  opacity: 1.0,
                 ),
               ),
             ),
-            Container(color: Colors.white.withOpacity(0.25)),
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _QuickActionCard(
-                          color: mainGreen,
-                          icon: Icons.link,
-                          label: AppLocalizations.translate('matchReport', currentLocale.languageCode),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const FoundItemPage(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _QuickActionCard(
-                          color: borderBrown,
-                          icon: Icons.search,
-                          label: AppLocalizations.translate('searchReports', currentLocale.languageCode),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                const SearchReportsPage(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Directionality(
+            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+            child: const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        final latestReports = snapshot.data?.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {
+            'docId': doc.id,
+            'id': data['id'] ?? doc.id,
+            'title': data['title'] ?? '',
+            'status': data['status'] ?? '',
+            'date': data['date'] ?? '',
+            'type': data['type'] ?? '',
+            'color': data['color'] ?? '',
+            'description': data['description'] ?? '',
+            'reportLocation': data['reportLocation'] ?? '',
+            'foundLocation': data['foundLocation'] ?? '',
+            'createdAt': data['createdAt'] ?? '',
+            'updatedAt': data['updatedAt'] ?? '',
+            'imagePath': data['imagePath'] ?? '',
+          };
+        }).toList() ?? [];
+
+        // خلي الحالات "مغلقة / Closed" تنزل آخر القائمة
+        latestReports.sort((a, b) {
+          final sa = (a['status'] ?? '').toString();
+          final sb = (b['status'] ?? '').toString();
+          final isClosedA =
+              sa.contains('مغلق') || sa.contains('Closed');
+          final isClosedB =
+              sb.contains('مغلق') || sb.contains('Closed');
+
+          if (isClosedA == isClosedB) return 0;
+          if (isClosedA) return 1;
+          return -1;
+        });
+
+        return Directionality(
+          textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: mainGreen,
+              foregroundColor: Colors.white,
+              title: Text(
+                AppLocalizations.translate(
+                  'staffHome',
+                  currentLocale.languageCode,
+                ),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              centerTitle: true,
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  onPressed: () => _showLanguageDialog(context),
+                  icon: const Icon(Icons.language),
+                  tooltip: AppLocalizations.translate(
+                    'language',
+                    currentLocale.languageCode,
                   ),
-
-                  const SizedBox(height: 24),
-
-                  Text(
-                    AppLocalizations.translate('latestReports', currentLocale.languageCode),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WelcomeScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.logout),
+                  tooltip: AppLocalizations.translate(
+                    'logout',
+                    currentLocale.languageCode,
+                  ),
+                ),
+              ],
+            ),
+            body: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/background.jpg'),
+                      fit: BoxFit.cover,
+                      opacity: 1.0,
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: latestReports.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final report = latestReports[index];
-                      return _ReportListTile(
-                        id: report['id'] as String,
-                        title: report['title'] as String,
-                        status: report['status'] as String,
-                        date: report['date'] as String,
-                        mainColor: mainGreen,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ReportDetailsPage(
-                                report: report,
-                                mainGreen: mainGreen,
+                ),
+                Container(color: Colors.white.withOpacity(0.25)),
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _QuickActionCard(
+                              color: mainGreen,
+                              icon: Icons.link,
+                              label: AppLocalizations.translate(
+                                'matchReport',
+                                currentLocale.languageCode,
                               ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                    const FoundItemPage(),
+                                  ),
+                                );
+                              },
                             ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _QuickActionCard(
+                              color: borderBrown,
+                              icon: Icons.search,
+                              label: AppLocalizations.translate(
+                                'searchReports',
+                                currentLocale.languageCode,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                    const SearchReportsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      Text(
+                        AppLocalizations.translate(
+                          'latestReports',
+                          currentLocale.languageCode,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: latestReports.length,
+                        separatorBuilder: (_, __) =>
+                        const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final report = latestReports[index];
+                          return _ReportListTile(
+                            report: report,
+                            mainColor: mainGreen,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReportDetailsPage(
+                                    report: report,
+                                    mainGreen: mainGreen,
+                                  ),
+                                ),
+                              );
+                            },
                           );
                         },
-                      );
-                    },
-                  ),
+                      ),
 
-                  const SizedBox(height: 16),
-                ],
-              ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
       },
     );
   }
@@ -280,18 +346,12 @@ class _QuickActionCard extends StatelessWidget {
 }
 
 class _ReportListTile extends StatelessWidget {
-  final String id;
-  final String title;
-  final String status;
-  final String date;
+  final Map<String, dynamic> report;
   final Color mainColor;
   final VoidCallback onTap;
 
   const _ReportListTile({
-    required this.id,
-    required this.title,
-    required this.status,
-    required this.date,
+    required this.report,
     required this.mainColor,
     required this.onTap,
   });
@@ -299,7 +359,12 @@ class _ReportListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
-    
+
+    final id = report['id']?.toString() ?? '';
+    final title = report['title']?.toString() ?? '';
+    final status = report['status']?.toString() ?? '';
+    final date = report['date']?.toString() ?? '';
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -328,9 +393,13 @@ class _ReportListTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text('${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: $title'),
+            Text(
+              '${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: $title',
+            ),
             const SizedBox(height: 6),
-            Text('${AppLocalizations.translate('status', currentLocale.languageCode)}: $status'),
+            Text(
+              '${AppLocalizations.translate('status', currentLocale.languageCode)}: $status',
+            ),
             const SizedBox(height: 6),
             Text(
               '${AppLocalizations.translate('date', currentLocale.languageCode)}: $date',

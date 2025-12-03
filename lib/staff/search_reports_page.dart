@@ -13,7 +13,6 @@ class SearchReportsPage extends StatefulWidget {
 class _SearchReportsPageState extends State<SearchReportsPage> {
   final Color mainGreen = const Color(0xFF243E36);
   final Color beigeColor = const Color(0xFFC3BFB0);
-
   final TextEditingController _searchController = TextEditingController();
   late String selectedStatus = "";
 
@@ -21,36 +20,33 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
     Query query = FirebaseFirestore.instance
         .collection('lostItems')
         .orderBy('createdAt', descending: true);
-    
     return query.snapshots();
   }
 
   List<Map<String, dynamic>> _filterReports(
-    List<DocumentSnapshot> docs,
-    BuildContext context,
-  ) {
+      List<DocumentSnapshot> docs,
+      BuildContext context,
+      ) {
     final currentLocale = Localizations.localeOf(context);
     final allStatusesText = AppLocalizations.translate('allStatuses', currentLocale.languageCode);
     final searchQuery = _searchController.text.trim().toLowerCase();
-    
+
     return docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final id = (data['id'] ?? doc.id).toString();
       final title = (data['title'] ?? '').toString().toLowerCase();
       final status = (data['status'] ?? '').toString();
-      
-      // فلترة حسب البحث
+
       final matchesSearch = searchQuery.isEmpty ||
           id.contains(searchQuery) ||
           title.contains(searchQuery) ||
           (data['category'] ?? '').toString().toLowerCase().contains(searchQuery) ||
           (data['description'] ?? '').toString().toLowerCase().contains(searchQuery);
-      
-      // فلترة حسب الحالة
+
       final matchesStatus = selectedStatus.isEmpty ||
           selectedStatus == allStatusesText ||
           status == selectedStatus;
-      
+
       return matchesSearch && matchesStatus;
     }).map((doc) {
       final data = doc.data() as Map<String, dynamic>;
@@ -71,11 +67,11 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
-    
+
     if (selectedStatus.isEmpty) {
       selectedStatus = AppLocalizations.translate('allStatuses', currentLocale.languageCode);
     }
-    
+
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
@@ -91,11 +87,8 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
               fontSize: 20,
             ),
           ),
-
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, 
-            color: Colors.black87, size: 22),
-
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 22),
             onPressed: () {
               Navigator.pushReplacement(
                 context,
@@ -105,10 +98,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
               );
             },
           ),
-
-          actions: const [],
         ),
-
         body: Column(
           children: [
             Padding(
@@ -124,12 +114,12 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {});
+                    },
+                  )
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -138,7 +128,6 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: DropdownButtonFormField<String>(
@@ -157,6 +146,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                   AppLocalizations.translate('allStatuses', currentLocale.languageCode),
                   AppLocalizations.translate('underReview', currentLocale.languageCode),
                   AppLocalizations.translate('preliminaryMatch', currentLocale.languageCode),
+                  AppLocalizations.translate('readyForPickup', currentLocale.languageCode),
                   AppLocalizations.translate('closed', currentLocale.languageCode),
                 ].map((s) {
                   return DropdownMenuItem<String>(value: s, child: Text(s));
@@ -167,17 +157,13 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                 },
               ),
             ),
-
             const SizedBox(height: 10),
-
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: _getReportsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: CircularProgressIndicator(color: mainGreen),
-                    );
+                    return Center(child: CircularProgressIndicator(color: mainGreen));
                   }
 
                   if (snapshot.hasError) {
@@ -198,10 +184,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                           const SizedBox(height: 16),
                           Text(
                             isArabic ? 'لا توجد بلاغات' : 'No reports found',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[600],
-                            ),
+                            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                           ),
                         ],
                       ),
@@ -216,10 +199,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           AppLocalizations.translate('noMatchingResults', currentLocale.languageCode),
-                          style: const TextStyle(
-                            color: Colors.black54,
-                            fontSize: 16,
-                          ),
+                          style: const TextStyle(color: Colors.black54, fontSize: 16),
                         ),
                       ),
                     );
@@ -288,16 +268,11 @@ class _ReportCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
+            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
           children: [
-            // صورة العنصر
             if (imagePath.isNotEmpty && imagePath != 'null')
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -334,8 +309,6 @@ class _ReportCard extends StatelessWidget {
                 ),
               ),
             const SizedBox(width: 12),
-            
-            // تفاصيل البلاغ
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,10 +355,7 @@ class _ReportCard extends StatelessWidget {
                   if (category.isNotEmpty && category != 'null')
                     Text(
                       '${AppLocalizations.translate('category', currentLocale.languageCode)}: $category',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -402,10 +372,7 @@ class _ReportCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       date,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ],

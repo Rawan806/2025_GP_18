@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
 
 class ReportDetailsPage extends StatefulWidget {
@@ -18,11 +19,128 @@ class ReportDetailsPage extends StatefulWidget {
 class _ReportDetailsPageState extends State<ReportDetailsPage> {
   String _selectedStatus = '';
   final TextEditingController _notesController = TextEditingController();
+  late TextEditingController _descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentDescription = (widget.report['description'] ?? '').toString();
+    _descriptionController = TextEditingController(text: currentDescription);
+  }
 
   @override
   void dispose() {
     _notesController.dispose();
+    _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveChanges(Locale currentLocale) async {
+    try {
+      // ناخذ docId من الماب لو موجود، أو نرجع لـ id
+      final rawDocId = widget.report['docId'] ?? widget.report['id'];
+      final docId = rawDocId?.toString();
+
+      if (docId == null || docId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              currentLocale.languageCode == 'ar'
+                  ? 'تعذّر العثور على رقم البلاغ في النظام.'
+                  : 'Could not find the report document ID.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('lostItems')
+          .doc(docId)
+          .update({
+        'status': _selectedStatus,
+        'description': _descriptionController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            currentLocale.languageCode == 'ar'
+                ? 'تم حفظ التغييرات بنجاح.'
+                : 'Changes saved successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            currentLocale.languageCode == 'ar'
+                ? 'حدث خطأ أثناء حفظ التغييرات.'
+                : 'Error while saving changes.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmPickup(Locale currentLocale) async {
+    try {
+      // نفس منطق docId هنا
+      final rawDocId = widget.report['docId'] ?? widget.report['id'];
+      final docId = rawDocId?.toString();
+
+      if (docId == null || docId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              currentLocale.languageCode == 'ar'
+                  ? 'تعذّر العثور على رقم البلاغ في النظام.'
+                  : 'Could not find the report document ID.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final readyText = AppLocalizations.translate(
+        'readyForPickup',
+        currentLocale.languageCode,
+      );
+
+      await FirebaseFirestore.instance
+          .collection('lostItems')
+          .doc(docId)
+          .update({
+        'status': readyText,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() {
+        _selectedStatus = readyText;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            currentLocale.languageCode == 'ar'
+                ? 'تم تحديث الحالة إلى جاهز للاستلام.'
+                : 'Status updated to Ready for Pickup.',
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            currentLocale.languageCode == 'ar'
+                ? 'حدث خطأ أثناء تحديث الحالة.'
+                : 'Error while updating status.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -30,27 +148,38 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
     final report = widget.report;
-    
+
     if (_selectedStatus.isEmpty) {
-      _selectedStatus = widget.report['status'] as String? ?? AppLocalizations.translate('underReview', currentLocale.languageCode);
+      _selectedStatus = (report['status'] as String?) ??
+          AppLocalizations.translate(
+            'underReview',
+            currentLocale.languageCode,
+          );
     }
-    
-    final _statuses = [
-      AppLocalizations.translate('pending', currentLocale.languageCode),
+
+    final statuses = [
       AppLocalizations.translate('underReview', currentLocale.languageCode),
-      AppLocalizations.translate('matched', currentLocale.languageCode),
+      AppLocalizations.translate(
+          'preliminaryMatch', currentLocale.languageCode),
+      AppLocalizations.translate('readyForPickup', currentLocale.languageCode),
       AppLocalizations.translate('closed', currentLocale.languageCode),
     ];
 
-    final String id = report['id'] ?? '';
-    final String title = report['title'] ?? '';
-    final String type = report['type'] ?? '-';
-    final String color = report['color'] ?? '-';
-    final String description = report['description'] ?? '-';
-    final String reportLocation = report['reportLocation'] ?? '-';
-    final String foundLocation = report['foundLocation'] ?? '-';
-    final String createdAt = report['createdAt'] ?? '-';
-    final String updatedAt = report['updatedAt'] ?? '-';
+    final String id = report['id']?.toString() ?? '';
+    final String title = report['title']?.toString() ?? '';
+    final String type = report['type']?.toString() ?? '-';
+    final String color = report['color']?.toString() ?? '-';
+    final String description = report['description']?.toString() ?? '-';
+    final String reportLocation = report['reportLocation']?.toString() ?? '-';
+    final String foundLocation = report['foundLocation']?.toString() ?? '-';
+    final String createdAt = report['createdAt']?.toString() ?? '-';
+    final String updatedAt = report['updatedAt']?.toString() ?? '-';
+    final String pinCode = report['pinCode']?.toString() ?? '';
+    final String reporterName = report['reporterName']?.toString() ?? '-';
+    final String reporterPhone =
+        report['reporterPhone']?.toString() ??
+            report['reporterNumber']?.toString() ??
+            '-';
     final String? imagePath = report['imagePath'] as String?;
 
     return Directionality(
@@ -61,13 +190,15 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           foregroundColor: Colors.white,
           title: Text(
             '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$id',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           centerTitle: true,
         ),
         body: Stack(
           children: [
-            // نفس خلفية الهوم بيج
             Container(
               decoration: const BoxDecoration(
                 image: DecorationImage(
@@ -82,7 +213,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // كارد أساسي
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -99,15 +229,30 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // صورة العنصر
-                        if (imagePath != null)
+                        if (imagePath != null && imagePath.isNotEmpty)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
+                            child: Image.network(
                               imagePath,
                               height: 180,
                               width: double.infinity,
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 180,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey.shade100,
+                                  ),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.image_not_supported_outlined,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           )
                         else
@@ -150,33 +295,83 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
                         const SizedBox(height: 16),
 
-                        _InfoRow(label: AppLocalizations.translate('type', currentLocale.languageCode), value: type),
-                        _InfoRow(label: AppLocalizations.translate('color', currentLocale.languageCode), value: color),
-                        _InfoRow(label: AppLocalizations.translate('reportLocation', currentLocale.languageCode), value: reportLocation),
-                        _InfoRow(label: AppLocalizations.translate('foundLocation', currentLocale.languageCode), value: foundLocation),
-                        _InfoRow(label: AppLocalizations.translate('createdAt', currentLocale.languageCode), value: createdAt),
-                        _InfoRow(label: AppLocalizations.translate('updatedAt', currentLocale.languageCode), value: updatedAt),
+                        _InfoRow(
+                          label: currentLocale.languageCode == 'ar'
+                              ? 'اسم المبلِّغ'
+                              : 'Reporter Name',
+                          value: reporterName,
+                        ),
+                        _InfoRow(
+                          label: currentLocale.languageCode == 'ar'
+                              ? 'رقم المبلِّغ'
+                              : 'Reporter Phone',
+                          value: reporterPhone,
+                        ),
+                        _InfoRow(
+                          label: AppLocalizations.translate(
+                              'type', currentLocale.languageCode),
+                          value: type,
+                        ),
+                        _InfoRow(
+                          label: AppLocalizations.translate(
+                              'color', currentLocale.languageCode),
+                          value: color,
+                        ),
+                        _InfoRow(
+                          label: AppLocalizations.translate(
+                              'reportLocation', currentLocale.languageCode),
+                          value: reportLocation,
+                        ),
+                        _InfoRow(
+                          label: AppLocalizations.translate(
+                              'foundLocation', currentLocale.languageCode),
+                          value: foundLocation,
+                        ),
+                        _InfoRow(
+                          label: AppLocalizations.translate(
+                              'createdAt', currentLocale.languageCode),
+                          value: createdAt,
+                        ),
+                        _InfoRow(
+                          label: AppLocalizations.translate(
+                              'updatedAt', currentLocale.languageCode),
+                          value: updatedAt,
+                        ),
+                        _InfoRow(
+                          label: 'PIN',
+                          value: pinCode.isNotEmpty ? pinCode : '-',
+                        ),
 
                         const SizedBox(height: 16),
 
                         Text(
-                          AppLocalizations.translate('description', currentLocale.languageCode),
+                          AppLocalizations.translate(
+                              'description', currentLocale.languageCode),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          description,
-                          style: const TextStyle(fontSize: 14),
+                        TextField(
+                          controller: _descriptionController,
+                          maxLines: 3,
+                          textAlign:
+                          isArabic ? TextAlign.right : TextAlign.left,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 20),
 
-                        // الحالة
                         Text(
-                          AppLocalizations.translate('reportStatus', currentLocale.languageCode),
+                          AppLocalizations.translate(
+                              'reportStatus', currentLocale.languageCode),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -189,12 +384,14 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          items: _statuses
+                          items: statuses
                               .map(
                                 (s) => DropdownMenuItem(
                               value: s,
@@ -207,40 +404,41 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             setState(() {
                               _selectedStatus = value;
                             });
-                            // TODO: اربطي هنا بالتحديث في قاعدة البيانات
                           },
                         ),
 
                         const SizedBox(height: 20),
 
-                        // زر طلب أدلة إضافية
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: widget.mainGreen,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 16,
+                              vertical: 14,
+                              horizontal: 18,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () {
-                            // TODO: افتحي شاشة/دايلوج لطلب أدلة إضافية من المبلّغ
-                          },
-                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          onPressed: () => _saveChanges(currentLocale),
+                          icon: const Icon(Icons.save),
                           label: Text(
-                            AppLocalizations.translate('requestAdditionalEvidence', currentLocale.languageCode),
-                            style: const TextStyle(fontSize: 15),
+                            AppLocalizations.translate(
+                              'saveChanges',
+                              currentLocale.languageCode,
+                            ),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
 
                         const SizedBox(height: 20),
 
-                        // ملاحظات الموظف
                         Text(
-                          AppLocalizations.translate('staffNotesInternal', currentLocale.languageCode),
+                          AppLocalizations.translate(
+                            'staffNotesInternal',
+                            currentLocale.languageCode,
+                          ),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -250,9 +448,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         TextField(
                           controller: _notesController,
                           maxLines: 4,
-                          textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                          textAlign:
+                          isArabic ? TextAlign.right : TextAlign.left,
                           decoration: InputDecoration(
-                            hintText: AppLocalizations.translate('writeNotesPlaceholder', currentLocale.languageCode),
+                            hintText: AppLocalizations.translate(
+                              'writeNotesPlaceholder',
+                              currentLocale.languageCode,
+                            ),
                             filled: true,
                             fillColor: Colors.white,
                             alignLabelWithHint: true,
@@ -266,65 +468,68 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                           alignment: Alignment.centerLeft,
                           child: TextButton.icon(
                             onPressed: () {
-                              // TODO: حفظ الملاحظات في Firestore مثلاً
+                              // مكان حفظ الملاحظات داخليًا (لو حابة نربطه بفايرستور نقدر نكتبه)
                             },
                             icon: const Icon(Icons.save_outlined),
-                            label: Text(AppLocalizations.translate('saveNotes', currentLocale.languageCode)),
+                            label: Text(
+                              AppLocalizations.translate(
+                                'saveNotes',
+                                currentLocale.languageCode,
+                              ),
+                            ),
                           ),
                         ),
 
                         const SizedBox(height: 24),
 
-                        // (Future) AI matches
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'مطابقات مقترحة بواسطة الذكاء الاصطناعي (قريبًا)',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'سيظهر هنا في المستقبل قائمة بعناصر مفقودة/معثور عليها '
-                                    'يعتقد النموذج أنها تطابق هذا البلاغ، مع أزرار قبول / رفض.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 10,
-                                children: [
-                                  OutlinedButton.icon(
-                                    onPressed: null,
-                                    icon: const Icon(Icons.check),
-                                    label: const Text('قبول المطابقة'),
-                                  ),
-                                  OutlinedButton.icon(
-                                    onPressed: null,
-                                    icon: const Icon(Icons.close),
-                                    label: const Text('رفض المطابقة'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Container(
+                        //   padding: const EdgeInsets.all(12),
+                        //   decoration: BoxDecoration(
+                        //     color: Colors.white,
+                        //     borderRadius: BorderRadius.circular(12),
+                        //     border:
+                        //     Border.all(color: Colors.grey.shade300),
+                        //   ),
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       const Text(
+                        //         'مطابقات مقترحة بواسطة الذكاء الاصطناعي (قريبًا)',
+                        //         style: TextStyle(
+                        //           fontSize: 15,
+                        //           fontWeight: FontWeight.w600,
+                        //         ),
+                        //       ),
+                        //       const SizedBox(height: 8),
+                        //       Text(
+                        //         'سيظهر هنا في المستقبل عناصر يُعتقد أنها تطابق هذا البلاغ، مع أزرار قبول / رفض.',
+                        //         style: TextStyle(
+                        //           fontSize: 13,
+                        //           color: Colors.grey.shade800,
+                        //         ),
+                        //       ),
+                        //       const SizedBox(height: 8),
+                        //       Wrap(
+                        //         spacing: 10,
+                        //         children: [
+                        //           OutlinedButton.icon(
+                        //             onPressed: null,
+                        //             icon: const Icon(Icons.check),
+                        //             label: const Text('قبول المطابقة'),
+                        //           ),
+                        //           OutlinedButton.icon(
+                        //             onPressed: null,
+                        //             icon: const Icon(Icons.close),
+                        //             label: const Text('رفض المطابقة'),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ),
 
                         const SizedBox(height: 16),
 
-                        // (Future) تأكيد التسليم بالـ PIN
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -338,12 +543,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                               side: BorderSide(color: widget.mainGreen),
                             ),
                           ),
-                          onPressed: () {
-                            // TODO: مستقبلاً افتحي شاشة إدخال PIN لتأكيد التسليم
-                          },
+                          onPressed: () => _confirmPickup(currentLocale),
                           icon: const Icon(Icons.verified_user_outlined),
                           label: Text(
-                            AppLocalizations.translate('confirmDeliveryWithPin', currentLocale.languageCode),
+                            AppLocalizations.translate(
+                              'confirmDeliveryWithPin',
+                              currentLocale.languageCode,
+                            ),
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),

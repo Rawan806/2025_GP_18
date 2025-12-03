@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math'; //  لتوليد PIN عشوائي
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:image_picker/image_picker.dart';
@@ -73,6 +74,13 @@ class _LostFormState extends State<LostForm> {
     } else {
       return "${dt.day}/${dt.month}/${dt.year} - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}";
     }
+  }
+
+  //   PIN  من 6 أرقام
+  String _generatePinCode() {
+    final random = Random();
+    final int value = 100000 + random.nextInt(900000); // من 100000 إلى 999999
+    return value.toString();
   }
 
   // ================== Pickers ==============
@@ -178,7 +186,6 @@ class _LostFormState extends State<LostForm> {
     try {
       String? imageUrl;
 
-
       if (_selectedImage != null) {
         imageUrl = await _uploadImageToFirebase(_selectedImage!);
         if (imageUrl == null) {
@@ -187,11 +194,18 @@ class _LostFormState extends State<LostForm> {
       }
 
       final String finalCategory =
-      _selectedCategory == AppLocalizations.translate('other', currentLocale.languageCode)
+      _selectedCategory ==
+          AppLocalizations.translate(
+            'other',
+            currentLocale.languageCode,
+          )
           ? otherCategoryController.text.trim()
           : _selectedCategory!;
 
       final now = DateTime.now();
+
+      //  توليد PIN
+      final String pinCode = _generatePinCode();
 
       final docRef = await FirebaseFirestore.instance
           .collection('lostItems')
@@ -205,15 +219,20 @@ class _LostFormState extends State<LostForm> {
         'reportLocation': 'User Report',
         'foundLocation': '',
         'imagePath': imageUrl ?? '',
-        'status': AppLocalizations.translate('underReview', currentLocale.languageCode),
+        'status': AppLocalizations.translate(
+          'underReview',
+          currentLocale.languageCode,
+        ),
         'date': _formatDateTime(selectedDate!),
         'lostDate': Timestamp.fromDate(selectedDate!),
         'createdAt': _formatDateTime(now),
         'updatedAt': _formatDateTime(now),
         'itemCategory': 'lost',
-        'userId': 'current_user_id', // TODO: استبدليه بالـ UID الحقيقي للمستخدم
+        'userId': 'current_user_id',
+        'pinCode': pinCode,          //  PIN
       });
 
+      // حفظ الـ id داخل الدوكيومنت نفسه
       await docRef.update({'id': docRef.id});
 
       if (!mounted) return;
@@ -221,13 +240,10 @@ class _LostFormState extends State<LostForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.translate(
-              'reportSubmitted',
-              currentLocale.languageCode,
-            ),
+            '${AppLocalizations.translate('reportSubmitted', currentLocale.languageCode)}\nPIN: $pinCode',
           ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
         ),
       );
 
@@ -286,7 +302,7 @@ class _LostFormState extends State<LostForm> {
               currentLocale.languageCode,
             ),
             style: const TextStyle(
-              color: Colors.white, // خذيها عليّ: تظل أوضح
+              color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
