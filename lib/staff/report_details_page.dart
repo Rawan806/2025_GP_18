@@ -515,7 +515,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         //           OutlinedButton.icon(
                         //             onPressed: null,
                         //             icon: const Icon(Icons.check),
-                        //             label: const Text('قبول المطابقة'),
+                        //             label : const Text('قبول المطابقة'),
                         //           ),
                         //           OutlinedButton.icon(
                         //             onPressed: null,
