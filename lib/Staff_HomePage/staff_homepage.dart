@@ -116,6 +116,9 @@ class StaffHomePage extends StatelessWidget {
             'createdAt': data['createdAt'] ?? '',
             'updatedAt': data['updatedAt'] ?? '',
             'imagePath': data['imagePath'] ?? '',
+            'doc_num': data['doc_num'] ?? '',
+            'userId': data['userId'] ?? '',
+            'pinCode': data['pinCode'] ?? '',
           };
         }).toList() ?? [];
 
@@ -360,7 +363,7 @@ class _ReportListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
 
-    final id = report['id']?.toString() ?? '';
+    final id = report['doc_num']?.toString() ?? '';
     final title = report['title']?.toString() ?? '';
     final status = report['status']?.toString() ?? '';
     final date = report['date']?.toString() ?? '';

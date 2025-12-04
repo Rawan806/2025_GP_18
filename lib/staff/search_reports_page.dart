@@ -23,6 +23,19 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
     return query.snapshots();
   }
 
+  String _getEnglishStatus(String status) {
+    if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+      return 'Under Review';
+    } else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+      return 'Preliminary Match';
+    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+      return 'Ready for Pickup';
+    } else if (status.contains('مغلق') || status.contains('Closed')) {
+      return 'Closed';
+    }
+    return status;
+  }
+
   List<Map<String, dynamic>> _filterReports(
       List<DocumentSnapshot> docs,
       BuildContext context,
@@ -34,6 +47,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
     return docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final id = (data['id'] ?? doc.id).toString();
+      final doc_num = (data['doc_num'] ?? '').toString();
       final title = (data['title'] ?? '').toString().toLowerCase();
       final status = (data['status'] ?? '').toString();
 
@@ -45,7 +59,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
 
       final matchesStatus = selectedStatus.isEmpty ||
           selectedStatus == allStatusesText ||
-          status == selectedStatus;
+          _getEnglishStatus(selectedStatus) == _getEnglishStatus(status);
 
       return matchesSearch && matchesStatus;
     }).map((doc) {
@@ -59,6 +73,8 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
         'imagePath': data['imagePath'] ?? '',
         'date': data['date'] ?? '',
         'itemCategory': data['itemCategory'] ?? '',
+        'doc_num': data['doc_num'] ?? '',
+        'userId': data['userId'] ?? '',
       };
     }).toList();
   }
@@ -258,6 +274,7 @@ class _ReportCard extends StatelessWidget {
     final imagePath = report['imagePath'].toString();
     final date = report['date'].toString();
     final itemCategory = report['itemCategory'].toString();
+    final doc_num = report['doc_num'].toString();
 
     return InkWell(
       onTap: onTap,
@@ -317,7 +334,8 @@ class _ReportCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${id.substring(0, id.length > 8 ? 8 : id.length)}',
+                          // '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${id.substring(0, id.length > 8 ? 8 : id.length)}',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${doc_num}',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,

@@ -20,12 +20,62 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   String _selectedStatus = '';
   final TextEditingController _notesController = TextEditingController();
   late TextEditingController _descriptionController;
+  
+  // بيانات المستخدم
+  String _reporterName = '-';
+  String _reporterPhone = '-';
+  bool _isLoadingUserData = true;
 
   @override
   void initState() {
     super.initState();
     final currentDescription = (widget.report['description'] ?? '').toString();
     _descriptionController = TextEditingController(text: currentDescription);
+    _loadUserData();
+  }
+  
+  Future<void> _loadUserData() async {
+    try {
+      final userId = widget.report['userId']?.toString();
+      
+      if (userId == null || userId.isEmpty || userId == 'current_user_id') {
+        setState(() {
+          _reporterName = '-';
+          _reporterPhone = '-';
+          _isLoadingUserData = false;
+        });
+        return;
+      }
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        setState(() {
+          _reporterName = userData?['name']?.toString() ?? 
+                         '-';
+          _reporterPhone = userData?['phone']?.toString() ?? 
+                          '-';
+          _isLoadingUserData = false;
+        });
+      } else {
+        setState(() {
+          _reporterName = '-';
+          _reporterPhone = '-';
+          _isLoadingUserData = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+      setState(() {
+        _reporterName = '-';
+        _reporterPhone = '-';
+        _isLoadingUserData = false;
+      });
+    }
   }
 
   @override
@@ -104,9 +154,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         return;
       }
 
+      // دائماً نستخدم النص العربي للحفظ في Firebase
       final readyText = AppLocalizations.translate(
         'readyForPickup',
-        currentLocale.languageCode,
+        'ar',
       );
 
       await FirebaseFirestore.instance
@@ -153,19 +204,28 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       _selectedStatus = (report['status'] as String?) ??
           AppLocalizations.translate(
             'underReview',
-            currentLocale.languageCode,
+            'ar',  // دائماً بالعربية
           );
     }
 
+    // القيم دائماً بالعربية لأن Firebase يخزنها بالعربية
     final statuses = [
+      AppLocalizations.translate('underReview', 'ar'),
+      AppLocalizations.translate('preliminaryMatch', 'ar'),
+      AppLocalizations.translate('readyForPickup', 'ar'),
+      AppLocalizations.translate('closed', 'ar'),
+    ];
+    
+    // العناوين المعروضة حسب اللغة الحالية
+    final statusLabels = [
       AppLocalizations.translate('underReview', currentLocale.languageCode),
-      AppLocalizations.translate(
-          'preliminaryMatch', currentLocale.languageCode),
+      AppLocalizations.translate('preliminaryMatch', currentLocale.languageCode),
       AppLocalizations.translate('readyForPickup', currentLocale.languageCode),
       AppLocalizations.translate('closed', currentLocale.languageCode),
     ];
 
     final String id = report['id']?.toString() ?? '';
+    final String doc_num = report['doc_num']?.toString() ?? '';
     final String title = report['title']?.toString() ?? '';
     final String type = report['type']?.toString() ?? '-';
     final String color = report['color']?.toString() ?? '-';
@@ -175,11 +235,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     final String createdAt = report['createdAt']?.toString() ?? '-';
     final String updatedAt = report['updatedAt']?.toString() ?? '-';
     final String pinCode = report['pinCode']?.toString() ?? '';
-    final String reporterName = report['reporterName']?.toString() ?? '-';
-    final String reporterPhone =
-        report['reporterPhone']?.toString() ??
-            report['reporterNumber']?.toString() ??
-            '-';
     final String? imagePath = report['imagePath'] as String?;
 
     return Directionality(
@@ -189,7 +244,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           backgroundColor: widget.mainGreen,
           foregroundColor: Colors.white,
           title: Text(
-            '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$id',
+            '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$doc_num',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -286,7 +341,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $id',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $doc_num',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade800,
@@ -297,15 +352,19 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
                         _InfoRow(
                           label: currentLocale.languageCode == 'ar'
-                              ? 'اسم المبلِّغ'
+                              ? 'اسم المبلِّغ'
                               : 'Reporter Name',
-                          value: reporterName,
+                          value: _isLoadingUserData 
+                              ? '...' 
+                              : _reporterName,
                         ),
                         _InfoRow(
                           label: currentLocale.languageCode == 'ar'
-                              ? 'رقم المبلِّغ'
+                              ? 'رقم المبلِّغ'
                               : 'Reporter Phone',
-                          value: reporterPhone,
+                          value: _isLoadingUserData 
+                              ? '...' 
+                              : _reporterPhone,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
@@ -391,14 +450,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          items: statuses
-                              .map(
-                                (s) => DropdownMenuItem(
-                              value: s,
-                              child: Text(s),
+                          items: List.generate(
+                            statuses.length,
+                            (index) => DropdownMenuItem(
+                              value: statuses[index],  // القيمة بالعربية للحفظ في Firebase
+                              child: Text(statusLabels[index]),  // العرض حسب اللغة الحالية
                             ),
-                          )
-                              .toList(),
+                          ),
                           onChanged: (value) {
                             if (value == null) return;
                             setState(() {

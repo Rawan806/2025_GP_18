@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math'; //  لتوليد PIN عشوائي
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:image_picker/image_picker.dart';
@@ -219,16 +220,14 @@ class _LostFormState extends State<LostForm> {
         'reportLocation': 'User Report',
         'foundLocation': '',
         'imagePath': imageUrl ?? '',
-        'status': AppLocalizations.translate(
-          'underReview',
-          currentLocale.languageCode,
-        ),
+        'status': 'قيد المراجعة',
         'date': _formatDateTime(selectedDate!),
         'lostDate': Timestamp.fromDate(selectedDate!),
         'createdAt': _formatDateTime(now),
         'updatedAt': _formatDateTime(now),
+        'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
         'itemCategory': 'lost',
-        'userId': 'current_user_id',
+        'userId':  FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
         'pinCode': pinCode,          //  PIN
       });
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../Staff_HomePage/staff_homepage.dart';
 import '../l10n/app_localizations_helper.dart';
@@ -14,6 +15,7 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
@@ -49,14 +51,73 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
     ),
   );
 
-  void _onLoginPressed() {
+  Future<void> _onLoginPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // بعد ما يتم التحقق من صحة الحقول، ننتقل لواجهة الموظف
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const StaffHomePage()),
-    );
+    final currentLocale = Localizations.localeOf(context);
+    setState(() => _isLoading = true);
+
+    try {
+      final staffId = _idController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // الاستعلام من collection staff_ids
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('staff_ids')
+          .where('ID', isEqualTo: staffId)
+          .where('password', isEqualTo: password)
+          .limit(1)
+          .get();
+
+      if (!mounted) return;
+
+      if (querySnapshot.docs.isEmpty) {
+        // بيانات خاطئة
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.translate('invalidCredentials', currentLocale.languageCode),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        // تسجيل دخول ناجح
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.translate('loginSuccess', currentLocale.languageCode),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // الانتقال لواجهة الموظف
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StaffHomePage()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -170,11 +231,20 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: _onLoginPressed,
-                        child: Text(
-                          AppLocalizations.translate('login', currentLocale.languageCode),
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                        onPressed: _isLoading ? null : _onLoginPressed,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                AppLocalizations.translate('login', currentLocale.languageCode),
+                                style: const TextStyle(fontSize: 16),
+                              ),
                       ),
 
                       const SizedBox(height: 8),

@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
@@ -51,7 +53,7 @@ class TrackReportScreen extends StatelessWidget {
                 stream: FirebaseFirestore.instance
                     .collection('lostItems')
                     .where('itemCategory', isEqualTo: 'lost')
-                    .where('userId', isEqualTo: 'current_user_id')
+                    .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id')
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -141,6 +143,7 @@ class TrackReportScreen extends StatelessWidget {
                         final date = (data['date'] ?? '').toString();
                         final imagePath = (data['imagePath'] ?? '').toString();
                         final pinCode = (data['pinCode'] ?? '').toString();
+                        final doc_num = (data['doc_num'] ?? '').toString();
 
                         return Container(
                           padding: const EdgeInsets.all(16),
@@ -203,7 +206,7 @@ class TrackReportScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${reportId.substring(0, reportId.length > 8 ? 8 : reportId.length)}',
+                                      '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $doc_num',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: mainGreen,
