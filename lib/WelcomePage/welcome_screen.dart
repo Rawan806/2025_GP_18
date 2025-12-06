@@ -125,7 +125,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     _subtitleFade,
                     _subtitleSlide,
                     Text(
-                      'فضلًا اختر نوع المستخدم',
+                      '${AppLocalizations.translate('chooseUserType', currentLocale.languageCode)} ',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 24,
