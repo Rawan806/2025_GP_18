@@ -341,13 +341,18 @@ class _VisitorProfileState extends State<VisitorProfile> {
         }
         return;
       }
+       
+      // تحديث كلمة المرور في Firebase Authentication
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.updatePassword(newPassword);
+      }
       
-      // تحديث كلمة المرور
+      // تحديث كلمة المرور في Firestore (اختياري)
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_currentUserId)
           .update({
-        'password': newPassword,
         'updatedAt': FieldValue.serverTimestamp(),
       });
       
