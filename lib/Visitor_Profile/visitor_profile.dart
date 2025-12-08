@@ -324,23 +324,7 @@ class _VisitorProfileState extends State<VisitorProfile> {
       }
       
       final userData = userDoc.data()!;
-      final storedPassword = userData['password']?.toString() ?? '';
       
-      if (storedPassword != currentPassword) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                currentLocale.languageCode == 'ar' 
-                    ? 'كلمة المرور الحالية غير صحيحة' 
-                    : 'Current password is incorrect',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
        
       // تحديث كلمة المرور في Firebase Authentication
       final user = FirebaseAuth.instance.currentUser;
