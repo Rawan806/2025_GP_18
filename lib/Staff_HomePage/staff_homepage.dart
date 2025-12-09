@@ -13,7 +13,6 @@ class StaffHomePage extends StatelessWidget {
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
-  final Color beigeColor = const Color(0xFFC3BFB0); // نفس لون البيج في HomePage
 
   void _showLanguageDialog(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
@@ -80,7 +79,6 @@ class StaffHomePage extends StatelessWidget {
           return Directionality(
             textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
             child: Scaffold(
-              backgroundColor: beigeColor,
               body: Center(
                 child: Text(
                   AppLocalizations.translate(
@@ -96,9 +94,8 @@ class StaffHomePage extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Directionality(
             textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-            child: Scaffold(
-              backgroundColor: beigeColor,
-              body: const Center(child: CircularProgressIndicator()),
+            child: const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
             ),
           );
         }
@@ -129,8 +126,10 @@ class StaffHomePage extends StatelessWidget {
         latestReports.sort((a, b) {
           final sa = (a['status'] ?? '').toString();
           final sb = (b['status'] ?? '').toString();
-          final isClosedA = sa.contains('مغلق') || sa.contains('Closed');
-          final isClosedB = sb.contains('مغلق') || sb.contains('Closed');
+          final isClosedA =
+              sa.contains('مغلق') || sa.contains('Closed');
+          final isClosedB =
+              sb.contains('مغلق') || sb.contains('Closed');
 
           if (isClosedA == isClosedB) return 0;
           if (isClosedA) return 1;
@@ -140,7 +139,6 @@ class StaffHomePage extends StatelessWidget {
         return Directionality(
           textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: Scaffold(
-            backgroundColor: beigeColor, // خلفية بيج مثل HomePage
             appBar: AppBar(
               backgroundColor: mainGreen,
               foregroundColor: Colors.white,
@@ -184,17 +182,16 @@ class StaffHomePage extends StatelessWidget {
             ),
             body: Stack(
               children: [
-                // Container(
-                //   decoration: const BoxDecoration(
-                //     image: DecorationImage(
-                //       image: AssetImage('assets/background.jpg'),
-                //       fit: BoxFit.cover,
-                //       opacity: 1.0,
-                //     ),
-                //   ),
-                // ),
-                // Container(color: Colors.white.withOpacity(0.25)),
-
+                Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/background.jpg'),
+                      fit: BoxFit.cover,
+                      opacity: 1.0,
+                    ),
+                  ),
+                ),
+                Container(color: Colors.white.withOpacity(0.25)),
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -362,13 +359,32 @@ class _ReportListTile extends StatelessWidget {
     required this.onTap,
   });
 
+  String _getLocalizedStatus(String status, String languageCode) {
+    final statusLower = status.toLowerCase();
+    if (statusLower.contains('open') || statusLower.contains('مفتوح')) {
+      return AppLocalizations.translate('open', languageCode);
+    } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
+      return AppLocalizations.translate('closed', languageCode);
+    } else if (statusLower.contains('pending') || statusLower.contains('قيد الانتظار')) {
+      return AppLocalizations.translate('pending', languageCode);
+    }else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+      return AppLocalizations.translate('preliminaryMatch', languageCode);
+    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+      return AppLocalizations.translate('readyForPickup', languageCode);
+    }  else if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+      return AppLocalizations.translate('underReview', languageCode);
+    }
+    return status;
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
 
     final id = report['doc_num']?.toString() ?? '';
     final title = report['title']?.toString() ?? '';
-    final status = report['status']?.toString() ?? '';
+    final statusFromDb = report['status']?.toString() ?? '';
+    final status = _getLocalizedStatus(statusFromDb, currentLocale.languageCode);
     final date = report['date']?.toString() ?? '';
 
     return InkWell(
