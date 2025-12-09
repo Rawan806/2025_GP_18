@@ -42,7 +42,7 @@ class AppLocalizations {
       // Validation messages
       'fillAllFields': 'يرجى تعبئة جميع الحقول المطلوبة',
       'invalidEmail': 'يرجى إدخال بريد إلكتروني صحيح',
-      'phoneLength': 'رقم الجوال يجب أن يكون 10 أرقام',
+      'phoneLength': 'رقم الجوال يجب أن يكون 10 أرقام ويبدأ بـ 05',
       'passwordLength': 'يجب أن تكون كلمة المرور 8 أحرف على الأقل',
       'passwordMismatch': 'كلمة المرور وتأكيدها غير متطابقتين',
       'accountCreated': 'تم إنشاء الحساب بنجاح',

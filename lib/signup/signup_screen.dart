@@ -5,6 +5,7 @@ import '../signin/signin_screen.dart';
 import '../HomePage/HomePage.dart';
 import '../services/auth_service.dart';
 import '../l10n/app_localizations_helper.dart';
+
 //i added background here
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -54,6 +55,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _handleSignUp() async {
+    final currentLocale = Localizations.localeOf(context);
+    final lang = currentLocale.languageCode;
+
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final phone = phoneController.text.trim();
@@ -67,7 +71,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password.isEmpty ||
         confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى تعبئة جميع الحقول المطلوبة')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate('fillAllFields', lang),
+          ),
+        ),
       );
       return;
     }
@@ -75,15 +83,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
     //  تحقق من الإيميل
     if (!_isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال بريد إلكتروني صحيح')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate('invalidEmail', lang),
+          ),
+        ),
       );
       return;
     }
 
-    // تحقق من رقم الجوال يكون 10 أرقام
-    if (phone.length != 10) {
+    // تحقق من رقم الجوال يكون 10 أرقام ويبدأ بـ 05
+    if (phone.length != 10 || !phone.startsWith('05')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('رقم الجوال يجب أن يكون 10 أرقام')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate('phoneLength', lang),
+          ),
+        ),
       );
       return;
     }
@@ -91,7 +107,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // 8 أحرف على الاقل
     if (password.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يجب أن تكون كلمة المرور 8 أحرف على الأقل')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate('passwordLength', lang),
+          ),
+        ),
       );
       return;
     }
@@ -99,7 +119,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     //  تطابق كلمة المرور
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('كلمة المرور وتأكيدها غير متطابقتين')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate('passwordMismatch', lang),
+          ),
+        ),
       );
       return;
     }
@@ -121,10 +145,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم إنشاء الحساب بنجاح'),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate('accountCreated', lang),
+          ),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
 
@@ -189,16 +215,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
       filled: true,
       // خلفية أفتح عشان التباين مع الصورة
       fillColor: Colors.white.withOpacity(0.9),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding:
+      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
 
       // إطار أوضح وأسمك شوي
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
+        borderSide:
+        BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
+        borderSide:
+        BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -220,8 +249,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-              AppLocalizations.translate('signUp', currentLocale.languageCode),
-              style: const TextStyle(color: Colors.black87)
+            AppLocalizations.translate('signUp', currentLocale.languageCode),
+            style: const TextStyle(color: Colors.black87),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -252,28 +281,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 40),
-///////////////////////////////////////////////////////////////////////////
+                    ///////////////////////////////////////////////////////////////////////////
                     TextField(
                       controller: nameController,
-                      decoration: dec(AppLocalizations.translate('fullName', currentLocale.languageCode), Icons.person),
-                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      decoration: dec(
+                        AppLocalizations.translate(
+                            'fullName', currentLocale.languageCode),
+                        Icons.person,
+                      ),
+                      textAlign:
+                      isArabic ? TextAlign.right : TextAlign.left,
                     ),
                     const SizedBox(height: 15),
-
                     TextField(
                       controller: emailController,
-                      decoration: dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
-                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      decoration: dec(
+                        AppLocalizations.translate(
+                            'email', currentLocale.languageCode),
+                        Icons.email,
+                      ),
+                      textAlign:
+                      isArabic ? TextAlign.right : TextAlign.left,
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 15),
-
                     TextField(
                       controller: phoneController,
-                      decoration: dec(AppLocalizations.translate('phoneNumber', currentLocale.languageCode), Icons.phone),
-                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      decoration: dec(
+                        AppLocalizations.translate(
+                            'phoneNumber', currentLocale.languageCode),
+                        Icons.phone,
+                      ),
+                      textAlign:
+                      isArabic ? TextAlign.right : TextAlign.left,
                       keyboardType: TextInputType.phone,
-                      inputFormatters:  [
+                      inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(10),
                       ],
@@ -283,18 +325,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     // كلمة المرور
                     TextField(
                       controller: passwordController,
-                      decoration: dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                      decoration: dec(
+                        AppLocalizations.translate(
+                            'password', currentLocale.languageCode),
+                        Icons.lock,
+                      ),
                       obscureText: true,
-                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      textAlign:
+                      isArabic ? TextAlign.right : TextAlign.left,
                     ),
                     const SizedBox(height: 15),
 
                     // تأكيد كلمة المرور
                     TextField(
                       controller: confirmPasswordController,
-                      decoration: dec(AppLocalizations.translate('confirmPassword', currentLocale.languageCode), Icons.lock_outline),
+                      decoration: dec(
+                        AppLocalizations.translate(
+                            'confirmPassword',
+                            currentLocale.languageCode),
+                        Icons.lock_outline,
+                      ),
                       obscureText: true,
-                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      textAlign:
+                      isArabic ? TextAlign.right : TextAlign.left,
                     ),
                     const SizedBox(height: 30),
 
@@ -318,8 +371,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                            : Text(AppLocalizations.translate('createAccount', currentLocale.languageCode),
-                            style: const TextStyle(fontSize: 18, color: Colors.white)),
+                            : Text(
+                          AppLocalizations.translate(
+                              'createAccount',
+                              currentLocale.languageCode),
+                          style: const TextStyle(
+                              fontSize: 18, color: Colors.white),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -329,11 +387,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const SigninScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const SigninScreen(),
+                          ),
                         );
                       },
                       child: Text(
-                        AppLocalizations.translate('hasAccount', currentLocale.languageCode),
+                        AppLocalizations.translate(
+                            'hasAccount', currentLocale.languageCode),
                         style: TextStyle(
                           color: mainGreen,
                           fontSize: 14,
