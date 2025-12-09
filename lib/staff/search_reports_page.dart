@@ -41,7 +41,8 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
       BuildContext context,
       ) {
     final currentLocale = Localizations.localeOf(context);
-    final allStatusesText = AppLocalizations.translate('allStatuses', currentLocale.languageCode);
+    final allStatusesText =
+    AppLocalizations.translate('allStatuses', currentLocale.languageCode);
     final searchQuery = _searchController.text.trim().toLowerCase();
 
     return docs.where((doc) {
@@ -53,6 +54,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
 
       final matchesSearch = searchQuery.isEmpty ||
           id.contains(searchQuery) ||
+          doc_num.contains(searchQuery) ||
           title.contains(searchQuery) ||
           (data['category'] ?? '').toString().toLowerCase().contains(searchQuery) ||
           (data['description'] ?? '').toString().toLowerCase().contains(searchQuery);
@@ -85,7 +87,8 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
     final isArabic = currentLocale.languageCode == 'ar';
 
     if (selectedStatus.isEmpty) {
-      selectedStatus = AppLocalizations.translate('allStatuses', currentLocale.languageCode);
+      selectedStatus =
+          AppLocalizations.translate('allStatuses', currentLocale.languageCode);
     }
 
     return Directionality(
@@ -93,18 +96,26 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
       child: Scaffold(
         backgroundColor: beigeColor,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: mainGreen, // صار أخضر بدل الأبيض
           elevation: 0,
+          centerTitle: true,
           title: Text(
-            AppLocalizations.translate('searchReports', currentLocale.languageCode),
+            AppLocalizations.translate(
+              'searchReports',
+              currentLocale.languageCode,
+            ),
             style: const TextStyle(
-              color: Colors.black87,
+              color: Colors.white,      // نص أبيض
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
           ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 22),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,      // أيقونة بيضاء
+              size: 22,
+            ),
             onPressed: () {
               Navigator.pushReplacement(
                 context,
@@ -124,7 +135,10 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                 onChanged: (_) => setState(() {}),
                 textAlign: isArabic ? TextAlign.right : TextAlign.left,
                 decoration: InputDecoration(
-                  hintText: AppLocalizations.translate('searchByNameOrNumber', currentLocale.languageCode),
+                  hintText: AppLocalizations.translate(
+                    'searchByNameOrNumber',
+                    currentLocale.languageCode,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   prefixIcon: const Icon(Icons.search),
@@ -151,7 +165,10 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
-                  labelText: AppLocalizations.translate('status', currentLocale.languageCode),
+                  labelText: AppLocalizations.translate(
+                    'status',
+                    currentLocale.languageCode,
+                  ),
                   labelStyle: const TextStyle(color: Colors.black87),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -179,13 +196,17 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                 stream: _getReportsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator(color: mainGreen));
+                    return Center(
+                      child: CircularProgressIndicator(color: mainGreen),
+                    );
                   }
 
                   if (snapshot.hasError) {
                     return Center(
                       child: Text(
-                        isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
+                        isArabic
+                            ? 'حدث خطأ في تحميل البيانات'
+                            : 'Error loading data',
                         style: const TextStyle(color: Colors.red),
                       ),
                     );
@@ -196,26 +217,37 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off, size: 80, color: Colors.grey),
+                          const Icon(Icons.search_off,
+                              size: 80, color: Colors.grey),
                           const SizedBox(height: 16),
                           Text(
                             isArabic ? 'لا توجد بلاغات' : 'No reports found',
-                            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
                     );
                   }
 
-                  final filteredList = _filterReports(snapshot.data!.docs, context);
+                  final filteredList =
+                  _filterReports(snapshot.data!.docs, context);
 
                   if (filteredList.isEmpty) {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          AppLocalizations.translate('noMatchingResults', currentLocale.languageCode),
-                          style: const TextStyle(color: Colors.black54, fontSize: 16),
+                          AppLocalizations.translate(
+                            'noMatchingResults',
+                            currentLocale.languageCode,
+                          ),
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     );
@@ -225,7 +257,8 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                     padding: const EdgeInsets.all(16),
                     child: ListView.separated(
                       itemCount: filteredList.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, __) =>
+                      const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final report = filteredList[index];
                         return _ReportCard(
@@ -285,7 +318,11 @@ class _ReportCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -306,7 +343,10 @@ class _ReportCard extends StatelessWidget {
                         color: Colors.grey[300],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.image_not_supported, color: Colors.grey),
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                      ),
                     );
                   },
                 ),
@@ -320,7 +360,9 @@ class _ReportCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  itemCategory == 'found' ? Icons.check_circle : Icons.search,
+                  itemCategory == 'found'
+                      ? Icons.check_circle
+                      : Icons.search,
                   color: mainGreen,
                   size: 30,
                 ),
@@ -334,8 +376,7 @@ class _ReportCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          // '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${id.substring(0, id.length > 8 ? 8 : id.length)}',
-                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${doc_num}',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $doc_num',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -345,14 +386,22 @@ class _ReportCard extends StatelessWidget {
                       ),
                       if (itemCategory == 'found')
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green[50],
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green, width: 1),
+                            border: Border.all(
+                              color: Colors.green,
+                              width: 1,
+                            ),
                           ),
                           child: Text(
-                            currentLocale.languageCode == 'ar' ? 'موجود' : 'Found',
+                            currentLocale.languageCode == 'ar'
+                                ? 'موجود'
+                                : 'Found',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.green[700],
@@ -373,7 +422,10 @@ class _ReportCard extends StatelessWidget {
                   if (category.isNotEmpty && category != 'null')
                     Text(
                       '${AppLocalizations.translate('category', currentLocale.languageCode)}: $category',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -390,7 +442,10 @@ class _ReportCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       date,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ],
@@ -403,13 +458,17 @@ class _ReportCard extends StatelessWidget {
   }
 
   Color _getStatusColor(String status) {
-    if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+    if (status.contains('قيد المراجعة') ||
+        status.contains('Under Review')) {
       return Colors.orange;
-    } else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+    } else if (status.contains('مطابقة مبدئية') ||
+        status.contains('Preliminary Match')) {
       return Colors.blue;
-    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+    } else if (status.contains('جاهز للاستلام') ||
+        status.contains('Ready for Pickup')) {
       return Colors.green;
-    } else if (status.contains('مغلق') || status.contains('Closed')) {
+    } else if (status.contains('مغلق') ||
+        status.contains('Closed')) {
       return Colors.grey;
     }
     return Colors.black87;

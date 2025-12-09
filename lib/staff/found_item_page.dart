@@ -15,6 +15,8 @@ class FoundItemPage extends StatefulWidget {
 class _FoundItemPageState extends State<FoundItemPage> {
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
+  final Color beigeColor = const Color(0xFFC3BFB0);
+  final Color chipGrey = const Color(0xFF3E3C3C);
 
   final _typeCtrl = TextEditingController();
   final _colorCtrl = TextEditingController();
@@ -45,21 +47,19 @@ class _FoundItemPageState extends State<FoundItemPage> {
 
   InputDecoration _dec(String label) => InputDecoration(
     labelText: label,
-    filled: true,
-    fillColor: Colors.white.withOpacity(.9),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
-    ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.2),
+      borderSide: BorderSide(color: borderBrown, width: 1.5),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown, width: 1.6),
+      borderSide: BorderSide(color: borderBrown, width: 2),
     ),
-    labelStyle: TextStyle(color: borderBrown.withOpacity(0.85)),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderBrown),
+    ),
+    labelStyle: TextStyle(color: borderBrown.withOpacity(0.9)),
   );
 
   Future<void> _pick(bool camera) async {
@@ -128,7 +128,14 @@ class _FoundItemPageState extends State<FoundItemPage> {
 
     if (_image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.translate('pleaseAddPhoto', locale.languageCode))),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate(
+              'pleaseAddPhoto',
+              locale.languageCode,
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -137,7 +144,14 @@ class _FoundItemPageState extends State<FoundItemPage> {
         _colorCtrl.text.trim().isEmpty ||
         _foundLocCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.translate('typeColorLocationRequired', locale.languageCode))),
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate(
+              'typeColorLocationRequired',
+              locale.languageCode,
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -147,16 +161,23 @@ class _FoundItemPageState extends State<FoundItemPage> {
     try {
       final imageUrl = await _service.uploadImage(_image!);
 
-      final doc = await FirebaseFirestore.instance.collection('foundItems').add({
+      final doc =
+      await FirebaseFirestore.instance.collection('foundItems').add({
         'title': _typeCtrl.text.trim(),
         'type': _typeCtrl.text.trim(),
         'color': _colorCtrl.text.trim(),
-        'description': _descCtrl.text.trim().isEmpty ? '-' : _descCtrl.text.trim(),
+        'description':
+        _descCtrl.text.trim().isEmpty ? '-' : _descCtrl.text.trim(),
         'foundLocation': _foundLocCtrl.text.trim(),
-        'storageLocation': _storageLocCtrl.text.trim().isEmpty ? '-' : _storageLocCtrl.text.trim(),
+        'storageLocation': _storageLocCtrl.text.trim().isEmpty
+            ? '-'
+            : _storageLocCtrl.text.trim(),
         'reportLocation': _foundLocCtrl.text.trim(),
         'imagePath': imageUrl,
-        'status': AppLocalizations.translate('underReview', locale.languageCode),
+        'status': AppLocalizations.translate(
+          'underReview',
+          locale.languageCode,
+        ),
         'date': _format(_foundAt, locale.languageCode),
         'createdAt': _format(DateTime.now(), locale.languageCode),
         'updatedAt': _format(DateTime.now(), locale.languageCode),
@@ -172,7 +193,12 @@ class _FoundItemPageState extends State<FoundItemPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.translate('savedSuccessfully', locale.languageCode)),
+          content: Text(
+            AppLocalizations.translate(
+              'savedSuccessfully',
+              locale.languageCode,
+            ),
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -181,7 +207,9 @@ class _FoundItemPageState extends State<FoundItemPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${AppLocalizations.translate('saveFailed', locale.languageCode)}: $e'),
+          content: Text(
+            '${AppLocalizations.translate('saveFailed', locale.languageCode)}: $e',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -217,189 +245,304 @@ class _FoundItemPageState extends State<FoundItemPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: beigeColor,
         appBar: AppBar(
+          backgroundColor: mainGreen,
           title: Text(
-            AppLocalizations.translate('registerFoundItem', locale.languageCode),
-            style: const TextStyle(color: Colors.black87),
+            AppLocalizations.translate(
+              'registerFoundItem',
+              locale.languageCode,
+            ),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.black87),
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _image != null ? _runAI : null,
-              tooltip: AppLocalizations.translate('rerunAI', locale.languageCode),
-            )
+              tooltip: AppLocalizations.translate(
+                'rerunAI',
+                locale.languageCode,
+              ),
+            ),
           ],
         ),
         body: Stack(
           children: [
             if (_busy) const LinearProgressIndicator(minHeight: 2),
             SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius: BorderRadius.circular(12),
-                        image: _image != null
-                            ? DecorationImage(image: FileImage(_image!), fit: BoxFit.cover)
-                            : null,
-                      ),
-                      child: _image == null
-                          ? Center(
-                        child: Text(AppLocalizations.translate('noImageSelected', locale.languageCode)),
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.black12,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: mainGreen, width: 2),
+                      image: _image != null
+                          ? DecorationImage(
+                        image: FileImage(_image!),
+                        fit: BoxFit.cover,
                       )
                           : null,
                     ),
+                    child: _image == null
+                        ? Center(
+                      child: Text(
+                        AppLocalizations.translate(
+                          'noImageSelected',
+                          locale.languageCode,
+                        ),
+                        style: const TextStyle(color: Colors.black54),
+                      ),
+                    )
+                        : null,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.photo_camera),
-                          label: Text(AppLocalizations.translate('camera', locale.languageCode)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: mainGreen),
+                            padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          icon: Icon(Icons.photo_camera, color: mainGreen),
+                          label: Text(
+                            AppLocalizations.translate(
+                              'camera',
+                              locale.languageCode,
+                            ),
+                            style: TextStyle(color: mainGreen),
+                          ),
                           onPressed: () => _pick(true),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.photo),
-                          label: Text(AppLocalizations.translate('gallery', locale.languageCode)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: mainGreen),
+                            padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          icon: Icon(Icons.photo, color: mainGreen),
+                          label: Text(
+                            AppLocalizations.translate(
+                              'gallery',
+                              locale.languageCode,
+                            ),
+                            style: TextStyle(color: mainGreen),
+                          ),
                           onPressed: () => _pick(false),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-
                   if (_altTypes.isNotEmpty)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.translate('suggestedTypes', locale.languageCode),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          AppLocalizations.translate(
+                            'suggestedTypes',
+                            locale.languageCode,
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                        const SizedBox(height: 4),
                         Wrap(
                           spacing: 8,
                           children: _altTypes
-                              .map((t) => ActionChip(
-                            label: Text(t),
-                            onPressed: () => _typeCtrl.text = t,
-                          ))
+                              .map(
+                                (t) => ActionChip(
+                              backgroundColor: chipGrey,
+                              label: Text(
+                                t,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              onPressed: () => _typeCtrl.text = t,
+                            ),
+                          )
                               .toList(),
                         ),
                         const SizedBox(height: 8),
                       ],
                     ),
-
                   if (_aiColor != null)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.translate('suggestedColor', locale.languageCode),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          AppLocalizations.translate(
+                            'suggestedColor',
+                            locale.languageCode,
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                        const SizedBox(height: 4),
                         Wrap(
                           children: [
                             ActionChip(
-                              label: Text(_aiColor!),
-                              onPressed: () => _colorCtrl.text = _aiColor!,
+                              backgroundColor: chipGrey,
+                              label: Text(
+                                _aiColor!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              onPressed: () =>
+                              _colorCtrl.text = _aiColor!,
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                       ],
                     ),
-
                   TextField(
                     controller: _typeCtrl,
-                    decoration: _dec(AppLocalizations.translate('itemType', locale.languageCode)),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: _dec(
+                      AppLocalizations.translate(
+                        'itemType',
+                        locale.languageCode,
+                      ),
+                    ),
+                    textAlign:
+                    isArabic ? TextAlign.right : TextAlign.left,
                   ),
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _colorCtrl,
-                    decoration: _dec(AppLocalizations.translate('color', locale.languageCode)),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: _dec(
+                      AppLocalizations.translate(
+                        'color',
+                        locale.languageCode,
+                      ),
+                    ),
+                    textAlign:
+                    isArabic ? TextAlign.right : TextAlign.left,
                   ),
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _descCtrl,
                     maxLines: 3,
-                    decoration: _dec(AppLocalizations.translate('description', locale.languageCode)),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: _dec(
+                      AppLocalizations.translate(
+                        'description',
+                        locale.languageCode,
+                      ),
+                    ),
+                    textAlign:
+                    isArabic ? TextAlign.right : TextAlign.left,
                   ),
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _foundLocCtrl,
-                    decoration: _dec(AppLocalizations.translate('foundLocation', locale.languageCode)),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: _dec(
+                      AppLocalizations.translate(
+                        'foundLocation',
+                        locale.languageCode,
+                      ),
+                    ),
+                    textAlign:
+                    isArabic ? TextAlign.right : TextAlign.left,
                   ),
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _storageLocCtrl,
-                    decoration: _dec(AppLocalizations.translate('storageLocation', locale.languageCode)),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: _dec(
+                      AppLocalizations.translate(
+                        'storageLocation',
+                        locale.languageCode,
+                      ),
+                    ),
+                    textAlign:
+                    isArabic ? TextAlign.right : TextAlign.left,
                   ),
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    icon: const Icon(Icons.schedule),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: borderBrown),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: Icon(Icons.schedule, color: mainGreen),
                     label: Text(
                       '${AppLocalizations.translate('foundTime', locale.languageCode)}: ${_format(_foundAt, locale.languageCode)}',
+                      style: TextStyle(color: mainGreen),
                     ),
                     onPressed: () async {
                       final d = await showDatePicker(
                         context: context,
                         initialDate: _foundAt,
-                        firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                        lastDate: DateTime.now().add(const Duration(days: 1)),
+                        firstDate: DateTime.now()
+                            .subtract(const Duration(days: 30)),
+                        lastDate: DateTime.now()
+                            .add(const Duration(days: 1)),
                       );
                       if (d == null) return;
 
                       final t = await showTimePicker(
                         context: context,
-                        initialTime: TimeOfDay.fromDateTime(_foundAt),
+                        initialTime:
+                        TimeOfDay.fromDateTime(_foundAt),
                       );
                       if (t == null) return;
 
                       setState(() {
-                        _foundAt = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                        _foundAt = DateTime(
+                          d.year,
+                          d.month,
+                          d.day,
+                          t.hour,
+                          t.minute,
+                        );
                       });
                     },
                   ),
-
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: mainGreen),
-                      onPressed: _busy ? null : _save,
-                      child: Text(
-                        AppLocalizations.translate('save', locale.languageCode),
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: mainGreen,
+                      foregroundColor: Colors.white,
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 16),
                     ),
-                  )
+                    onPressed: _busy ? null : _save,
+                    child: Text(
+                      AppLocalizations.translate(
+                        'save',
+                        locale.languageCode,
+                      ),
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

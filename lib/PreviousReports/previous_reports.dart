@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../l10n/app_localizations_helper.dart';
 
 class PreviousReportsPage extends StatelessWidget {
@@ -37,7 +38,9 @@ class PreviousReportsPage extends StatelessWidget {
           centerTitle: true,
           title: Text(
             AppLocalizations.translate(
-                'previousReports', currentLocale.languageCode),
+              'previousReports',
+              currentLocale.languageCode,
+            ),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -49,7 +52,11 @@ class PreviousReportsPage extends StatelessWidget {
           stream: FirebaseFirestore.instance
               .collection('lostItems')
               .where('itemCategory', isEqualTo: 'lost')
-              .where('userId', isEqualTo: 'current_user_id')
+              .where(
+            'userId',
+            isEqualTo:
+            FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+          )
               .orderBy('createdAt', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
@@ -74,7 +81,9 @@ class PreviousReportsPage extends StatelessWidget {
               return Center(
                 child: Text(
                   AppLocalizations.translate(
-                      'noPreviousReports', currentLocale.languageCode),
+                    'noPreviousReports',
+                    currentLocale.languageCode,
+                  ),
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.black38,
@@ -94,7 +103,9 @@ class PreviousReportsPage extends StatelessWidget {
               return Center(
                 child: Text(
                   AppLocalizations.translate(
-                      'noPreviousReports', currentLocale.languageCode),
+                    'noPreviousReports',
+                    currentLocale.languageCode,
+                  ),
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.black38,
@@ -110,12 +121,11 @@ class PreviousReportsPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final data =
                   closedDocs[index].data() as Map<String, dynamic>;
-                  final reportId =
-                  (data['id'] ?? closedDocs[index].id).toString();
                   final title = (data['title'] ?? '').toString();
                   final status = (data['status'] ?? '').toString();
                   final date = (data['date'] ?? '').toString();
                   final imagePath = (data['imagePath'] ?? '').toString();
+                  final docNum = (data['doc_num'] ?? '').toString();
 
                   return Container(
                     padding: const EdgeInsets.all(16),
@@ -177,7 +187,7 @@ class PreviousReportsPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: ${reportId.substring(0, reportId.length > 8 ? 8 : reportId.length)}',
+                                '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $docNum',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: mainGreen,

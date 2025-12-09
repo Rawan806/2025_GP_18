@@ -33,19 +33,19 @@ class AISuggester {
 
   /// نربط بعض ImageNet labels بأنواع مفقودات تناسب الحرم
   static const Map<String, String> _labelToLostType = {
-    'wallet': 'محفظة',
-    'backpack': 'حقيبة ظهر',
-    'handbag': 'حقيبة يد',
-    'purse': 'حقيبة صغيرة',
-    'cellular telephone': 'جوال',
-    'laptop': 'لابتوب',
-    'notebook': 'دفتر',
-    'book jacket': 'كتاب',
-    'sunglass': 'نظارة شمسية',
-    'sunglasses': 'نظارة شمسية',
-    'digital watch': 'ساعة',
-    'analog clock': 'ساعة',
-    'watch': 'ساعة',
+    'wallet': 'wallet / محفظة',
+    'backpack': 'backpack / حقيبة ظهر',
+    'handbag': 'handbag / حقيبة يد',
+    'purse': 'purse / حقيبة صغيرة',
+    'cellular telephone': 'cellphone / جوال',
+    'laptop': 'laptop / لابتوب',
+    'notebook': 'notebook / دفتر',
+    'book jacket': 'book / كتاب',
+    'sunglass': 'sunglasses / نظارة شمسية',
+    'sunglasses': 'sunglasses / نظارة شمسية',
+    'digital watch': 'watch / ساعة',
+    'analog clock': 'watch / ساعة',
+    'watch': 'watch / ساعة',
   };
 
 
@@ -211,12 +211,12 @@ class AISuggester {
     final double delta = maxC - minC;
 
     // ألوان أساسية (داكن/فاتح)
-    if (brightness < 40) return 'أسود';
-    if (brightness > 230) return 'أبيض';
+    if (brightness < 40) return 'black / أسود';
+    if (brightness > 230) return 'white / أبيض';
 
     // it should've been grey but the pixels are confusing for our human eyes
     // so i decided to write black
-    if (delta < 10) return 'أسود';
+    if (delta < 10) return 'black / أسود';
 
     // حساب Hue تقريبي
     double hue;
@@ -229,14 +229,14 @@ class AISuggester {
     }
     if (hue < 0) hue += 360.0;
 
-    if (hue < 20 || hue >= 340) return 'أحمر';
-    if (hue < 50) return 'برتقالي';
-    if (hue < 70) return 'أصفر';
-    if (hue < 170) return 'أخضر';
-    if (hue < 200) return 'سماوي';
-    if (hue < 240) return 'أزرق';
-    if (hue < 300) return 'بنفسجي';
-    return 'بني';
+    if (hue < 20 || hue >= 340) return 'red / أحمر';
+    if (hue < 50) return 'orange / برتقالي';
+    if (hue < 70) return 'yellow / أصفر';
+    if (hue < 170) return 'green / أخضر';
+    if (hue < 200) return 'skyblue / سماوي';
+    if (hue < 240) return 'blue / أزرق';
+    if (hue < 300) return 'purple / بنفسجي';
+    return 'brown / بني';
   }
 
 

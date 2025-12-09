@@ -13,6 +13,7 @@ class StaffHomePage extends StatelessWidget {
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
+  final Color beigeColor = const Color(0xFFC3BFB0); // نفس لون البيج في HomePage
 
   void _showLanguageDialog(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
@@ -79,6 +80,7 @@ class StaffHomePage extends StatelessWidget {
           return Directionality(
             textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
             child: Scaffold(
+              backgroundColor: beigeColor,
               body: Center(
                 child: Text(
                   AppLocalizations.translate(
@@ -94,8 +96,9 @@ class StaffHomePage extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Directionality(
             textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-            child: const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+            child: Scaffold(
+              backgroundColor: beigeColor,
+              body: const Center(child: CircularProgressIndicator()),
             ),
           );
         }
@@ -126,10 +129,8 @@ class StaffHomePage extends StatelessWidget {
         latestReports.sort((a, b) {
           final sa = (a['status'] ?? '').toString();
           final sb = (b['status'] ?? '').toString();
-          final isClosedA =
-              sa.contains('مغلق') || sa.contains('Closed');
-          final isClosedB =
-              sb.contains('مغلق') || sb.contains('Closed');
+          final isClosedA = sa.contains('مغلق') || sa.contains('Closed');
+          final isClosedB = sb.contains('مغلق') || sb.contains('Closed');
 
           if (isClosedA == isClosedB) return 0;
           if (isClosedA) return 1;
@@ -139,6 +140,7 @@ class StaffHomePage extends StatelessWidget {
         return Directionality(
           textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: Scaffold(
+            backgroundColor: beigeColor, // خلفية بيج مثل HomePage
             appBar: AppBar(
               backgroundColor: mainGreen,
               foregroundColor: Colors.white,
@@ -182,16 +184,17 @@ class StaffHomePage extends StatelessWidget {
             ),
             body: Stack(
               children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/background.jpg'),
-                      fit: BoxFit.cover,
-                      opacity: 1.0,
-                    ),
-                  ),
-                ),
-                Container(color: Colors.white.withOpacity(0.25)),
+                // Container(
+                //   decoration: const BoxDecoration(
+                //     image: DecorationImage(
+                //       image: AssetImage('assets/background.jpg'),
+                //       fit: BoxFit.cover,
+                //       opacity: 1.0,
+                //     ),
+                //   ),
+                // ),
+                // Container(color: Colors.white.withOpacity(0.25)),
+
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
