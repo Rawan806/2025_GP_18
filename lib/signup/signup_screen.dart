@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // لأجل inputFormatters
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+
 import '../signin/signin_screen.dart';
 import '../HomePage/HomePage.dart';
 import '../services/auth_service.dart';
 import '../l10n/app_localizations_helper.dart';
+import '../otp_verification_screen.dart';
 
-//i added background here
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -15,13 +17,21 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+
   final AuthService _authService = AuthService();
+
   bool _isLoading = false;
+
+  // رقم جوال بصيغة E.164: +9665xxxxxxxx
+  String _phoneE164 = '';
+  PhoneNumber _initialNumber = PhoneNumber(isoCode: 'SA');
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
@@ -29,6 +39,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void initState() {
     super.initState();
+
+    passwordController.addListener(_revalidateForm);
+    confirmPasswordController.addListener(_revalidateForm);
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -38,8 +52,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     ));
   }
 
+  void _revalidateForm() {
+    final form = _formKey.currentState;
+    if (form != null) form.validate();
+  }
+
   @override
   void dispose() {
+    passwordController.removeListener(_revalidateForm);
+    confirmPasswordController.removeListener(_revalidateForm);
+
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
@@ -49,122 +71,109 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   bool _isValidEmail(String email) {
-    // تحقق بسيط
     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
     return emailRegex.hasMatch(email);
   }
 
-  void _handleSignUp() async {
+  // ---------- Validators ----------
+  String? _validateName(String? v, String lang) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
+    if (value.length < 2) return 'الاسم قصير جدًا';
+    return null;
+  }
+
+  String? _validateEmail(String? v, String lang) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
+    if (!_isValidEmail(value)) return AppLocalizations.translate('invalidEmail', lang);
+    return null;
+  }
+
+  String? _validatePhone(String lang) {
+    // يعتمد على intl_phone_number_input في إخراج E.164
+    if (_phoneE164.trim().isEmpty) {
+      return AppLocalizations.translate('fillAllFields', lang);
+    }
+    // لو تبين تشيك إضافي:
+    if (!_phoneE164.startsWith('+')) {
+      return 'رقم الجوال غير صحيح';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? v, String lang) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
+    if (value.length < 8) return AppLocalizations.translate('passwordLength', lang);
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? v, String lang) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
+    if (value != passwordController.text.trim()) {
+      return AppLocalizations.translate('passwordMismatch', lang);
+    }
+    return null;
+  }
+
+  // ---------- Main SignUp Flow ----------
+  Future<void> _handleSignUp() async {
     final currentLocale = Localizations.localeOf(context);
     final lang = currentLocale.languageCode;
 
+    FocusScope.of(context).unfocus();
+
+    final ok = _formKey.currentState?.validate() ?? false;
+    final phoneError = _validatePhone(lang);
+    if (!ok || phoneError != null) {
+      // لو فشل رقم الجوال، نطلع SnackBar سريع (والـUI already يبين errors تحت الحقول)
+      if (phoneError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(phoneError)),
+        );
+      }
+      return;
+    }
+
     final name = nameController.text.trim();
     final email = emailController.text.trim();
-    final phone = phoneController.text.trim();
     final password = passwordController.text.trim();
-    final confirmPassword = confirmPasswordController.text.trim();
+    final phone = _phoneE164.trim();
 
-    //  التحقق من تعبئة كل الحقول
-    if (name.isEmpty ||
-        email.isEmpty ||
-        phone.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('fillAllFields', lang),
-          ),
-        ),
-      );
-      return;
-    }
-
-    //  تحقق من الإيميل
-    if (!_isValidEmail(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('invalidEmail', lang),
-          ),
-        ),
-      );
-      return;
-    }
-
-    // تحقق من رقم الجوال يكون 10 أرقام ويبدأ بـ 05
-    if (phone.length != 10 || !phone.startsWith('05')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('phoneLength', lang),
-          ),
-        ),
-      );
-      return;
-    }
-
-    // 8 أحرف على الاقل
-    if (password.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('passwordLength', lang),
-          ),
-        ),
-      );
-      return;
-    }
-
-    //  تطابق كلمة المرور
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('passwordMismatch', lang),
-          ),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // إنشاء حساب جديد باستخدام Firebase Auth
+      // 1) إنشاء حساب الإيميل/باسورد أولًا
       await _authService.createUserWithEmailAndPassword(
-          email,
-          password,
-          name,
-          phone,
-          'visitor' // نوع المستخدم كزائر
+        email,
+        password,
+        name,
+        phone,
+        'visitor',
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('accountCreated', lang),
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-
-      // الانتقال للصفحة الرئيسية
-      Navigator.pushAndRemoveUntil(
+      // 2) أرسل SMS وانتقل لصفحة OTP
+      Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-            (route) => false,
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(
+            phoneE164: phone,
+            name: name,
+            email: email,
+            userType: 'visitor',
+            onVerifiedNavigateToHome: true,
+          ),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String message;
       switch (e.code) {
         case 'weak-password':
-          message = 'كلمة المرور ضعيفة جداً';
+          message = 'كلمة المرور ضعيفة جدًا';
           break;
         case 'email-already-in-use':
           message = 'البريد الإلكتروني مستخدم من قبل';
@@ -175,59 +184,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
         default:
           message = 'خطأ في إنشاء الحساب: ${e.message}';
       }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ غير متوقع: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+          SnackBar(content: Text('خطأ غير متوقع: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
-    final isArabic = currentLocale.languageCode == 'ar';
+    final lang = currentLocale.languageCode;
+    final isArabic = lang == 'ar';
 
     InputDecoration dec(String label, IconData icon) => InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
       filled: true,
-      // خلفية أفتح عشان التباين مع الصورة
       fillColor: Colors.white.withOpacity(0.9),
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-
-      // إطار أوضح وأسمك شوي
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-        BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
+        borderSide: BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-        BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
+        borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -239,8 +230,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
 
-    //////////////////////////////////////////////
-
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
@@ -249,7 +238,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            AppLocalizations.translate('signUp', currentLocale.languageCode),
+            AppLocalizations.translate('signUp', lang),
             style: const TextStyle(color: Colors.black87),
           ),
           backgroundColor: Colors.transparent,
@@ -260,7 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         body: Stack(
           children: [
             Container(
-              constraints: const BoxConstraints.expand(), // يمـلا الشاشة كلها
+              constraints: const BoxConstraints.expand(),
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('assets/background.jpg'),
@@ -269,140 +258,123 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
             ),
-            Container(
-              color: Colors.white24.withOpacity(0.25),
-            ),
+            Container(color: Colors.white24.withOpacity(0.25)),
             SafeArea(
               top: true,
               bottom: false,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 40),
-                    ///////////////////////////////////////////////////////////////////////////
-                    TextField(
-                      controller: nameController,
-                      decoration: dec(
-                        AppLocalizations.translate(
-                            'fullName', currentLocale.languageCode),
-                        Icons.person,
-                      ),
-                      textAlign:
-                      isArabic ? TextAlign.right : TextAlign.left,
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: emailController,
-                      decoration: dec(
-                        AppLocalizations.translate(
-                            'email', currentLocale.languageCode),
-                        Icons.email,
-                      ),
-                      textAlign:
-                      isArabic ? TextAlign.right : TextAlign.left,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: phoneController,
-                      decoration: dec(
-                        AppLocalizations.translate(
-                            'phoneNumber', currentLocale.languageCode),
-                        Icons.phone,
-                      ),
-                      textAlign:
-                      isArabic ? TextAlign.right : TextAlign.left,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(10),
-                      ],
-                    ),
-                    const SizedBox(height: 15),
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 40),
 
-                    // كلمة المرور
-                    TextField(
-                      controller: passwordController,
-                      decoration: dec(
-                        AppLocalizations.translate(
-                            'password', currentLocale.languageCode),
-                        Icons.lock,
+                      // الاسم
+                      TextFormField(
+                        controller: nameController,
+                        decoration: dec(AppLocalizations.translate('fullName', lang), Icons.person),
+                        validator: (v) => _validateName(v, lang),
+                        textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       ),
-                      obscureText: true,
-                      textAlign:
-                      isArabic ? TextAlign.right : TextAlign.left,
-                    ),
-                    const SizedBox(height: 15),
+                      const SizedBox(height: 15),
 
-                    // تأكيد كلمة المرور
-                    TextField(
-                      controller: confirmPasswordController,
-                      decoration: dec(
-                        AppLocalizations.translate(
-                            'confirmPassword',
-                            currentLocale.languageCode),
-                        Icons.lock_outline,
+                      // الايميل
+                      TextFormField(
+                        controller: emailController,
+                        decoration: dec(AppLocalizations.translate('email', lang), Icons.email),
+                        validator: (v) => _validateEmail(v, lang),
+                        keyboardType: TextInputType.emailAddress,
+                        textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       ),
-                      obscureText: true,
-                      textAlign:
-                      isArabic ? TextAlign.right : TextAlign.left,
-                    ),
-                    const SizedBox(height: 30),
+                      const SizedBox(height: 15),
 
-                    // إنشاء حساب فعليا
-                    SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleSignUp,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: mainGreen,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      // الجوال الدولي
+                      InternationalPhoneNumberInput(
+                        onInputChanged: (PhoneNumber number) {
+                          setState(() {
+                            _phoneE164 = number.phoneNumber ?? '';
+                          });
+                        },
+                        selectorConfig: const SelectorConfig(
+                          selectorType: PhoneInputSelectorType.DROPDOWN,
+                          showFlags: true,
+                          useEmoji: true,
+                        ),
+                        ignoreBlank: false,
+                        autoValidateMode: AutovalidateMode.onUserInteraction,
+                        initialValue: _initialNumber,
+                        textFieldController: phoneController,
+                        formatInput: true,
+                        inputDecoration: dec(AppLocalizations.translate('phoneNumber', lang), Icons.phone),
+                        keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+                      ),
+                      const SizedBox(height: 15),
+
+                      // الباسورد
+                      TextFormField(
+                        controller: passwordController,
+                        decoration: dec(AppLocalizations.translate('password', lang), Icons.lock),
+                        validator: (v) => _validatePassword(v, lang),
+                        obscureText: true,
+                        textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      ),
+                      const SizedBox(height: 15),
+
+                      // تأكيد
+                      TextFormField(
+                        controller: confirmPasswordController,
+                        decoration: dec(AppLocalizations.translate('confirmPassword', lang), Icons.lock_outline),
+                        validator: (v) => _validateConfirmPassword(v, lang),
+                        obscureText: true,
+                        textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      SizedBox(
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSignUp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: mainGreen,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                              : Text(
+                            AppLocalizations.translate('createAccount', lang),
+                            style: const TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                            : Text(
-                          AppLocalizations.translate(
-                              'createAccount',
-                              currentLocale.languageCode),
-                          style: const TextStyle(
-                              fontSize: 18, color: Colors.white),
-                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
 
-                    // تسجيل الدخول
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SigninScreen(),
+                      const SizedBox(height: 20),
+
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SigninScreen()),
+                          );
+                        },
+                        child: Text(
+                          AppLocalizations.translate('hasAccount', lang),
+                          style: TextStyle(
+                            color: mainGreen,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
-                        );
-                      },
-                      child: Text(
-                        AppLocalizations.translate(
-                            'hasAccount', currentLocale.languageCode),
-                        style: TextStyle(
-                          color: mainGreen,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

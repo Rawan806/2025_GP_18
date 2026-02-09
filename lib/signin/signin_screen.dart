@@ -31,15 +31,116 @@ class _SigninScreenState extends State<SigninScreen> {
     super.dispose();
   }
 
+  // ✅ جديد: Forgot Password Dialog + Send reset email
+  Future<void> _showForgotPasswordDialog() async {
+    final currentLocale = Localizations.localeOf(context);
+    final lang = currentLocale.languageCode;
+
+    final controller =
+    TextEditingController(text: emailController.text.trim());
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(AppLocalizations.translate('forgotPassword', lang)),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.translate('email', lang),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppLocalizations.translate('cancel', lang)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = controller.text.trim();
+                if (email.isEmpty) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                      Text(AppLocalizations.translate('enterEmail', lang)),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  await FirebaseAuth.instance
+                      .sendPasswordResetEmail(email: email);
+
+                  if (!mounted) return;
+                  Navigator.pop(ctx);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          AppLocalizations.translate('resetEmailSent', lang)),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                } on FirebaseAuthException catch (e) {
+                  String msg =
+                  AppLocalizations.translate('resetFailed', lang);
+
+                  // مفاتيح جاهزة عندك غالباً:
+                  if (e.code == 'invalid-email') {
+                    msg = AppLocalizations.translate('invalidEmail', lang);
+                  } else if (e.code == 'user-not-found') {
+                    msg = AppLocalizations.translate('userNotFound', lang);
+                  }
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          '${AppLocalizations.translate('resetFailed', lang)}: $e'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
+              child: Text(AppLocalizations.translate('send', lang)),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+  }
+
   void _handleLogin() async {
+    final currentLocale = Localizations.localeOf(context);
+    final lang = currentLocale.languageCode;
+
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى تعبئة البريد الإلكتروني وكلمة المرور'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content:
+          Text(AppLocalizations.translate('fillEmailPassword', lang)),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -75,19 +176,19 @@ class _SigninScreenState extends State<SigninScreen> {
       String message;
       switch (e.code) {
         case 'user-not-found':
-          message = 'لا يوجد حساب بهذا البريد الإلكتروني';
+          message = AppLocalizations.translate('userNotFound', lang);
           break;
         case 'wrong-password':
-          message = 'كلمة المرور غير صحيحة';
+          message = AppLocalizations.translate('wrongPassword', lang);
           break;
         case 'invalid-email':
-          message = 'البريد الإلكتروني غير صحيح';
+          message = AppLocalizations.translate('invalidEmail', lang);
           break;
         case 'user-disabled':
-          message = 'تم تعطيل هذا الحساب';
+          message = AppLocalizations.translate('userDisabled', lang);
           break;
         default:
-          message = 'خطأ في تسجيل الدخول: ${e.message}';
+          message = '${AppLocalizations.translate('loginError', lang)}: ${e.message}';
       }
 
       if (mounted) {
@@ -103,7 +204,8 @@ class _SigninScreenState extends State<SigninScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ غير متوقع: $e'),
+            content: Text(
+                '${AppLocalizations.translate('unexpectedError', lang)}: $e'),
             duration: const Duration(seconds: 3),
             backgroundColor: Colors.red,
           ),
@@ -124,15 +226,17 @@ class _SigninScreenState extends State<SigninScreen> {
     filled: true,
     // هنا نفس ستايل التسجيل: نخلي الخلفية شبه مصمتة عشان تبان فوق الصورة
     fillColor: Colors.white.withOpacity(0.9),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-
+    contentPadding:
+    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
+      borderSide:
+      BorderSide(color: borderBrown.withOpacity(0.8), width: 1.4),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
+      borderSide:
+      BorderSide(color: borderBrown.withOpacity(0.7), width: 1.4),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
@@ -156,8 +260,7 @@ class _SigninScreenState extends State<SigninScreen> {
         body: Stack(
           children: [
             // الخلفية
-            Container
-              (
+            Container(
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('assets/background.jpg'),
@@ -166,11 +269,9 @@ class _SigninScreenState extends State<SigninScreen> {
                 ),
               ),
             ),
-
             Container(
               color: Colors.white24.withOpacity(0.25),
             ),
-
             SafeArea(
               child: Align(
                 alignment: Alignment.topRight,
@@ -185,24 +286,25 @@ class _SigninScreenState extends State<SigninScreen> {
                     },
                     icon: Directionality(
                       textDirection: TextDirection.rtl, // يضمن اتجاه السهم لليمين
-                      child: const Icon(Icons.arrow_back, size: 22, color: Colors.black87),
+                      child: const Icon(Icons.arrow_back,
+                          size: 22, color: Colors.black87),
                     ),
                     tooltip: 'رجوع',
                   ),
                 ),
               ),
             ),
-
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 16),
-
                     Text(
-                      AppLocalizations.translate('signIn', currentLocale.languageCode),
+                      AppLocalizations.translate(
+                          'signIn', currentLocale.languageCode),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 30,
@@ -210,27 +312,49 @@ class _SigninScreenState extends State<SigninScreen> {
                         color: Colors.black87,
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
                     TextField(
                       controller: emailController,
-                      decoration: _dec(AppLocalizations.translate('email', currentLocale.languageCode), Icons.email),
+                      decoration: _dec(
+                        AppLocalizations.translate(
+                            'email', currentLocale.languageCode),
+                        Icons.email,
+                      ),
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       keyboardType: TextInputType.emailAddress,
                     ),
-
                     const SizedBox(height: 14),
-
                     TextField(
                       controller: passwordController,
                       obscureText: true,
-                      decoration: _dec(AppLocalizations.translate('password', currentLocale.languageCode), Icons.lock),
+                      decoration: _dec(
+                        AppLocalizations.translate(
+                            'password', currentLocale.languageCode),
+                        Icons.lock,
+                      ),
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),
 
-                    const SizedBox(height: 20),
+                    // ✅ جديد: هل نسيت كلمة المرور؟
+                    Align(
+                      alignment: isArabic
+                          ? Alignment.centerLeft
+                          : Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _showForgotPasswordDialog,
+                        child: Text(
+                          AppLocalizations.translate('forgotPassword',
+                              currentLocale.languageCode),
+                          style: TextStyle(
+                            color: mainGreen,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
 
+                    const SizedBox(height: 6),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mainGreen,
@@ -251,13 +375,12 @@ class _SigninScreenState extends State<SigninScreen> {
                         ),
                       )
                           : Text(
-                        AppLocalizations.translate('login', currentLocale.languageCode),
+                        AppLocalizations.translate(
+                            'login', currentLocale.languageCode),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -268,7 +391,8 @@ class _SigninScreenState extends State<SigninScreen> {
                         );
                       },
                       child: Text(
-                        AppLocalizations.translate('noAccount', currentLocale.languageCode),
+                        AppLocalizations.translate(
+                            'noAccount', currentLocale.languageCode),
                         style: TextStyle(
                           color: mainGreen,
                           fontSize: 14,
@@ -276,7 +400,6 @@ class _SigninScreenState extends State<SigninScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 8),
                   ],
                 ),

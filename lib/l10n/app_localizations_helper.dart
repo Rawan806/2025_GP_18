@@ -13,7 +13,21 @@ class AppLocalizations {
       'reportLost': 'الإبلاغ عن مفقود',
       'trackReports': 'متابعة البلاغات',
       'home': 'الرئيسية',
-      
+
+      // Forgot Password
+      'forgotPassword': 'هل نسيت كلمة المرور؟',
+      'enterEmail': 'اكتب بريدك الإلكتروني',
+      'resetEmailSent': 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك.',
+      'resetFailed': 'تعذّر إرسال رابط إعادة التعيين',
+      'send': 'إرسال',
+      'cancel': 'إلغاء',
+      'fillEmailPassword': 'يرجى تعبئة البريد الإلكتروني وكلمة المرور',
+      'userNotFound': 'لا يوجد حساب بهذا البريد الإلكتروني',
+      'wrongPassword': 'كلمة المرور غير صحيحة',
+      'userDisabled': 'تم تعطيل هذا الحساب',
+      'loginError': 'خطأ في تسجيل الدخول',
+      'unexpectedError': 'خطأ غير متوقع',
+
       // Sign in & Sign up
       'signIn': 'تسجيل الدخول',
       'signUp': 'إنشاء حساب جديد',
@@ -27,18 +41,18 @@ class AppLocalizations {
       'noAccount': 'ليس لديك حساب؟ سجل الآن',
       'hasAccount': 'لديك حساب بالفعل؟ تسجيل الدخول',
       'back': 'رجوع',
-      
+
       // Welcome
       'welcome': 'مرحباً بك',
       'getStarted': 'ابدأ الآن',
       'visitor': 'زائر',
       'staff': 'موظف',
       'chooseUserType': 'اختر نوع المستخدم',
-      
+
       // Staff
       'staffArea': 'منطقة الموظفين',
       'staffLogin': 'تسجيل دخول الموظفين',
-      
+
       // Validation messages
       'fillAllFields': 'يرجى تعبئة جميع الحقول المطلوبة',
       'invalidEmail': 'يرجى إدخال بريد إلكتروني صحيح',
@@ -46,7 +60,7 @@ class AppLocalizations {
       'passwordLength': 'يجب أن تكون كلمة المرور 8 أحرف على الأقل',
       'passwordMismatch': 'كلمة المرور وتأكيدها غير متطابقتين',
       'accountCreated': 'تم إنشاء الحساب بنجاح',
-      
+
       // Profile & Reports
       'accountSettings': 'إعدادات الحساب',
       'personalInfo': 'المعلومات الشخصية',
@@ -63,7 +77,7 @@ class AppLocalizations {
       'noPreviousReports': 'لا توجد بلاغات حالياً',
       'duaaMessage': 'ما زلت تبحث عن مفقودك؟ رددّ دعاء الضالة',
       'duaaText': '"اللهم ربّ الضالة, رد علي ضالتي"',
-      
+
       // Lost Form
       'reportForm': 'نموذج الإبلاغ',
       'lostDateTime': 'تاريخ ووقت الفقدان *',
@@ -76,7 +90,8 @@ class AppLocalizations {
       'documentsCards': 'بطاقات/وثائق',
       'other': 'أخرى',
       'attachPhotos': 'إرفاق صور للغرض',
-      'photoNote': 'ملاحظة: للمساعدة في العثور على الغرض المفقود، يُفضّل إرفاق صورة قديمة إن وُجدت، أو البحث عن صورة مشابهة من الإنترنت وإرفاقها.',
+      'photoNote':
+      'ملاحظة: للمساعدة في العثور على الغرض المفقود، يُفضّل إرفاق صورة قديمة إن وُجدت، أو البحث عن صورة مشابهة من الإنترنت وإرفاقها.',
       'additionalDescription': 'وصف إضافي (اختياري)',
       'submitReport': 'إرسال البلاغ',
       'reportSubmitted': 'تم إرسال البلاغ بنجاح',
@@ -84,7 +99,7 @@ class AppLocalizations {
       'pleaseEnterItemName': 'الرجاء إدخال اسم الغرض',
       'pleaseSelectCategory': 'الرجاء اختيار التصنيف',
       'pleaseSpecifyCategory': 'الرجاء كتابة التصنيف',
-      
+
       // Staff Pages
       'staffLoginTitle': 'تسجيل دخول الموظف',
       'staffId': 'رقم الموظف (ID)',
@@ -136,6 +151,7 @@ class AppLocalizations {
       'noMatchingResults': 'لا توجد نتائج مطابقة.',
       'item': 'العنصر',
     },
+
     'en': {
       'appTitle': 'Wadiah',
       'account': 'Account',
@@ -149,7 +165,21 @@ class AppLocalizations {
       'reportLost': 'Report Lost Item',
       'trackReports': 'Track Reports',
       'home': 'Home',
-      
+
+      //  Forgot Password
+      'forgotPassword': 'Forgot password?',
+      'enterEmail': 'Enter your email',
+      'resetEmailSent': 'A password reset link has been sent to your email.',
+      'resetFailed': 'Couldn’t send reset link',
+      'send': 'Send',
+      'cancel': 'Cancel',
+      'fillEmailPassword': 'Please enter email and password',
+      'userNotFound': 'No user found for this email',
+      'wrongPassword': 'Wrong password',
+      'userDisabled': 'This account has been disabled',
+      'loginError': 'Login error',
+      'unexpectedError': 'Unexpected error',
+
       // Sign in & Sign up
       'signIn': 'Sign In',
       'signUp': 'Create New Account',
@@ -163,18 +193,18 @@ class AppLocalizations {
       'noAccount': 'Don\'t have an account? Sign up now',
       'hasAccount': 'Already have an account? Sign in',
       'back': 'Back',
-      
+
       // Welcome
       'welcome': 'Welcome',
       'getStarted': 'Get Started',
       'visitor': 'Visitor',
       'staff': 'Staff',
       'chooseUserType': 'Choose User Type',
-      
+
       // Staff
       'staffArea': 'Staff Area',
       'staffLogin': 'Staff Login',
-      
+
       // Validation messages
       'fillAllFields': 'Please fill all required fields',
       'invalidEmail': 'Please enter a valid email',
@@ -182,7 +212,7 @@ class AppLocalizations {
       'passwordLength': 'Password must be at least 8 characters',
       'passwordMismatch': 'Passwords do not match',
       'accountCreated': 'Account created successfully',
-      
+
       // Profile & Reports
       'accountSettings': 'Account Settings',
       'personalInfo': 'Personal Information',
@@ -197,9 +227,10 @@ class AppLocalizations {
       'searching': 'Searching',
       'readyForPickup': 'Ready for Pickup',
       'noPreviousReports': 'No reports currently',
-      'duaaMessage': 'Still looking for your lost item? Recite the lost item prayer',
+      'duaaMessage':
+      'Still looking for your lost item? Recite the lost item prayer',
       'duaaText': '"O Allah, Lord of the lost, return my lost item to me"',
-      
+
       // Lost Form
       'reportForm': 'Report Form',
       'lostDateTime': 'Date & Time of Loss *',
@@ -212,7 +243,8 @@ class AppLocalizations {
       'documentsCards': 'Documents/Cards',
       'other': 'Other',
       'attachPhotos': 'Attach Photos',
-      'photoNote': 'Note: To help find the lost item, it\'s preferred to attach an old photo if available, or search for a similar image online and attach it.',
+      'photoNote':
+      'Note: To help find the lost item, it\'s preferred to attach an old photo if available, or search for a similar image online and attach it.',
       'additionalDescription': 'Additional Description (Optional)',
       'submitReport': 'Submit Report',
       'reportSubmitted': 'Report submitted successfully',
@@ -220,7 +252,7 @@ class AppLocalizations {
       'pleaseEnterItemName': 'Please enter item name',
       'pleaseSelectCategory': 'Please select category',
       'pleaseSpecifyCategory': 'Please specify category',
-      
+
       // Staff Pages
       'staffLoginTitle': 'Staff Login',
       'staffId': 'Staff ID',
