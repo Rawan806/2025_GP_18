@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "265296325179",
+    "firebase_url": "https://wadiah-6225a-default-rtdb.firebaseio.com",
     "project_id": "wadiah-6225a",
     "storage_bucket": "wadiah-6225a.firebasestorage.app"
   },
@@ -12,7 +13,12 @@
           "package_name": "com.example.wadiah_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "265296325179-qbj1q38mrlqjrvrtmhkr57m48k05qv4n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDSyUaCx1Ulcq7yyZUe-ahYhEfvnt7E2u4"
@@ -20,7 +26,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265296325179-qbj1q38mrlqjrvrtmhkr57m48k05qv4n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "265296325179-2mua08nche4hbgu3njbmmfumq3dt2oqh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.wadiahApp"
+              }
+            }
+          ]
         }
       }
     }
