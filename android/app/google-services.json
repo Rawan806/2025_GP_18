@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "265296325179-c3m07be1vgu9abumglc0pi998u8os7di.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wadiah_app",
+            "certificate_hash": "d5c88102e2720ca36dbbf789f32db41004d946cb"
+          }
+        },
+        {
           "client_id": "265296325179-qbj1q38mrlqjrvrtmhkr57m48k05qv4n.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wadiah_app/main.dart' show rootMessengerKey;
+
 import 'package:wadiah_app/HomePage/HomePage.dart';
 import '../signup/signup_screen.dart';
 import '../welcomePage/welcome_screen.dart';
@@ -18,9 +21,10 @@ class _SigninScreenState extends State<SigninScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+
   bool _isLoading = false;
 
-  // ألوان الثيم حقتنا
+  // ألوان الثيم
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);
 
@@ -31,142 +35,126 @@ class _SigninScreenState extends State<SigninScreen> {
     super.dispose();
   }
 
-  // ✅ جديد: Forgot Password Dialog + Send reset email
-  Future<void> _showForgotPasswordDialog() async {
-    final currentLocale = Localizations.localeOf(context);
-    final lang = currentLocale.languageCode;
+  void _snack(String text, {Color? color}) {
+    // ✅ لا نستخدم ScaffoldMessenger.of(context) هنا عشان ما ينهار بعد إغلاق الديالوج
+    rootMessengerKey.currentState?.hideCurrentSnackBar();
+    rootMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(text),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-    final controller =
-    TextEditingController(text: emailController.text.trim());
+  // ✅ Forgot Password Dialog + Send reset email (stable)
+  Future<void> _showForgotPasswordDialog() async {
+    final lang = Localizations.localeOf(context).languageCode;
+
+    String email = emailController.text.trim();
+    bool sending = false;
 
     await showDialog(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text(AppLocalizations.translate('forgotPassword', lang)),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.translate('email', lang),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(AppLocalizations.translate('cancel', lang)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final email = controller.text.trim();
-                if (email.isEmpty) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                      Text(AppLocalizations.translate('enterEmail', lang)),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  return;
+      barrierDismissible: !sending,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setLocalState) {
+            Future<void> sendReset() async {
+              final trimmed = email.trim();
+
+              if (trimmed.isEmpty) {
+                _snack(AppLocalizations.translate('enterEmail', lang),
+                    color: Colors.red);
+                return;
+              }
+
+              if (sending) return;
+              setLocalState(() => sending = true);
+
+              try {
+                await FirebaseAuth.instance.sendPasswordResetEmail(email: trimmed);
+
+                if (Navigator.canPop(dialogCtx)) {
+                  Navigator.of(dialogCtx).pop();
                 }
 
-                try {
-                  await FirebaseAuth.instance
-                      .sendPasswordResetEmail(email: email);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _snack(AppLocalizations.translate('resetEmailSent', lang),
+                      color: Colors.green);
+                });
+              } on FirebaseAuthException catch (e) {
+                final msg =
+                    'Reset failed (${e.code}): ${e.message ?? "no message"}';
+                _snack(msg, color: Colors.red);
+              } catch (e) {
+                _snack('Reset failed (unknown): $e', color: Colors.red);
+              } finally {
+                if (dialogCtx.mounted) setLocalState(() => sending = false);
+              }
+            }
 
-                  if (!mounted) return;
-                  Navigator.pop(ctx);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          AppLocalizations.translate('resetEmailSent', lang)),
-                      backgroundColor: Colors.green,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                } on FirebaseAuthException catch (e) {
-                  String msg =
-                  AppLocalizations.translate('resetFailed', lang);
-
-                  // مفاتيح جاهزة عندك غالباً:
-                  if (e.code == 'invalid-email') {
-                    msg = AppLocalizations.translate('invalidEmail', lang);
-                  } else if (e.code == 'user-not-found') {
-                    msg = AppLocalizations.translate('userNotFound', lang);
-                  }
-
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(msg),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          '${AppLocalizations.translate('resetFailed', lang)}: $e'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              },
-              child: Text(AppLocalizations.translate('send', lang)),
-            ),
-          ],
+            return AlertDialog(
+              title: Text(AppLocalizations.translate('forgotPassword', lang)),
+              content: TextField(
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.translate('email', lang),
+                ),
+                controller: null, // ✅ no controller
+                onChanged: (v) => email = v,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: sending ? null : () => Navigator.of(dialogCtx).pop(),
+                  child: Text(AppLocalizations.translate('cancel', lang)),
+                ),
+                ElevatedButton(
+                  onPressed: sending ? null : sendReset,
+                  child: sending
+                      ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : Text(AppLocalizations.translate('send', lang)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-
-    controller.dispose();
   }
 
   void _handleLogin() async {
-    final currentLocale = Localizations.localeOf(context);
-    final lang = currentLocale.languageCode;
+    final lang = Localizations.localeOf(context).languageCode;
 
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-          Text(AppLocalizations.translate('fillEmailPassword', lang)),
-          duration: const Duration(seconds: 2),
-        ),
+      _snack(
+        AppLocalizations.translate('fillEmailPassword', lang),
+        color: Colors.red,
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // تسجيل الدخول باستخدام Firebase Auth
       await _authService.signInWithEmailAndPassword(email, password);
-
-      // الحصول على نوع المستخدم
       String? userType = await _authService.getUserType();
 
       if (!mounted) return;
 
       if (userType == 'staff') {
-        // إذا كان موظف، انتقل لصفحة الموظفين
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const StaffLoginScreen()),
         );
       } else {
-        // إذا كان زائر، انتقل للصفحة الرئيسية
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const HomePage()),
@@ -188,35 +176,18 @@ class _SigninScreenState extends State<SigninScreen> {
           message = AppLocalizations.translate('userDisabled', lang);
           break;
         default:
-          message = '${AppLocalizations.translate('loginError', lang)}: ${e.message}';
+          message =
+          '${AppLocalizations.translate('loginError', lang)}: ${e.message ?? e.code}';
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _snack(message, color: Colors.red);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                '${AppLocalizations.translate('unexpectedError', lang)}: $e'),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _snack(
+        '${AppLocalizations.translate('unexpectedError', lang)}: $e',
+        color: Colors.red,
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -224,7 +195,6 @@ class _SigninScreenState extends State<SigninScreen> {
     labelText: label,
     prefixIcon: Icon(icon, color: borderBrown.withOpacity(0.85)),
     filled: true,
-    // هنا نفس ستايل التسجيل: نخلي الخلفية شبه مصمتة عشان تبان فوق الصورة
     fillColor: Colors.white.withOpacity(0.9),
     contentPadding:
     const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -269,9 +239,7 @@ class _SigninScreenState extends State<SigninScreen> {
                 ),
               ),
             ),
-            Container(
-              color: Colors.white24.withOpacity(0.25),
-            ),
+            Container(color: Colors.white24.withOpacity(0.25)),
             SafeArea(
               child: Align(
                 alignment: Alignment.topRight,
@@ -281,11 +249,12 @@ class _SigninScreenState extends State<SigninScreen> {
                     onPressed: () {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                        MaterialPageRoute(
+                            builder: (_) => const WelcomeScreen()),
                       );
                     },
                     icon: Directionality(
-                      textDirection: TextDirection.rtl, // يضمن اتجاه السهم لليمين
+                      textDirection: TextDirection.rtl,
                       child: const Icon(Icons.arrow_back,
                           size: 22, color: Colors.black87),
                     ),
@@ -335,16 +304,15 @@ class _SigninScreenState extends State<SigninScreen> {
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),
 
-                    // ✅ جديد: هل نسيت كلمة المرور؟
+                    // نسيت كلمة المرور
                     Align(
-                      alignment: isArabic
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
+                      alignment:
+                      isArabic ? Alignment.centerLeft : Alignment.centerRight,
                       child: TextButton(
                         onPressed: _showForgotPasswordDialog,
                         child: Text(
-                          AppLocalizations.translate('forgotPassword',
-                              currentLocale.languageCode),
+                          AppLocalizations.translate(
+                              'forgotPassword', currentLocale.languageCode),
                           style: TextStyle(
                             color: mainGreen,
                             fontSize: 14,
@@ -386,7 +354,7 @@ class _SigninScreenState extends State<SigninScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const SignUpScreen(),
+                            builder: (_) => const SignUpScreen(),
                           ),
                         );
                       },

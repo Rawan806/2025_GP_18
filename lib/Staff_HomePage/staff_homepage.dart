@@ -63,6 +63,14 @@ class StaffHomePage extends StatelessWidget {
     );
   }
 
+  bool _isCancelledStatus(String status) {
+    final s = status.toLowerCase();
+    return s.contains('ملغي') ||
+        s.contains('cancelled') ||
+        s.contains('cancelled by reporter') ||
+        s.contains('ملغي من طرف');
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
@@ -72,7 +80,7 @@ class StaffHomePage extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('lostItems')
           .orderBy('createdAt', descending: true)
-          .limit(10)
+          .limit(25) // نخليه أكبر لأننا بنفلتر الملغي
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -100,7 +108,17 @@ class StaffHomePage extends StatelessWidget {
           );
         }
 
-        final latestReports = snapshot.data?.docs.map((doc) {
+        final docs = snapshot.data?.docs ?? [];
+
+        // ✅ فلترة البلاغات الملغية من طرف المُبلِّغ
+        final filteredDocs = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final status = (data['status'] ?? '').toString();
+          return !_isCancelledStatus(status);
+        }).toList();
+
+        // ✅ ناخذ 10 بعد الفلترة
+        final latestReports = filteredDocs.take(10).map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return {
             'docId': doc.id,
@@ -120,16 +138,14 @@ class StaffHomePage extends StatelessWidget {
             'userId': data['userId'] ?? '',
             'pinCode': data['pinCode'] ?? '',
           };
-        }).toList() ?? [];
+        }).toList();
 
         // خلي الحالات "مغلقة / Closed" تنزل آخر القائمة
         latestReports.sort((a, b) {
           final sa = (a['status'] ?? '').toString();
           final sb = (b['status'] ?? '').toString();
-          final isClosedA =
-              sa.contains('مغلق') || sa.contains('Closed');
-          final isClosedB =
-              sb.contains('مغلق') || sb.contains('Closed');
+          final isClosedA = sa.contains('مغلق') || sa.contains('Closed');
+          final isClosedB = sb.contains('مغلق') || sb.contains('Closed');
 
           if (isClosedA == isClosedB) return 0;
           if (isClosedA) return 1;
@@ -212,8 +228,7 @@ class StaffHomePage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                    const FoundItemPage(),
+                                    builder: (context) => const FoundItemPage(),
                                   ),
                                 );
                               },
@@ -232,8 +247,7 @@ class StaffHomePage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                    const SearchReportsPage(),
+                                    builder: (context) => const SearchReportsPage(),
                                   ),
                                 );
                               },
@@ -244,9 +258,10 @@ class StaffHomePage extends StatelessWidget {
 
                       const SizedBox(height: 24),
 
+                      // ✅ بدل latestReports صار reports
                       Text(
                         AppLocalizations.translate(
-                          'latestReports',
+                          'reports',
                           currentLocale.languageCode,
                         ),
                         style: const TextStyle(
@@ -257,31 +272,45 @@ class StaffHomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: latestReports.length,
-                        separatorBuilder: (_, __) =>
-                        const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final report = latestReports[index];
-                          return _ReportListTile(
-                            report: report,
-                            mainColor: mainGreen,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ReportDetailsPage(
-                                    report: report,
-                                    mainGreen: mainGreen,
+                      if (latestReports.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30),
+                            child: Text(
+                              isArabic ? 'لا توجد بلاغات حالياً' : 'No reports yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: latestReports.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final report = latestReports[index];
+                            return _ReportListTile(
+                              report: report,
+                              mainColor: mainGreen,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ReportDetailsPage(
+                                      report: report,
+                                      mainGreen: mainGreen,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
+                                );
+                              },
+                            );
+                          },
+                        ),
 
                       const SizedBox(height: 16),
                     ],
@@ -365,13 +394,17 @@ class _ReportListTile extends StatelessWidget {
       return AppLocalizations.translate('open', languageCode);
     } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
       return AppLocalizations.translate('closed', languageCode);
-    } else if (statusLower.contains('pending') || statusLower.contains('قيد الانتظار')) {
+    } else if (statusLower.contains('pending') ||
+        statusLower.contains('قيد الانتظار')) {
       return AppLocalizations.translate('pending', languageCode);
-    }else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+    } else if (status.contains('مطابقة مبدئية') ||
+        status.contains('Preliminary Match')) {
       return AppLocalizations.translate('preliminaryMatch', languageCode);
-    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+    } else if (status.contains('جاهز للاستلام') ||
+        status.contains('Ready for Pickup')) {
       return AppLocalizations.translate('readyForPickup', languageCode);
-    }  else if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+    } else if (status.contains('قيد المراجعة') ||
+        status.contains('Under Review')) {
       return AppLocalizations.translate('underReview', languageCode);
     }
     return status;

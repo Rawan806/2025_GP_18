@@ -100,6 +100,9 @@ class AppLocalizations {
       'pleaseSelectCategory': 'الرجاء اختيار التصنيف',
       'pleaseSpecifyCategory': 'الرجاء كتابة التصنيف',
 
+      // ✅ NEW: DateTime must not be future
+      'pleaseSelectValidPastDateTime': 'الرجاء اختيار تاريخ/وقت صحيح (غير مستقبلي)',
+
       // Staff Pages
       'staffLoginTitle': 'تسجيل دخول الموظف',
       'staffId': 'رقم الموظف (ID)',
@@ -252,6 +255,10 @@ class AppLocalizations {
       'pleaseEnterItemName': 'Please enter item name',
       'pleaseSelectCategory': 'Please select category',
       'pleaseSpecifyCategory': 'Please specify category',
+
+      // ✅ NEW: DateTime must not be future
+      'pleaseSelectValidPastDateTime':
+      'Please select a valid date/time (not in the future)',
 
       // Staff Pages
       'staffLoginTitle': 'Staff Login',

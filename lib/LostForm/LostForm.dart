@@ -91,7 +91,7 @@ class _LostFormState extends State<LostForm> {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      lastDate: DateTime.now(), // ✅ NEW: يمنع اختيار تاريخ مستقبلي
       locale: const Locale('ar'),
     );
 
@@ -102,14 +102,33 @@ class _LostFormState extends State<LostForm> {
       );
 
       if (pickedTime != null) {
-        setState(() {
-          selectedDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
+        // ✅ NEW: منع اختيار وقت مستقبلي لو كان نفس اليوم
+        final now = DateTime.now();
+        final chosen = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        if (chosen.isAfter(now)) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.translate(
+                  'pleaseSelectValidPastDateTime',
+                  Localizations.localeOf(context).languageCode,
+                ),
+              ),
+            ),
           );
+          return;
+        }
+
+        setState(() {
+          selectedDate = chosen;
           dateController.text =
               intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
         });
@@ -182,6 +201,21 @@ class _LostFormState extends State<LostForm> {
       return;
     }
 
+    // ✅ NEW: Safety net - حتى لو صار تلاعب/بَج، ما نسمح بفيوتشر
+    if (selectedDate!.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate(
+              'pleaseSelectValidPastDateTime',
+              currentLocale.languageCode,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isUploading = true);
 
     try {
@@ -227,8 +261,8 @@ class _LostFormState extends State<LostForm> {
         'updatedAt': _formatDateTime(now),
         'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
         'itemCategory': 'lost',
-        'userId':  FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
-        'pinCode': pinCode,          //  PIN
+        'userId': FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+        'pinCode': pinCode, //  PIN
       });
 
       // حفظ الـ id داخل الدوكيومنت نفسه

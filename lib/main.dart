@@ -5,7 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'splash/splash_screen.dart';
 
-/// Global messenger key
+// Global ScaffoldMessengerKey (حل مشكلة الـ SnackBar crash)
 final GlobalKey<ScaffoldMessengerState> rootMessengerKey =
 GlobalKey<ScaffoldMessengerState>();
 
@@ -28,7 +28,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Locale _locale = const Locale('ar'); // default Arabic
+  Locale _locale = const Locale('ar');
 
   void setLocale(Locale locale) {
     rootMessengerKey.currentState?.hideCurrentSnackBar();
@@ -38,26 +38,21 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      scaffoldMessengerKey: rootMessengerKey,
+      scaffoldMessengerKey: rootMessengerKey, // لمهم لحد يشيله
       debugShowCheckedModeBanner: false,
       title: 'Wadiah App',
       home: const SplashScreen(),
 
-      // Localization
       locale: _locale,
-      supportedLocales: const [Locale('ar'), Locale('en')],
+      supportedLocales: const [
+        Locale('ar'),
+        Locale('en'),
+      ],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      localeResolutionCallback: (deviceLocale, supported) {
-        if (deviceLocale == null) return const Locale('ar');
-        for (final l in supported) {
-          if (l.languageCode == deviceLocale.languageCode) return l;
-        }
-        return const Locale('ar');
-      },
     );
   }
 }
