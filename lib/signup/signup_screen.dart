@@ -31,7 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // رقم جوال بصيغة E.164: +9665xxxxxxxx
   String _phoneE164 = '';
-  PhoneNumber _initialNumber = PhoneNumber(isoCode: 'SA');
+  final PhoneNumber _initialNumber = PhoneNumber(isoCode: 'SA');
 
   final Color mainGreen = const Color(0xFF243E36);
   final Color borderBrown = const Color(0xFF272525);

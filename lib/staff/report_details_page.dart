@@ -225,7 +225,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     ];
 
     final String id = report['id']?.toString() ?? '';
-    final String doc_num = report['doc_num']?.toString() ?? '';
+    final String docNum = report['doc_num']?.toString() ?? '';
     final String title = report['title']?.toString() ?? '';
     final String type = report['type']?.toString() ?? '-';
     final String color = report['color']?.toString() ?? '-';
@@ -244,7 +244,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           backgroundColor: widget.mainGreen,
           foregroundColor: Colors.white,
           title: Text(
-            '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$doc_num',
+            '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$docNum',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -341,7 +341,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $doc_num',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $docNum',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade800,
@@ -438,7 +438,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _selectedStatus,
+                          initialValue: _selectedStatus,
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white,

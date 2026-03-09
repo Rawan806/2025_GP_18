@@ -31,6 +31,9 @@ class _LostFormState extends State<LostForm> {
   DateTime? selectedDate;
   String? _selectedCategory;
 
+  // ✅ NEW: selected color (Arabic only)
+  String? _selectedColor;
+
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
 
@@ -45,6 +48,22 @@ class _LostFormState extends State<LostForm> {
       AppLocalizations.translate('bags', languageCode),
       AppLocalizations.translate('documentsCards', languageCode),
       AppLocalizations.translate('other', languageCode),
+    ];
+  }
+
+  // ✅ NEW: Arabic colors list
+  List<String> _getColors() {
+    return [
+      'أحمر',
+      'برتقالي',
+      'أصفر',
+      'أخضر',
+      'سماوي',
+      'أزرق',
+      'بنفسجي',
+      'بني',
+      'أسود',
+      'أبيض',
     ];
   }
 
@@ -156,7 +175,7 @@ class _LostFormState extends State<LostForm> {
       final String fileName =
           'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final Reference storageRef =
-      FirebaseStorage.instance.ref().child(fileName);
+          FirebaseStorage.instance.ref().child(fileName);
 
       final UploadTask uploadTask = storageRef.putFile(image);
       final TaskSnapshot snapshot = await uploadTask;
@@ -201,6 +220,7 @@ class _LostFormState extends State<LostForm> {
       return;
     }
 
+<<<<<<< Updated upstream
     // ✅ NEW: Safety net - حتى لو صار تلاعب/بَج، ما نسمح بفيوتشر
     if (selectedDate!.isAfter(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -211,6 +231,13 @@ class _LostFormState extends State<LostForm> {
               currentLocale.languageCode,
             ),
           ),
+=======
+    // ✅ Extra guard (in case validator is bypassed)
+    if (_selectedColor == null || _selectedColor!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى اختيار اللون'),
+>>>>>>> Stashed changes
         ),
       );
       return;
@@ -229,25 +256,28 @@ class _LostFormState extends State<LostForm> {
       }
 
       final String finalCategory =
-      _selectedCategory ==
-          AppLocalizations.translate(
-            'other',
-            currentLocale.languageCode,
-          )
-          ? otherCategoryController.text.trim()
-          : _selectedCategory!;
+          _selectedCategory ==
+                  AppLocalizations.translate(
+                    'other',
+                    currentLocale.languageCode,
+                  )
+              ? otherCategoryController.text.trim()
+              : _selectedCategory!;
 
       final now = DateTime.now();
 
       //  توليد PIN
       final String pinCode = _generatePinCode();
 
-      final docRef = await FirebaseFirestore.instance
-          .collection('lostItems')
-          .add({
+      final docRef =
+          await FirebaseFirestore.instance.collection('lostItems').add({
         'title': itemNameController.text.trim(),
         'type': finalCategory,
         'category': finalCategory,
+
+        // ✅ NEW: store color (Arabic)
+        'color': _selectedColor ?? '',
+
         'description': descriptionController.text.trim().isEmpty
             ? 'No description provided'
             : descriptionController.text.trim(),
@@ -285,7 +315,7 @@ class _LostFormState extends State<LostForm> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const HomePage()),
-                (route) => false,
+            (route) => false,
           );
         }
       });
@@ -322,6 +352,9 @@ class _LostFormState extends State<LostForm> {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
     final categories = _getCategories(currentLocale.languageCode);
+
+    // ✅ NEW: colors list
+    final colors = _getColors();
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -362,9 +395,9 @@ class _LostFormState extends State<LostForm> {
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppLocalizations.translate(
-                    'pleaseSelectDateTime',
-                    currentLocale.languageCode,
-                  )
+                          'pleaseSelectDateTime',
+                          currentLocale.languageCode,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 15),
@@ -379,15 +412,15 @@ class _LostFormState extends State<LostForm> {
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppLocalizations.translate(
-                    'pleaseEnterItemName',
-                    currentLocale.languageCode,
-                  )
+                          'pleaseEnterItemName',
+                          currentLocale.languageCode,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 15),
 
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   decoration: _inputDeco(
                     AppLocalizations.translate(
                       'category',
@@ -397,10 +430,10 @@ class _LostFormState extends State<LostForm> {
                   items: categories
                       .map(
                         (c) => DropdownMenuItem<String>(
-                      value: c,
-                      child: Text(c),
-                    ),
-                  )
+                          value: c,
+                          child: Text(c),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) {
                     setState(() {
@@ -416,10 +449,32 @@ class _LostFormState extends State<LostForm> {
                   },
                   validator: (v) => (v == null || v.isEmpty)
                       ? AppLocalizations.translate(
-                    'pleaseSelectCategory',
-                    currentLocale.languageCode,
-                  )
+                          'pleaseSelectCategory',
+                          currentLocale.languageCode,
+                        )
                       : null,
+                ),
+                const SizedBox(height: 15),
+
+                // ✅ NEW: Color dropdown (Arabic only)
+                DropdownButtonFormField<String>(
+                  value: _selectedColor,
+                  decoration: _inputDeco('لون الغرض'),
+                  items: colors
+                      .map(
+                        (color) => DropdownMenuItem<String>(
+                          value: color,
+                          child: Text(color),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedColor = val;
+                    });
+                  },
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
                 ),
                 const SizedBox(height: 15),
 
@@ -436,17 +491,16 @@ class _LostFormState extends State<LostForm> {
                         currentLocale.languageCode,
                       ),
                     ),
-                    validator: (v) =>
-                    (_selectedCategory ==
-                        AppLocalizations.translate(
-                          'other',
-                          currentLocale.languageCode,
-                        ) &&
-                        (v == null || v.trim().isEmpty))
+                    validator: (v) => (_selectedCategory ==
+                                AppLocalizations.translate(
+                                  'other',
+                                  currentLocale.languageCode,
+                                ) &&
+                            (v == null || v.trim().isEmpty))
                         ? AppLocalizations.translate(
-                      'pleaseSpecifyCategory',
-                      currentLocale.languageCode,
-                    )
+                            'pleaseSpecifyCategory',
+                            currentLocale.languageCode,
+                          )
                         : null,
                   ),
                   const SizedBox(height: 15),
@@ -526,20 +580,20 @@ class _LostFormState extends State<LostForm> {
                   onPressed: _isUploading ? null : _submitForm,
                   child: _isUploading
                       ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(
-                    AppLocalizations.translate(
-                      'submitReport',
-                      currentLocale.languageCode,
-                    ),
-                    style: const TextStyle(fontSize: 18),
-                  ),
+                          AppLocalizations.translate(
+                            'submitReport',
+                            currentLocale.languageCode,
+                          ),
+                          style: const TextStyle(fontSize: 18),
+                        ),
                 ),
               ],
             ),

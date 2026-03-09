@@ -256,7 +256,27 @@ class TrackReportScreen extends StatelessWidget {
                       ),
                     );
                   }
+<<<<<<< Updated upstream
 
+=======
+                  String getLocalizedStatus(String status, String languageCode) {
+                      final statusLower = status.toLowerCase();
+                      if (statusLower.contains('open') || statusLower.contains('مفتوح')) {
+                        return AppLocalizations.translate('open', languageCode);
+                      } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
+                        return AppLocalizations.translate('closed', languageCode);
+                      } else if (statusLower.contains('pending') || statusLower.contains('قيد الانتظار')) {
+                        return AppLocalizations.translate('pending', languageCode);
+                      }else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+                        return AppLocalizations.translate('preliminaryMatch', languageCode);
+                      } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+                        return AppLocalizations.translate('readyForPickup', languageCode);
+                      }  else if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+                        return AppLocalizations.translate('underReview', languageCode);
+                      }
+                      return status;
+                    }
+>>>>>>> Stashed changes
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: ListView.builder(
@@ -266,8 +286,12 @@ class TrackReportScreen extends StatelessWidget {
                         final data = doc.data() as Map<String, dynamic>;
 
                         final title = (data['title'] ?? '').toString();
+<<<<<<< Updated upstream
                         final rawStatus = (data['status'] ?? '').toString();
                         final status = _getLocalizedStatus(rawStatus, currentLocale.languageCode);
+=======
+                        final status = getLocalizedStatus((data['status'] ?? '').toString(), currentLocale.languageCode);
+>>>>>>> Stashed changes
                         final date = (data['date'] ?? '').toString();
                         final imagePath = (data['imagePath'] ?? '').toString();
                         final pinCode = (data['pinCode'] ?? '').toString();

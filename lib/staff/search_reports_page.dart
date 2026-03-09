@@ -48,13 +48,13 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
     return docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final id = (data['id'] ?? doc.id).toString();
-      final doc_num = (data['doc_num'] ?? '').toString();
+      final docNum = (data['doc_num'] ?? '').toString();
       final title = (data['title'] ?? '').toString().toLowerCase();
       final status = (data['status'] ?? '').toString();
 
       final matchesSearch = searchQuery.isEmpty ||
           id.contains(searchQuery) ||
-          doc_num.contains(searchQuery) ||
+          docNum.contains(searchQuery) ||
           title.contains(searchQuery) ||
           (data['category'] ?? '').toString().toLowerCase().contains(searchQuery) ||
           (data['description'] ?? '').toString().toLowerCase().contains(searchQuery);
@@ -161,7 +161,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: DropdownButtonFormField<String>(
-                value: selectedStatus,
+                initialValue: selectedStatus,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
@@ -307,7 +307,7 @@ class _ReportCard extends StatelessWidget {
     final imagePath = report['imagePath'].toString();
     final date = report['date'].toString();
     final itemCategory = report['itemCategory'].toString();
-    final doc_num = report['doc_num'].toString();
+    final docNum = report['doc_num'].toString();
 
     return InkWell(
       onTap: onTap,
@@ -376,7 +376,7 @@ class _ReportCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $doc_num',
+                          '${AppLocalizations.translate('reportNumber', currentLocale.languageCode)}: $docNum',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
