@@ -1,0 +1,24 @@
+{
+  "index_id": "b61fcf93-f958-43dd-90bc-562c02175cb1",
+  "index_version": "20260317_212734",
+  "built_at": "2026-03-17T21:27:36.060792+00:00",
+  "model_name": "MobileNetV3Small",
+  "img_size": 224,
+  "preprocessing": "mobilenet_v3.preprocess_input",
+  "resize_method": "direct_resize",
+  "pooling": "avg",
+  "l2_normalization": true,
+  "num_items": 99,
+  "embedding_dim": 576,
+  "similarity_metric": "cosine",
+  "dataset_hash": "da788acc8bbe187c910be77fe1c9892f",
+  "thresholds": {
+    "strong_match_threshold": 0.85,
+    "potential_match_threshold": 0.75
+  },
+  "collection_counts": {
+    "lost": 45,
+    "found": 54
+  },
+  "index_ordering_note": "embeddings rows are aligned with meta entries by identical append order"
+}

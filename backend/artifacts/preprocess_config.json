@@ -1,0 +1,8 @@
+{
+  "model_name": "MobileNetV3Small",
+  "img_size": 224,
+  "resize_method": "direct_resize",
+  "preprocess_name": "mobilenet_v3.preprocess_input",
+  "pooling": "avg",
+  "l2_normalization": true
+}
