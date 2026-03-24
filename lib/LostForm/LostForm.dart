@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:math'; //  لتوليد PIN عشوائي
+import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
@@ -30,16 +30,12 @@ class _LostFormState extends State<LostForm> {
 
   DateTime? selectedDate;
   String? _selectedCategory;
-
-  // ✅ NEW: selected color (Arabic only)
   String? _selectedColor;
 
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
 
   bool _isUploading = false;
-
-  // =============== Helpers ==================
 
   List<String> _getCategories(String languageCode) {
     return [
@@ -51,7 +47,6 @@ class _LostFormState extends State<LostForm> {
     ];
   }
 
-  // ✅ NEW: Arabic colors list
   List<String> _getColors() {
     return [
       'أحمر',
@@ -77,9 +72,7 @@ class _LostFormState extends State<LostForm> {
       focusedBorder: OutlineInputBorder(
         borderSide: BorderSide(color: borderBrown, width: 2),
       ),
-      border: OutlineInputBorder(
-        borderSide: BorderSide(color: borderBrown),
-      ),
+      border: OutlineInputBorder(borderSide: BorderSide(color: borderBrown)),
     );
   }
 
@@ -96,21 +89,18 @@ class _LostFormState extends State<LostForm> {
     }
   }
 
-  //   PIN  من 6 أرقام
   String _generatePinCode() {
     final random = Random();
-    final int value = 100000 + random.nextInt(900000); // من 100000 إلى 999999
+    final int value = 100000 + random.nextInt(900000);
     return value.toString();
   }
-
-  // ================== Pickers ==============
 
   Future<void> _pickDateTime() async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(), // ✅ NEW: يمنع اختيار تاريخ مستقبلي
+      lastDate: DateTime.now(),
       locale: const Locale('ar'),
     );
 
@@ -121,7 +111,6 @@ class _LostFormState extends State<LostForm> {
       );
 
       if (pickedTime != null) {
-        // ✅ NEW: منع اختيار وقت مستقبلي لو كان نفس اليوم
         final now = DateTime.now();
         final chosen = DateTime(
           pickedDate.year,
@@ -148,8 +137,9 @@ class _LostFormState extends State<LostForm> {
 
         setState(() {
           selectedDate = chosen;
-          dateController.text =
-              intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
+          dateController.text = intl.DateFormat(
+            'yyyy-MM-dd – HH:mm',
+          ).format(selectedDate!);
         });
       }
     }
@@ -168,14 +158,13 @@ class _LostFormState extends State<LostForm> {
     }
   }
 
-  // ============ Firebase Logic ==================
-
   Future<String?> _uploadImageToFirebase(File image) async {
     try {
       final String fileName =
           'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final Reference storageRef =
-          FirebaseStorage.instance.ref().child(fileName);
+      final Reference storageRef = FirebaseStorage.instance.ref().child(
+        fileName,
+      );
 
       final UploadTask uploadTask = storageRef.putFile(image);
       final TaskSnapshot snapshot = await uploadTask;
@@ -220,8 +209,7 @@ class _LostFormState extends State<LostForm> {
       return;
     }
 
-<<<<<<< Updated upstream
-    // ✅ NEW: Safety net - حتى لو صار تلاعب/بَج، ما نسمح بفيوتشر
+    // منع تاريخ/وقت مستقبلي
     if (selectedDate!.isAfter(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -231,15 +219,16 @@ class _LostFormState extends State<LostForm> {
               currentLocale.languageCode,
             ),
           ),
-=======
-    // ✅ Extra guard (in case validator is bypassed)
-    if (_selectedColor == null || _selectedColor!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار اللون'),
->>>>>>> Stashed changes
         ),
       );
+      return;
+    }
+
+    // التحقق من اللون
+    if (_selectedColor == null || _selectedColor!.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار اللون')));
       return;
     }
 
@@ -257,45 +246,38 @@ class _LostFormState extends State<LostForm> {
 
       final String finalCategory =
           _selectedCategory ==
-                  AppLocalizations.translate(
-                    'other',
-                    currentLocale.languageCode,
-                  )
-              ? otherCategoryController.text.trim()
-              : _selectedCategory!;
+              AppLocalizations.translate('other', currentLocale.languageCode)
+          ? otherCategoryController.text.trim()
+          : _selectedCategory!;
 
       final now = DateTime.now();
-
-      //  توليد PIN
       final String pinCode = _generatePinCode();
 
-      final docRef =
-          await FirebaseFirestore.instance.collection('lostItems').add({
-        'title': itemNameController.text.trim(),
-        'type': finalCategory,
-        'category': finalCategory,
+      final docRef = await FirebaseFirestore.instance
+          .collection('lostItems')
+          .add({
+            'title': itemNameController.text.trim(),
+            'type': finalCategory,
+            'category': finalCategory,
+            'color': _selectedColor ?? '',
+            'description': descriptionController.text.trim().isEmpty
+                ? 'No description provided'
+                : descriptionController.text.trim(),
+            'reportLocation': 'User Report',
+            'foundLocation': '',
+            'imagePath': imageUrl ?? '',
+            'status': 'قيد المراجعة',
+            'date': _formatDateTime(selectedDate!),
+            'lostDate': Timestamp.fromDate(selectedDate!),
+            'createdAt': _formatDateTime(now),
+            'updatedAt': _formatDateTime(now),
+            'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
+            'itemCategory': 'lost',
+            'userId':
+                FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+            'pinCode': pinCode,
+          });
 
-        // ✅ NEW: store color (Arabic)
-        'color': _selectedColor ?? '',
-
-        'description': descriptionController.text.trim().isEmpty
-            ? 'No description provided'
-            : descriptionController.text.trim(),
-        'reportLocation': 'User Report',
-        'foundLocation': '',
-        'imagePath': imageUrl ?? '',
-        'status': 'قيد المراجعة',
-        'date': _formatDateTime(selectedDate!),
-        'lostDate': Timestamp.fromDate(selectedDate!),
-        'createdAt': _formatDateTime(now),
-        'updatedAt': _formatDateTime(now),
-        'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
-        'itemCategory': 'lost',
-        'userId': FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
-        'pinCode': pinCode, //  PIN
-      });
-
-      // حفظ الـ id داخل الدوكيومنت نفسه
       await docRef.update({'id': docRef.id});
 
       if (!mounted) return;
@@ -322,10 +304,7 @@ class _LostFormState extends State<LostForm> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) {
@@ -333,8 +312,6 @@ class _LostFormState extends State<LostForm> {
       }
     }
   }
-
-  // ================== Lifecycle =============
 
   @override
   void dispose() {
@@ -345,15 +322,11 @@ class _LostFormState extends State<LostForm> {
     super.dispose();
   }
 
-  // ================== UI ==================
-
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
     final categories = _getCategories(currentLocale.languageCode);
-
-    // ✅ NEW: colors list
     final colors = _getColors();
 
     return Directionality(
@@ -401,7 +374,6 @@ class _LostFormState extends State<LostForm> {
                       : null,
                 ),
                 const SizedBox(height: 15),
-
                 TextFormField(
                   controller: itemNameController,
                   decoration: _inputDeco(
@@ -418,9 +390,8 @@ class _LostFormState extends State<LostForm> {
                       : null,
                 ),
                 const SizedBox(height: 15),
-
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedCategory,
+                  value: _selectedCategory,
                   decoration: _inputDeco(
                     AppLocalizations.translate(
                       'category',
@@ -429,10 +400,8 @@ class _LostFormState extends State<LostForm> {
                   ),
                   items: categories
                       .map(
-                        (c) => DropdownMenuItem<String>(
-                          value: c,
-                          child: Text(c),
-                        ),
+                        (c) =>
+                            DropdownMenuItem<String>(value: c, child: Text(c)),
                       )
                       .toList(),
                   onChanged: (val) {
@@ -455,8 +424,6 @@ class _LostFormState extends State<LostForm> {
                       : null,
                 ),
                 const SizedBox(height: 15),
-
-                // ✅ NEW: Color dropdown (Arabic only)
                 DropdownButtonFormField<String>(
                   value: _selectedColor,
                   decoration: _inputDeco('لون الغرض'),
@@ -477,7 +444,6 @@ class _LostFormState extends State<LostForm> {
                       (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
                 ),
                 const SizedBox(height: 15),
-
                 if (_selectedCategory ==
                     AppLocalizations.translate(
                       'other',
@@ -491,7 +457,8 @@ class _LostFormState extends State<LostForm> {
                         currentLocale.languageCode,
                       ),
                     ),
-                    validator: (v) => (_selectedCategory ==
+                    validator: (v) =>
+                        (_selectedCategory ==
                                 AppLocalizations.translate(
                                   'other',
                                   currentLocale.languageCode,
@@ -505,7 +472,6 @@ class _LostFormState extends State<LostForm> {
                   ),
                   const SizedBox(height: 15),
                 ],
-
                 if (_selectedImage != null) ...[
                   Container(
                     height: 200,
@@ -524,7 +490,6 @@ class _LostFormState extends State<LostForm> {
                   ),
                   const SizedBox(height: 10),
                 ],
-
                 OutlinedButton.icon(
                   onPressed: _pickImage,
                   icon: Icon(
@@ -544,7 +509,6 @@ class _LostFormState extends State<LostForm> {
                   ),
                 ),
                 const SizedBox(height: 10),
-
                 Text(
                   AppLocalizations.translate(
                     'photoNote',
@@ -558,7 +522,6 @@ class _LostFormState extends State<LostForm> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-
                 TextFormField(
                   controller: descriptionController,
                   maxLines: 4,
@@ -570,7 +533,6 @@ class _LostFormState extends State<LostForm> {
                   ),
                 ),
                 const SizedBox(height: 25),
-
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: mainGreen,

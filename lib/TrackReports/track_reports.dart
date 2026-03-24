@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
@@ -39,12 +38,12 @@ class TrackReportScreen extends StatelessWidget {
   }
 
   bool _canUserCancel(String status) {
-    // الإلغاء من طرف المبلّغ فقط أثناء "قيد المراجعة"
     return status.contains('قيد المراجعة') || status.contains('Under Review');
   }
 
   String _getLocalizedStatus(String status, String languageCode) {
     final statusLower = status.toLowerCase();
+
     if (statusLower.contains('open') || statusLower.contains('مفتوح')) {
       return AppLocalizations.translate('open', languageCode);
     } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
@@ -64,6 +63,7 @@ class TrackReportScreen extends StatelessWidget {
     } else if (status.contains('ملغي') || status.contains('Cancelled')) {
       return AppLocalizations.translate('cancelled', languageCode);
     }
+
     return status;
   }
 
@@ -73,14 +73,17 @@ class TrackReportScreen extends StatelessWidget {
     required String languageCode,
   }) async {
     try {
-      await FirebaseFirestore.instance.collection('lostItems').doc(docId).update({
-        'status': languageCode == 'ar'
-            ? 'ملغي من طرف المبلّغ'
-            : 'Cancelled by Reporter',
-        'cancelledBy': 'user',
-        'cancelledAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection('lostItems')
+          .doc(docId)
+          .update({
+            'status': languageCode == 'ar'
+                ? 'ملغي من طرف المبلّغ'
+                : 'Cancelled by Reporter',
+            'cancelledBy': 'user',
+            'cancelledAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       if (!context.mounted) return;
 
@@ -128,9 +131,7 @@ class TrackReportScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(
-                  AppLocalizations.translate('cancel', languageCode),
-                ),
+                child: Text(AppLocalizations.translate('cancel', languageCode)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -170,7 +171,10 @@ class TrackReportScreen extends StatelessWidget {
           backgroundColor: mainGreen,
           centerTitle: true,
           title: Text(
-            AppLocalizations.translate('trackMyReports', currentLocale.languageCode),
+            AppLocalizations.translate(
+              'trackMyReports',
+              currentLocale.languageCode,
+            ),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -186,10 +190,11 @@ class TrackReportScreen extends StatelessWidget {
                     .collection('lostItems')
                     .where('itemCategory', isEqualTo: 'lost')
                     .where(
-                  'userId',
-                  isEqualTo:
-                  FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
-                )
+                      'userId',
+                      isEqualTo:
+                          FirebaseAuth.instance.currentUser?.uid ??
+                          'current_user_id',
+                    )
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -202,7 +207,9 @@ class TrackReportScreen extends StatelessWidget {
                   if (snapshot.hasError) {
                     return Center(
                       child: Text(
-                        isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
+                        isArabic
+                            ? 'حدث خطأ في تحميل البيانات'
+                            : 'Error loading data',
                         style: const TextStyle(color: Colors.red),
                       ),
                     );
@@ -213,10 +220,16 @@ class TrackReportScreen extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off, size: 80, color: Colors.grey),
+                          const Icon(
+                            Icons.search_off,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           Text(
-                            isArabic ? 'لا توجد بلاغات حالياً' : 'No reports yet',
+                            isArabic
+                                ? 'لا توجد بلاغات حالياً'
+                                : 'No reports yet',
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.grey[600],
@@ -230,11 +243,11 @@ class TrackReportScreen extends StatelessWidget {
 
                   final allDocs = snapshot.data!.docs;
 
-                  // ✅ نخفي المغلق + الملغي (واقعية)
                   final activeDocs = allDocs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     final status = (data['status'] ?? '').toString();
-                    return !_isClosedStatus(status) && !_isCancelledStatus(status);
+                    return !_isClosedStatus(status) &&
+                        !_isCancelledStatus(status);
                   }).toList();
 
                   if (activeDocs.isEmpty) {
@@ -242,10 +255,16 @@ class TrackReportScreen extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off, size: 80, color: Colors.grey),
+                          const Icon(
+                            Icons.search_off,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           Text(
-                            isArabic ? 'لا توجد بلاغات حالياً' : 'No active reports',
+                            isArabic
+                                ? 'لا توجد بلاغات حالياً'
+                                : 'No active reports',
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.grey[600],
@@ -256,27 +275,7 @@ class TrackReportScreen extends StatelessWidget {
                       ),
                     );
                   }
-<<<<<<< Updated upstream
 
-=======
-                  String getLocalizedStatus(String status, String languageCode) {
-                      final statusLower = status.toLowerCase();
-                      if (statusLower.contains('open') || statusLower.contains('مفتوح')) {
-                        return AppLocalizations.translate('open', languageCode);
-                      } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
-                        return AppLocalizations.translate('closed', languageCode);
-                      } else if (statusLower.contains('pending') || statusLower.contains('قيد الانتظار')) {
-                        return AppLocalizations.translate('pending', languageCode);
-                      }else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
-                        return AppLocalizations.translate('preliminaryMatch', languageCode);
-                      } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
-                        return AppLocalizations.translate('readyForPickup', languageCode);
-                      }  else if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
-                        return AppLocalizations.translate('underReview', languageCode);
-                      }
-                      return status;
-                    }
->>>>>>> Stashed changes
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: ListView.builder(
@@ -286,12 +285,11 @@ class TrackReportScreen extends StatelessWidget {
                         final data = doc.data() as Map<String, dynamic>;
 
                         final title = (data['title'] ?? '').toString();
-<<<<<<< Updated upstream
                         final rawStatus = (data['status'] ?? '').toString();
-                        final status = _getLocalizedStatus(rawStatus, currentLocale.languageCode);
-=======
-                        final status = getLocalizedStatus((data['status'] ?? '').toString(), currentLocale.languageCode);
->>>>>>> Stashed changes
+                        final status = _getLocalizedStatus(
+                          rawStatus,
+                          currentLocale.languageCode,
+                        );
                         final date = (data['date'] ?? '').toString();
                         final imagePath = (data['imagePath'] ?? '').toString();
                         final pinCode = (data['pinCode'] ?? '').toString();
@@ -329,7 +327,9 @@ class TrackReportScreen extends StatelessWidget {
                                         height: 60,
                                         decoration: BoxDecoration(
                                           color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: const Icon(
                                           Icons.image_not_supported,
@@ -403,8 +403,6 @@ class TrackReportScreen extends StatelessWidget {
                                         ),
                                       ),
                                     ],
-
-                                    // ✅ زر الإلغاء من طرف المبلّغ
                                     if (canCancel) ...[
                                       const SizedBox(height: 10),
                                       Align(
@@ -415,7 +413,8 @@ class TrackReportScreen extends StatelessWidget {
                                           onPressed: () => _showCancelDialog(
                                             context: context,
                                             docId: doc.id,
-                                            languageCode: currentLocale.languageCode,
+                                            languageCode:
+                                                currentLocale.languageCode,
                                           ),
                                           icon: const Icon(
                                             Icons.cancel,
@@ -449,7 +448,10 @@ class TrackReportScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE9D8C3),
                   borderRadius: BorderRadius.circular(18),
@@ -465,7 +467,10 @@ class TrackReportScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      AppLocalizations.translate('duaaMessage', currentLocale.languageCode),
+                      AppLocalizations.translate(
+                        'duaaMessage',
+                        currentLocale.languageCode,
+                      ),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
@@ -475,7 +480,10 @@ class TrackReportScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      AppLocalizations.translate('duaaText', currentLocale.languageCode),
+                      AppLocalizations.translate(
+                        'duaaText',
+                        currentLocale.languageCode,
+                      ),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 18,

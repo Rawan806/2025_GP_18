@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../staff/found_item_page.dart';
+import '../search_page.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../staff/search_reports_page.dart';
 import '../staff/report_details_page.dart';
@@ -80,7 +81,7 @@ class StaffHomePage extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('lostItems')
           .orderBy('createdAt', descending: true)
-          .limit(25) // نخليه أكبر لأننا بنفلتر الملغي
+          .limit(25)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -110,14 +111,12 @@ class StaffHomePage extends StatelessWidget {
 
         final docs = snapshot.data?.docs ?? [];
 
-        // ✅ فلترة البلاغات الملغية من طرف المُبلِّغ
         final filteredDocs = docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final status = (data['status'] ?? '').toString();
           return !_isCancelledStatus(status);
         }).toList();
 
-        // ✅ ناخذ 10 بعد الفلترة
         final latestReports = filteredDocs.take(10).map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return {
@@ -140,7 +139,6 @@ class StaffHomePage extends StatelessWidget {
           };
         }).toList();
 
-        // خلي الحالات "مغلقة / Closed" تنزل آخر القائمة
         latestReports.sort((a, b) {
           final sa = (a['status'] ?? '').toString();
           final sb = (b['status'] ?? '').toString();
@@ -213,7 +211,37 @@ class StaffHomePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 8),
+                      // ======== NEW: واضح جدًا فوق ========
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 4,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SearchPage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text(
+                          'AI Matching Dashboard',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
                       Row(
                         children: [
                           Expanded(
@@ -247,7 +275,8 @@ class StaffHomePage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const SearchReportsPage(),
+                                    builder: (context) =>
+                                    const SearchReportsPage(),
                                   ),
                                 );
                               },
@@ -258,7 +287,6 @@ class StaffHomePage extends StatelessWidget {
 
                       const SizedBox(height: 24),
 
-                      // ✅ بدل latestReports صار reports
                       Text(
                         AppLocalizations.translate(
                           'reports',
@@ -277,7 +305,9 @@ class StaffHomePage extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 30),
                             child: Text(
-                              isArabic ? 'لا توجد بلاغات حالياً' : 'No reports yet',
+                              isArabic
+                                  ? 'لا توجد بلاغات حالياً'
+                                  : 'No reports yet',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey[700],
@@ -291,7 +321,8 @@ class StaffHomePage extends StatelessWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: latestReports.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, __) =>
+                          const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final report = latestReports[index];
                             return _ReportListTile(

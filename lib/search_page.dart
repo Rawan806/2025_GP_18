@@ -91,6 +91,12 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   @override
+  void dispose() {
+    _docIdController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final results = _searchResponse?['results'] as List<dynamic>? ?? [];
 
@@ -112,11 +118,21 @@ class _SearchPageState extends State<SearchPage> {
             ElevatedButton(
               onPressed: _isLoading ? null : searchByDocId,
               child: _isLoading
-                  ? const CircularProgressIndicator()
+                  ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
                   : const Text("Search"),
             ),
 
             const SizedBox(height: 12),
+
+            if (_errorMessage != null)
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
 
             if (_searchResponse != null)
               Card(
@@ -140,11 +156,13 @@ class _SearchPageState extends State<SearchPage> {
             const SizedBox(height: 10),
 
             Expanded(
-              child: ListView.builder(
+              child: results.isEmpty
+                  ? const Center(child: Text("No results yet"))
+                  : ListView.builder(
                 itemCount: results.length,
                 itemBuilder: (context, index) {
-                  final item = results[index];
-                  final label = item['match_label'];
+                  final item = results[index] as Map<String, dynamic>;
+                  final label = item['match_label'] ?? 'weak_match';
                   final isSelected = _selectedIndex == index;
 
                   return GestureDetector(
@@ -155,37 +173,50 @@ class _SearchPageState extends State<SearchPage> {
                     },
                     child: Card(
                       color: isSelected ? Colors.blue.shade50 : null,
-                      child: Row(
-                        children: [
-                          Image.network(
-                            item['imageUrl'],
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          ),
-                          const SizedBox(width: 10),
-
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['docId'],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text("Type: ${item['type']}"),
-                                Text("Color: ${item['color']}"),
-                                Text(
-                                  "Similarity: ${item['similarity'].toStringAsFixed(3)}",
-                                ),
-                              ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Row(
+                          children: [
+                            Image.network(
+                              item['imageUrl'] ?? '',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.grey.shade300,
+                                child: const Icon(Icons.broken_image),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 10),
 
-                          Icon(Icons.circle, color: getMatchColor(label)),
-                        ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['docId'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text("Type: ${item['type'] ?? ''}"),
+                                  Text("Color: ${item['color'] ?? ''}"),
+                                  Text(
+                                    "Similarity: ${((item['similarity'] ?? 0) as num).toStringAsFixed(3)}",
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            Icon(
+                              Icons.circle,
+                              color: getMatchColor(label),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

@@ -4,16 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 import 'splash/splash_screen.dart';
+import 'search_page.dart';
 
-// Global ScaffoldMessengerKey (حل مشكلة الـ SnackBar crash)
 final GlobalKey<ScaffoldMessengerState> rootMessengerKey =
-GlobalKey<ScaffoldMessengerState>();
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -38,16 +36,13 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      scaffoldMessengerKey: rootMessengerKey, // لمهم لحد يشيله
+      scaffoldMessengerKey: rootMessengerKey,
       debugShowCheckedModeBanner: false,
       title: 'Wadiah App',
       home: const SplashScreen(),
-
+      routes: {'/search': (context) => const SearchPage()},
       locale: _locale,
-      supportedLocales: const [
-        Locale('ar'),
-        Locale('en'),
-      ],
+      supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
