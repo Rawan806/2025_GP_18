@@ -105,8 +105,9 @@ class _FoundItemPageState extends State<FoundItemPage> {
         if (allLabels.isNotEmpty && _typeCtrl.text.trim().isEmpty) {
           _typeCtrl.text = allLabels.first;
         }
-        _altTypes =
-        allLabels.length > 1 ? allLabels.skip(1).take(2).toList() : [];
+        _altTypes = allLabels.length > 1
+            ? allLabels.skip(1).take(2).toList()
+            : [];
 
         _aiColor = detectedColor;
         if (detectedColor != null && _colorCtrl.text.trim().isEmpty) {
@@ -115,9 +116,9 @@ class _FoundItemPageState extends State<FoundItemPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('AI Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('AI Error: $e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -130,10 +131,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.translate(
-              'pleaseAddPhoto',
-              locale.languageCode,
-            ),
+            AppLocalizations.translate('pleaseAddPhoto', locale.languageCode),
           ),
         ),
       );
@@ -161,31 +159,33 @@ class _FoundItemPageState extends State<FoundItemPage> {
     try {
       final imageUrl = await _service.uploadImage(_image!);
 
-      final doc =
-      await FirebaseFirestore.instance.collection('foundItems').add({
-        'title': _typeCtrl.text.trim(),
-        'type': _typeCtrl.text.trim(),
-        'color': _colorCtrl.text.trim(),
-        'description':
-        _descCtrl.text.trim().isEmpty ? '-' : _descCtrl.text.trim(),
-        'foundLocation': _foundLocCtrl.text.trim(),
-        'storageLocation': _storageLocCtrl.text.trim().isEmpty
-            ? '-'
-            : _storageLocCtrl.text.trim(),
-        'reportLocation': _foundLocCtrl.text.trim(),
-        'imagePath': imageUrl,
-        'status': AppLocalizations.translate(
-          'underReview',
-          locale.languageCode,
-        ),
-        'date': _format(_foundAt, locale.languageCode),
-        'createdAt': _format(DateTime.now(), locale.languageCode),
-        'updatedAt': _format(DateTime.now(), locale.languageCode),
-        'foundAt': Timestamp.fromDate(_foundAt),
-        'itemCategory': 'found',
-        'aiSuggestions': _altTypes,
-        'aiColor': _aiColor,
-      });
+      final doc = await FirebaseFirestore.instance
+          .collection('foundItems')
+          .add({
+            'title': _typeCtrl.text.trim(),
+            'type': _typeCtrl.text.trim(),
+            'color': _colorCtrl.text.trim(),
+            'description': _descCtrl.text.trim().isEmpty
+                ? '-'
+                : _descCtrl.text.trim(),
+            'foundLocation': _foundLocCtrl.text.trim(),
+            'storageLocation': _storageLocCtrl.text.trim().isEmpty
+                ? '-'
+                : _storageLocCtrl.text.trim(),
+            'reportLocation': _foundLocCtrl.text.trim(),
+            'imagePath': imageUrl,
+            'status': AppLocalizations.translate(
+              'underReview',
+              locale.languageCode,
+            ),
+            'date': _format(_foundAt, locale.languageCode),
+            'createdAt': _format(DateTime.now(), locale.languageCode),
+            'updatedAt': _format(DateTime.now(), locale.languageCode),
+            'foundAt': Timestamp.fromDate(_foundAt),
+            'itemCategory': 'found',
+            'aiSuggestions': _altTypes,
+            'aiColor': _aiColor,
+          });
 
       await doc.update({'id': doc.id});
 
@@ -288,21 +288,21 @@ class _FoundItemPageState extends State<FoundItemPage> {
                       border: Border.all(color: mainGreen, width: 2),
                       image: _image != null
                           ? DecorationImage(
-                        image: FileImage(_image!),
-                        fit: BoxFit.cover,
-                      )
+                              image: FileImage(_image!),
+                              fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: _image == null
                         ? Center(
-                      child: Text(
-                        AppLocalizations.translate(
-                          'noImageSelected',
-                          locale.languageCode,
-                        ),
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                    )
+                            child: Text(
+                              AppLocalizations.translate(
+                                'noImageSelected',
+                                locale.languageCode,
+                              ),
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                          )
                         : null,
                   ),
                   const SizedBox(height: 10),
@@ -312,8 +312,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: mainGreen),
-                            padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           icon: Icon(Icons.photo_camera, color: mainGreen),
                           label: Text(
@@ -331,8 +330,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: mainGreen),
-                            padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           icon: Icon(Icons.photo, color: mainGreen),
                           label: Text(
@@ -357,9 +355,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                             'suggestedTypes',
                             locale.languageCode,
                           ),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),
                         Wrap(
@@ -367,20 +363,20 @@ class _FoundItemPageState extends State<FoundItemPage> {
                           children: _altTypes
                               .map(
                                 (t) => ActionChip(
-                              backgroundColor: chipGrey,
-                              label: Text(
-                                t,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                                  backgroundColor: chipGrey,
+                                  label: Text(
+                                    t,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  onPressed: () => _typeCtrl.text = t,
                                 ),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              onPressed: () => _typeCtrl.text = t,
-                            ),
-                          )
+                              )
                               .toList(),
                         ),
                         const SizedBox(height: 8),
@@ -395,9 +391,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                             'suggestedColor',
                             locale.languageCode,
                           ),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),
                         Wrap(
@@ -414,8 +408,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              onPressed: () =>
-                              _colorCtrl.text = _aiColor!,
+                              onPressed: () => _colorCtrl.text = _aiColor!,
                             ),
                           ],
                         ),
@@ -430,20 +423,15 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         locale.languageCode,
                       ),
                     ),
-                    textAlign:
-                    isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _colorCtrl,
                     decoration: _dec(
-                      AppLocalizations.translate(
-                        'color',
-                        locale.languageCode,
-                      ),
+                      AppLocalizations.translate('color', locale.languageCode),
                     ),
-                    textAlign:
-                    isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -455,8 +443,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         locale.languageCode,
                       ),
                     ),
-                    textAlign:
-                    isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -467,8 +454,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         locale.languageCode,
                       ),
                     ),
-                    textAlign:
-                    isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -479,15 +465,13 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         locale.languageCode,
                       ),
                     ),
-                    textAlign:
-                    isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: borderBrown),
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     icon: Icon(Icons.schedule, color: mainGreen),
                     label: Text(
@@ -498,17 +482,16 @@ class _FoundItemPageState extends State<FoundItemPage> {
                       final d = await showDatePicker(
                         context: context,
                         initialDate: _foundAt,
-                        firstDate: DateTime.now()
-                            .subtract(const Duration(days: 30)),
-                        lastDate: DateTime.now()
-                            .add(const Duration(days: 1)),
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 30),
+                        ),
+                        lastDate: DateTime.now().add(const Duration(days: 1)),
                       );
                       if (d == null) return;
 
                       final t = await showTimePicker(
                         context: context,
-                        initialTime:
-                        TimeOfDay.fromDateTime(_foundAt),
+                        initialTime: TimeOfDay.fromDateTime(_foundAt),
                       );
                       if (t == null) return;
 
@@ -528,15 +511,11 @@ class _FoundItemPageState extends State<FoundItemPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mainGreen,
                       foregroundColor: Colors.white,
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: _busy ? null : _save,
                     child: Text(
-                      AppLocalizations.translate(
-                        'save',
-                        locale.languageCode,
-                      ),
+                      AppLocalizations.translate('save', locale.languageCode),
                       style: const TextStyle(fontSize: 18),
                     ),
                   ),

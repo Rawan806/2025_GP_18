@@ -20,7 +20,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   String _selectedStatus = '';
   final TextEditingController _notesController = TextEditingController();
   late TextEditingController _descriptionController;
-  
+
   // بيانات المستخدم
   String _reporterName = '-';
   String _reporterPhone = '-';
@@ -33,11 +33,11 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     _descriptionController = TextEditingController(text: currentDescription);
     _loadUserData();
   }
-  
+
   Future<void> _loadUserData() async {
     try {
       final userId = widget.report['userId']?.toString();
-      
+
       if (userId == null || userId.isEmpty || userId == 'current_user_id') {
         setState(() {
           _reporterName = '-';
@@ -55,10 +55,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       if (userDoc.exists) {
         final userData = userDoc.data();
         setState(() {
-          _reporterName = userData?['name']?.toString() ?? 
-                         '-';
-          _reporterPhone = userData?['phone']?.toString() ?? 
-                          '-';
+          _reporterName = userData?['name']?.toString() ?? '-';
+          _reporterPhone = userData?['phone']?.toString() ?? '-';
           _isLoadingUserData = false;
         });
       } else {
@@ -108,10 +106,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           .collection('lostItems')
           .doc(docId)
           .update({
-        'status': _selectedStatus,
-        'description': _descriptionController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': _selectedStatus,
+            'description': _descriptionController.text.trim(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -155,18 +153,15 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       }
 
       // دائماً نستخدم النص العربي للحفظ في Firebase
-      final readyText = AppLocalizations.translate(
-        'readyForPickup',
-        'ar',
-      );
+      final readyText = AppLocalizations.translate('readyForPickup', 'ar');
 
       await FirebaseFirestore.instance
           .collection('lostItems')
           .doc(docId)
           .update({
-        'status': readyText,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': readyText,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       setState(() {
         _selectedStatus = readyText;
@@ -201,10 +196,11 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     final report = widget.report;
 
     if (_selectedStatus.isEmpty) {
-      _selectedStatus = (report['status'] as String?) ??
+      _selectedStatus =
+          (report['status'] as String?) ??
           AppLocalizations.translate(
             'underReview',
-            'ar',  // دائماً بالعربية
+            'ar', // دائماً بالعربية
           );
     }
 
@@ -215,11 +211,14 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       AppLocalizations.translate('readyForPickup', 'ar'),
       AppLocalizations.translate('closed', 'ar'),
     ];
-    
+
     // العناوين المعروضة حسب اللغة الحالية
     final statusLabels = [
       AppLocalizations.translate('underReview', currentLocale.languageCode),
-      AppLocalizations.translate('preliminaryMatch', currentLocale.languageCode),
+      AppLocalizations.translate(
+        'preliminaryMatch',
+        currentLocale.languageCode,
+      ),
       AppLocalizations.translate('readyForPickup', currentLocale.languageCode),
       AppLocalizations.translate('closed', currentLocale.languageCode),
     ];
@@ -245,10 +244,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           foregroundColor: Colors.white,
           title: Text(
             '${AppLocalizations.translate('reportDetailsTitle', currentLocale.languageCode)} #$docNum',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           centerTitle: true,
         ),
@@ -315,9 +311,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             height: 180,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                              ),
+                              border: Border.all(color: Colors.grey.shade300),
                               color: Colors.grey.shade100,
                             ),
                             child: const Center(
@@ -354,46 +348,54 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                           label: currentLocale.languageCode == 'ar'
                               ? 'اسم المبلِّغ'
                               : 'Reporter Name',
-                          value: _isLoadingUserData 
-                              ? '...' 
-                              : _reporterName,
+                          value: _isLoadingUserData ? '...' : _reporterName,
                         ),
                         _InfoRow(
                           label: currentLocale.languageCode == 'ar'
                               ? 'رقم المبلِّغ'
                               : 'Reporter Phone',
-                          value: _isLoadingUserData 
-                              ? '...' 
-                              : _reporterPhone,
+                          value: _isLoadingUserData ? '...' : _reporterPhone,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
-                              'type', currentLocale.languageCode),
+                            'type',
+                            currentLocale.languageCode,
+                          ),
                           value: type,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
-                              'color', currentLocale.languageCode),
+                            'color',
+                            currentLocale.languageCode,
+                          ),
                           value: color,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
-                              'reportLocation', currentLocale.languageCode),
+                            'reportLocation',
+                            currentLocale.languageCode,
+                          ),
                           value: reportLocation,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
-                              'foundLocation', currentLocale.languageCode),
+                            'foundLocation',
+                            currentLocale.languageCode,
+                          ),
                           value: foundLocation,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
-                              'createdAt', currentLocale.languageCode),
+                            'createdAt',
+                            currentLocale.languageCode,
+                          ),
                           value: createdAt,
                         ),
                         _InfoRow(
                           label: AppLocalizations.translate(
-                              'updatedAt', currentLocale.languageCode),
+                            'updatedAt',
+                            currentLocale.languageCode,
+                          ),
                           value: updatedAt,
                         ),
                         _InfoRow(
@@ -405,7 +407,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
                         Text(
                           AppLocalizations.translate(
-                              'description', currentLocale.languageCode),
+                            'description',
+                            currentLocale.languageCode,
+                          ),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -415,8 +419,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         TextField(
                           controller: _descriptionController,
                           maxLines: 3,
-                          textAlign:
-                          isArabic ? TextAlign.right : TextAlign.left,
+                          textAlign: isArabic
+                              ? TextAlign.right
+                              : TextAlign.left,
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white,
@@ -430,7 +435,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
                         Text(
                           AppLocalizations.translate(
-                              'reportStatus', currentLocale.languageCode),
+                            'reportStatus',
+                            currentLocale.languageCode,
+                          ),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -453,8 +460,11 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                           items: List.generate(
                             statuses.length,
                             (index) => DropdownMenuItem(
-                              value: statuses[index],  // القيمة بالعربية للحفظ في Firebase
-                              child: Text(statusLabels[index]),  // العرض حسب اللغة الحالية
+                              value:
+                                  statuses[index], // القيمة بالعربية للحفظ في Firebase
+                              child: Text(
+                                statusLabels[index],
+                              ), // العرض حسب اللغة الحالية
                             ),
                           ),
                           onChanged: (value) {
@@ -506,8 +516,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         TextField(
                           controller: _notesController,
                           maxLines: 4,
-                          textAlign:
-                          isArabic ? TextAlign.right : TextAlign.left,
+                          textAlign: isArabic
+                              ? TextAlign.right
+                              : TextAlign.left,
                           decoration: InputDecoration(
                             hintText: AppLocalizations.translate(
                               'writeNotesPlaceholder',
@@ -585,7 +596,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         //     ],
                         //   ),
                         // ),
-
                         const SizedBox(height: 16),
 
                         ElevatedButton.icon(
@@ -628,10 +638,7 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -643,18 +650,10 @@ class _InfoRow extends StatelessWidget {
             width: 120,
             child: Text(
               '$label:',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
         ],
       ),
     );

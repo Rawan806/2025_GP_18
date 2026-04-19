@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:wadiah_app/HomePage/HomePage.dart';
+
 import '../l10n/app_localizations_helper.dart';
 
 class LostForm extends StatefulWidget {
@@ -27,6 +30,8 @@ class _LostFormState extends State<LostForm> {
   final TextEditingController itemNameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController otherCategoryController = TextEditingController();
+  final TextEditingController brandController = TextEditingController();
+  final TextEditingController specialMarksController = TextEditingController();
 
   DateTime? selectedDate;
   String? _selectedCategory;
@@ -36,6 +41,12 @@ class _LostFormState extends State<LostForm> {
   File? _selectedImage;
 
   bool _isUploading = false;
+
+  // عدليه حسب بيئتك:
+  // Android emulator => 10.0.2.2
+  // iOS simulator / local desktop => 127.0.0.1
+  // real device => حطي IP جهازك
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   List<String> _getCategories(String languageCode) {
     return [
@@ -72,7 +83,9 @@ class _LostFormState extends State<LostForm> {
       focusedBorder: OutlineInputBorder(
         borderSide: BorderSide(color: borderBrown, width: 2),
       ),
-      border: OutlineInputBorder(borderSide: BorderSide(color: borderBrown)),
+      border: OutlineInputBorder(
+        borderSide: BorderSide(color: borderBrown),
+      ),
     );
   }
 
@@ -87,12 +100,6 @@ class _LostFormState extends State<LostForm> {
     } else {
       return "${dt.day}/${dt.month}/${dt.year} - ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}";
     }
-  }
-
-  String _generatePinCode() {
-    final random = Random();
-    final int value = 100000 + random.nextInt(900000);
-    return value.toString();
   }
 
   Future<void> _pickDateTime() async {
@@ -137,9 +144,8 @@ class _LostFormState extends State<LostForm> {
 
         setState(() {
           selectedDate = chosen;
-          dateController.text = intl.DateFormat(
-            'yyyy-MM-dd – HH:mm',
-          ).format(selectedDate!);
+          dateController.text =
+              intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
         });
       }
     }
@@ -162,18 +168,33 @@ class _LostFormState extends State<LostForm> {
     try {
       final String fileName =
           'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final Reference storageRef = FirebaseStorage.instance.ref().child(
-        fileName,
-      );
 
+      final Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
       final UploadTask uploadTask = storageRef.putFile(image);
       final TaskSnapshot snapshot = await uploadTask;
 
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
+      return await snapshot.ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading image: $e');
       return null;
+    }
+  }
+
+  Future<void> _triggerIndexing({
+    required String docId,
+    required String collection,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/index-item'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'docId': docId,
+        'collection': collection,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Indexing failed: ${response.body}');
     }
   }
 
@@ -209,7 +230,6 @@ class _LostFormState extends State<LostForm> {
       return;
     }
 
-    // منع تاريخ/وقت مستقبلي
     if (selectedDate!.isAfter(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -224,11 +244,10 @@ class _LostFormState extends State<LostForm> {
       return;
     }
 
-    // التحقق من اللون
     if (_selectedColor == null || _selectedColor!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار اللون')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى اختيار اللون')),
+      );
       return;
     }
 
@@ -245,47 +264,75 @@ class _LostFormState extends State<LostForm> {
       }
 
       final String finalCategory =
-          _selectedCategory ==
-              AppLocalizations.translate('other', currentLocale.languageCode)
+      _selectedCategory ==
+          AppLocalizations.translate(
+            'other',
+            currentLocale.languageCode,
+          )
           ? otherCategoryController.text.trim()
           : _selectedCategory!;
 
       final now = DateTime.now();
-      final String pinCode = _generatePinCode();
 
-      final docRef = await FirebaseFirestore.instance
-          .collection('lostItems')
-          .add({
-            'title': itemNameController.text.trim(),
-            'type': finalCategory,
-            'category': finalCategory,
-            'color': _selectedColor ?? '',
-            'description': descriptionController.text.trim().isEmpty
-                ? 'No description provided'
-                : descriptionController.text.trim(),
-            'reportLocation': 'User Report',
-            'foundLocation': '',
-            'imagePath': imageUrl ?? '',
-            'status': 'قيد المراجعة',
-            'date': _formatDateTime(selectedDate!),
-            'lostDate': Timestamp.fromDate(selectedDate!),
-            'createdAt': _formatDateTime(now),
-            'updatedAt': _formatDateTime(now),
-            'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
-            'itemCategory': 'lost',
-            'userId':
-                FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
-            'pinCode': pinCode,
-          });
+      final docRef = await FirebaseFirestore.instance.collection('lostItems').add({
+        'title': itemNameController.text.trim(),
+        'type': finalCategory,
+        'category': finalCategory,
+        'color': _selectedColor ?? '',
+        'brand': brandController.text.trim(),
+        'specialMarks': specialMarksController.text.trim(),
+        'description': descriptionController.text.trim().isEmpty
+            ? 'No description provided'
+            : descriptionController.text.trim(),
+        'reportLocation': 'User Report',
+        'foundLocation': '',
+        'imageUrl': imageUrl ?? '',
+        'status': 'submitted',
+        'date': _formatDateTime(selectedDate!),
+        'lostDate': Timestamp.fromDate(selectedDate!),
+        'createdAt': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+        'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
+        'itemCategory': 'lost',
+        'userId': FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+        'matchedFoundItemId': null,
+        'evidenceImagePath': '',
+        'evidenceDescription': '',
+        'docId': '',
+        'id': '',
+        'isIndexed': false,
+        'indexStatus': 'pending',
+        'indexError': '',
+      });
 
-      await docRef.update({'id': docRef.id});
+      await docRef.update({
+        'id': docRef.id,
+        'docId': docRef.id,
+      });
+
+      try {
+        await _triggerIndexing(
+          docId: docRef.id,
+          collection: 'lostItems',
+        );
+      } catch (e) {
+        await docRef.update({
+          'isIndexed': false,
+          'indexStatus': 'failed',
+          'indexError': e.toString(),
+        });
+        debugPrint('Indexing error: $e');
+      }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${AppLocalizations.translate('reportSubmitted', currentLocale.languageCode)}\nPIN: $pinCode',
+            AppLocalizations.translate(
+              'reportSubmitted',
+              currentLocale.languageCode,
+            ),
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
@@ -297,14 +344,17 @@ class _LostFormState extends State<LostForm> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const HomePage()),
-            (route) => false,
+                (route) => false,
           );
         }
       });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) {
@@ -319,6 +369,8 @@ class _LostFormState extends State<LostForm> {
     itemNameController.dispose();
     descriptionController.dispose();
     otherCategoryController.dispose();
+    brandController.dispose();
+    specialMarksController.dispose();
     super.dispose();
   }
 
@@ -368,12 +420,13 @@ class _LostFormState extends State<LostForm> {
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppLocalizations.translate(
-                          'pleaseSelectDateTime',
-                          currentLocale.languageCode,
-                        )
+                    'pleaseSelectDateTime',
+                    currentLocale.languageCode,
+                  )
                       : null,
                 ),
                 const SizedBox(height: 15),
+
                 TextFormField(
                   controller: itemNameController,
                   decoration: _inputDeco(
@@ -384,12 +437,13 @@ class _LostFormState extends State<LostForm> {
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppLocalizations.translate(
-                          'pleaseEnterItemName',
-                          currentLocale.languageCode,
-                        )
+                    'pleaseEnterItemName',
+                    currentLocale.languageCode,
+                  )
                       : null,
                 ),
                 const SizedBox(height: 15),
+
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   decoration: _inputDeco(
@@ -400,9 +454,11 @@ class _LostFormState extends State<LostForm> {
                   ),
                   items: categories
                       .map(
-                        (c) =>
-                            DropdownMenuItem<String>(value: c, child: Text(c)),
-                      )
+                        (c) => DropdownMenuItem<String>(
+                      value: c,
+                      child: Text(c),
+                    ),
+                  )
                       .toList(),
                   onChanged: (val) {
                     setState(() {
@@ -418,22 +474,23 @@ class _LostFormState extends State<LostForm> {
                   },
                   validator: (v) => (v == null || v.isEmpty)
                       ? AppLocalizations.translate(
-                          'pleaseSelectCategory',
-                          currentLocale.languageCode,
-                        )
+                    'pleaseSelectCategory',
+                    currentLocale.languageCode,
+                  )
                       : null,
                 ),
                 const SizedBox(height: 15),
+
                 DropdownButtonFormField<String>(
                   value: _selectedColor,
                   decoration: _inputDeco('لون الغرض'),
                   items: colors
                       .map(
                         (color) => DropdownMenuItem<String>(
-                          value: color,
-                          child: Text(color),
-                        ),
-                      )
+                      value: color,
+                      child: Text(color),
+                    ),
+                  )
                       .toList(),
                   onChanged: (val) {
                     setState(() {
@@ -441,9 +498,10 @@ class _LostFormState extends State<LostForm> {
                     });
                   },
                   validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
+                  (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
                 ),
                 const SizedBox(height: 15),
+
                 if (_selectedCategory ==
                     AppLocalizations.translate(
                       'other',
@@ -458,20 +516,34 @@ class _LostFormState extends State<LostForm> {
                       ),
                     ),
                     validator: (v) =>
-                        (_selectedCategory ==
-                                AppLocalizations.translate(
-                                  'other',
-                                  currentLocale.languageCode,
-                                ) &&
-                            (v == null || v.trim().isEmpty))
+                    (_selectedCategory ==
+                        AppLocalizations.translate(
+                          'other',
+                          currentLocale.languageCode,
+                        ) &&
+                        (v == null || v.trim().isEmpty))
                         ? AppLocalizations.translate(
-                            'pleaseSpecifyCategory',
-                            currentLocale.languageCode,
-                          )
+                      'pleaseSpecifyCategory',
+                      currentLocale.languageCode,
+                    )
                         : null,
                   ),
                   const SizedBox(height: 15),
                 ],
+
+                TextFormField(
+                  controller: brandController,
+                  decoration: _inputDeco('العلامة التجارية (اختياري)'),
+                ),
+                const SizedBox(height: 15),
+
+                TextFormField(
+                  controller: specialMarksController,
+                  maxLines: 2,
+                  decoration: _inputDeco('علامات مميزة / تفاصيل خاصة'),
+                ),
+                const SizedBox(height: 15),
+
                 if (_selectedImage != null) ...[
                   Container(
                     height: 200,
@@ -490,6 +562,7 @@ class _LostFormState extends State<LostForm> {
                   ),
                   const SizedBox(height: 10),
                 ],
+
                 OutlinedButton.icon(
                   onPressed: _pickImage,
                   icon: Icon(
@@ -509,11 +582,9 @@ class _LostFormState extends State<LostForm> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
                 Text(
-                  AppLocalizations.translate(
-                    'photoNote',
-                    currentLocale.languageCode,
-                  ),
+                  'الصورة اختيارية، لكن إضافة صورة أو تفاصيل أدق تساعد في تحسين المطابقة.',
                   style: TextStyle(
                     color: Colors.grey.shade700,
                     fontSize: 12,
@@ -522,6 +593,7 @@ class _LostFormState extends State<LostForm> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
+
                 TextFormField(
                   controller: descriptionController,
                   maxLines: 4,
@@ -533,6 +605,7 @@ class _LostFormState extends State<LostForm> {
                   ),
                 ),
                 const SizedBox(height: 25),
+
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: mainGreen,
@@ -542,20 +615,20 @@ class _LostFormState extends State<LostForm> {
                   onPressed: _isUploading ? null : _submitForm,
                   child: _isUploading
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                       : Text(
-                          AppLocalizations.translate(
-                            'submitReport',
-                            currentLocale.languageCode,
-                          ),
-                          style: const TextStyle(fontSize: 18),
-                        ),
+                    AppLocalizations.translate(
+                      'submitReport',
+                      currentLocale.languageCode,
+                    ),
+                    style: const TextStyle(fontSize: 18),
+                  ),
                 ),
               ],
             ),

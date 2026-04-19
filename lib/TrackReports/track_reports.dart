@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
+import '../MatchReview/MatchReviewScreen.dart';
+import '../HandoverPin/HandoverPinScreen.dart';
 
 class TrackReportScreen extends StatelessWidget {
   const TrackReportScreen({super.key});
@@ -10,61 +12,55 @@ class TrackReportScreen extends StatelessWidget {
   final Color beigeColor = const Color(0xFFC3BFB0);
 
   Color _getStatusColor(String status) {
-    if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
-      return Colors.orange;
-    } else if (status.contains('جاري البحث') || status.contains('Searching')) {
-      return Colors.blue;
-    } else if (status.contains('جاهز للاستلام') ||
-        status.contains('Ready for Pickup')) {
-      return Colors.green;
-    } else if (status.contains('مغلق') || status.contains('Closed')) {
-      return Colors.grey;
-    } else if (status.contains('ملغي') || status.contains('Cancelled')) {
-      return Colors.redAccent;
+    switch (status) {
+      case 'submitted':
+        return Colors.orange;
+      case 'possible_match':
+        return Colors.blue;
+      case 'waiting_for_staff_review':
+        return Colors.deepPurple;
+      case 'approved_by_staff':
+        return Colors.teal;
+      case 'ready_to_handover':
+        return Colors.green;
+      case 'completed':
+        return Colors.grey;
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return Colors.black87;
     }
-    return Colors.black87;
   }
 
-  bool _isCancelledStatus(String status) {
-    final s = status.toLowerCase();
-    return s.contains('ملغي') ||
-        s.contains('cancelled') ||
-        s.contains('cancelled by reporter') ||
-        s.contains('ملغي من طرف');
-  }
-
-  bool _isClosedStatus(String status) {
-    return status.contains('مغلق') || status.contains('Closed');
-  }
-
-  bool _canUserCancel(String status) {
-    return status.contains('قيد المراجعة') || status.contains('Under Review');
-  }
+  bool _isCancelledStatus(String status) => status == 'cancelled';
+  bool _isClosedStatus(String status) => status == 'completed';
+  bool _canUserCancel(String status) => status == 'submitted';
 
   String _getLocalizedStatus(String status, String languageCode) {
-    final statusLower = status.toLowerCase();
-
-    if (statusLower.contains('open') || statusLower.contains('مفتوح')) {
-      return AppLocalizations.translate('open', languageCode);
-    } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
-      return AppLocalizations.translate('closed', languageCode);
-    } else if (statusLower.contains('pending') ||
-        statusLower.contains('قيد الانتظار')) {
-      return AppLocalizations.translate('pending', languageCode);
-    } else if (status.contains('مطابقة مبدئية') ||
-        status.contains('Preliminary Match')) {
-      return AppLocalizations.translate('preliminaryMatch', languageCode);
-    } else if (status.contains('جاهز للاستلام') ||
-        status.contains('Ready for Pickup')) {
-      return AppLocalizations.translate('readyForPickup', languageCode);
-    } else if (status.contains('قيد المراجعة') ||
-        status.contains('Under Review')) {
-      return AppLocalizations.translate('underReview', languageCode);
-    } else if (status.contains('ملغي') || status.contains('Cancelled')) {
-      return AppLocalizations.translate('cancelled', languageCode);
+    switch (status) {
+      case 'submitted':
+        return languageCode == 'ar' ? 'تم رفع البلاغ' : 'Submitted';
+      case 'possible_match':
+        return languageCode == 'ar'
+            ? 'تم العثور على تطابق محتمل'
+            : 'Possible Match';
+      case 'waiting_for_staff_review':
+        return languageCode == 'ar'
+            ? 'بانتظار مراجعة الموظف'
+            : 'Waiting for Staff Review';
+      case 'approved_by_staff':
+        return languageCode == 'ar'
+            ? 'تمت الموافقة من الموظف'
+            : 'Approved by Staff';
+      case 'ready_to_handover':
+        return languageCode == 'ar' ? 'جاهز للتسليم' : 'Ready for Handover';
+      case 'completed':
+        return languageCode == 'ar' ? 'مكتمل' : 'Completed';
+      case 'cancelled':
+        return languageCode == 'ar' ? 'ملغي' : 'Cancelled';
+      default:
+        return status;
     }
-
-    return status;
   }
 
   Future<void> _cancelReport({
@@ -77,9 +73,7 @@ class TrackReportScreen extends StatelessWidget {
           .collection('lostItems')
           .doc(docId)
           .update({
-            'status': languageCode == 'ar'
-                ? 'ملغي من طرف المبلّغ'
-                : 'Cancelled by Reporter',
+            'status': 'cancelled',
             'cancelledBy': 'user',
             'cancelledAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
@@ -91,7 +85,9 @@ class TrackReportScreen extends StatelessWidget {
         SnackBar(
           backgroundColor: Colors.green,
           content: Text(
-            AppLocalizations.translate('cancelSuccess', languageCode),
+            languageCode == 'ar'
+                ? 'تم إلغاء البلاغ بنجاح'
+                : 'Report cancelled successfully',
           ),
         ),
       );
@@ -99,12 +95,7 @@ class TrackReportScreen extends StatelessWidget {
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            '${AppLocalizations.translate('cancelFailed', languageCode)}: $e',
-          ),
-        ),
+        SnackBar(backgroundColor: Colors.red, content: Text('Error: $e')),
       );
     }
   }
@@ -122,16 +113,16 @@ class TrackReportScreen extends StatelessWidget {
         return Directionality(
           textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
-            title: Text(
-              AppLocalizations.translate('confirmCancelTitle', languageCode),
-            ),
+            title: Text(isArabic ? 'تأكيد الإلغاء' : 'Confirm Cancellation'),
             content: Text(
-              AppLocalizations.translate('confirmCancelBody', languageCode),
+              isArabic
+                  ? 'هل أنت متأكد من إلغاء هذا البلاغ؟'
+                  : 'Are you sure you want to cancel this report?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(AppLocalizations.translate('cancel', languageCode)),
+                child: Text(isArabic ? 'إلغاء' : 'Cancel'),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -139,9 +130,7 @@ class TrackReportScreen extends StatelessWidget {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: Text(
-                  AppLocalizations.translate('yesCancel', languageCode),
-                ),
+                child: Text(isArabic ? 'نعم' : 'Yes'),
               ),
             ],
           ),
@@ -156,6 +145,29 @@ class TrackReportScreen extends StatelessWidget {
         languageCode: languageCode,
       );
     }
+  }
+
+  void _openMatchReview(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            MatchReviewScreen(lostReportId: docId, lostReportData: data),
+      ),
+    );
+  }
+
+  void _openHandoverPin(BuildContext context, Map<String, dynamic> data) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HandoverPinScreen(lostReportData: data),
+      ),
+    );
   }
 
   @override
@@ -263,7 +275,7 @@ class TrackReportScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           Text(
                             isArabic
-                                ? 'لا توجد بلاغات حالياً'
+                                ? 'لا توجد بلاغات نشطة'
                                 : 'No active reports',
                             style: TextStyle(
                               fontSize: 18,
@@ -382,17 +394,6 @@ class TrackReportScreen extends StatelessWidget {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    if (pinCode.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'PIN: $pinCode',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.brown[700],
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
                                     if (date.isNotEmpty) ...[
                                       const SizedBox(height: 4),
                                       Text(
@@ -403,8 +404,62 @@ class TrackReportScreen extends StatelessWidget {
                                         ),
                                       ),
                                     ],
-                                    if (canCancel) ...[
-                                      const SizedBox(height: 10),
+                                    if (pinCode.isNotEmpty &&
+                                        rawStatus == 'ready_to_handover') ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'PIN: $pinCode',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.brown[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 10),
+
+                                    if (rawStatus == 'possible_match')
+                                      Align(
+                                        alignment: isArabic
+                                            ? Alignment.centerLeft
+                                            : Alignment.centerRight,
+                                        child: ElevatedButton(
+                                          onPressed: () => _openMatchReview(
+                                            context,
+                                            doc.id,
+                                            data,
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: mainGreen,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: Text(
+                                            isArabic
+                                                ? 'مراجعة التطابق'
+                                                : 'Review Match',
+                                          ),
+                                        ),
+                                      ),
+
+                                    if (rawStatus == 'ready_to_handover')
+                                      Align(
+                                        alignment: isArabic
+                                            ? Alignment.centerLeft
+                                            : Alignment.centerRight,
+                                        child: ElevatedButton(
+                                          onPressed: () =>
+                                              _openHandoverPin(context, data),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: Text(
+                                            isArabic ? 'عرض PIN' : 'View PIN',
+                                          ),
+                                        ),
+                                      ),
+
+                                    if (canCancel)
                                       Align(
                                         alignment: isArabic
                                             ? Alignment.centerLeft
@@ -421,10 +476,9 @@ class TrackReportScreen extends StatelessWidget {
                                             color: Colors.redAccent,
                                           ),
                                           label: Text(
-                                            AppLocalizations.translate(
-                                              'cancelReport',
-                                              currentLocale.languageCode,
-                                            ),
+                                            isArabic
+                                                ? 'إلغاء البلاغ'
+                                                : 'Cancel Report',
                                             style: const TextStyle(
                                               color: Colors.redAccent,
                                               fontWeight: FontWeight.w600,
@@ -432,7 +486,6 @@ class TrackReportScreen extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                    ],
                                   ],
                                 ),
                               ),

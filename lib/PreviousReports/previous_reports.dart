@@ -10,17 +10,19 @@ class PreviousReportsPage extends StatelessWidget {
   final Color beigeColor = const Color(0xFFC3BFB0);
 
   Color _getStatusColor(String status) {
-    if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
-      return Colors.orange;
-    } else if (status.contains('جاري البحث') || status.contains('Searching')) {
-      return Colors.blue;
-    } else if (status.contains('جاهز للاستلام') ||
-        status.contains('Ready for Pickup')) {
-      return Colors.green;
-    } else if (status.contains('مغلق') || status.contains('Closed')) {
+    if (status == 'completed') {
       return Colors.grey;
     }
     return Colors.black87;
+  }
+
+  String _getLocalizedStatus(String status, String languageCode) {
+    switch (status) {
+      case 'completed':
+        return languageCode == 'ar' ? 'مكتمل' : 'Completed';
+      default:
+        return status;
+    }
   }
 
   @override
@@ -53,25 +55,21 @@ class PreviousReportsPage extends StatelessWidget {
               .collection('lostItems')
               .where('itemCategory', isEqualTo: 'lost')
               .where(
-            'userId',
-            isEqualTo:
-            FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
-          )
+                'userId',
+                isEqualTo:
+                    FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+              )
               .orderBy('createdAt', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(color: mainGreen),
-              );
+              return Center(child: CircularProgressIndicator(color: mainGreen));
             }
 
             if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  isArabic
-                      ? 'حدث خطأ في تحميل البيانات'
-                      : 'Error loading data',
+                  isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
                   style: const TextStyle(color: Colors.red),
                 ),
               );
@@ -84,32 +82,26 @@ class PreviousReportsPage extends StatelessWidget {
                     'noPreviousReports',
                     currentLocale.languageCode,
                   ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black38,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.black38),
                 ),
               );
             }
 
             final allDocs = snapshot.data!.docs;
-            final closedDocs = allDocs.where((doc) {
+            final completedDocs = allDocs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final status = (data['status'] ?? '').toString();
-              return status.contains('مغلق') || status.contains('Closed');
+              return status == 'completed';
             }).toList();
 
-            if (closedDocs.isEmpty) {
+            if (completedDocs.isEmpty) {
               return Center(
                 child: Text(
                   AppLocalizations.translate(
                     'noPreviousReports',
                     currentLocale.languageCode,
                   ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black38,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.black38),
                 ),
               );
             }
@@ -117,12 +109,16 @@ class PreviousReportsPage extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: ListView.builder(
-                itemCount: closedDocs.length,
+                itemCount: completedDocs.length,
                 itemBuilder: (context, index) {
                   final data =
-                  closedDocs[index].data() as Map<String, dynamic>;
+                      completedDocs[index].data() as Map<String, dynamic>;
                   final title = (data['title'] ?? '').toString();
                   final status = (data['status'] ?? '').toString();
+                  final localizedStatus = _getLocalizedStatus(
+                    status,
+                    currentLocale.languageCode,
+                  );
                   final date = (data['date'] ?? '').toString();
                   final imagePath = (data['imagePath'] ?? '').toString();
                   final docNum = (data['doc_num'] ?? '').toString();
@@ -182,6 +178,7 @@ class PreviousReportsPage extends StatelessWidget {
                             ),
                           ),
                         const SizedBox(width: 12),
+
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +192,7 @@ class PreviousReportsPage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 6),
+
                               Text(
                                 '${AppLocalizations.translate('lostItem', currentLocale.languageCode)}: $title',
                                 style: const TextStyle(fontSize: 15),
@@ -202,14 +200,16 @@ class PreviousReportsPage extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
+
                               Text(
-                                '${AppLocalizations.translate('status', currentLocale.languageCode)}: $status',
+                                '${AppLocalizations.translate('status', currentLocale.languageCode)}: $localizedStatus',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: _getStatusColor(status),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
+
                               if (date.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Text(

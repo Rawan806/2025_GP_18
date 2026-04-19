@@ -23,7 +23,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   final AuthService _authService = AuthService();
 
@@ -44,12 +45,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     confirmPasswordController.addListener(_revalidateForm);
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
   }
 
   void _revalidateForm() {
@@ -86,7 +89,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _validateEmail(String? v, String lang) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
-    if (!_isValidEmail(value)) return AppLocalizations.translate('invalidEmail', lang);
+    if (!_isValidEmail(value))
+      return AppLocalizations.translate('invalidEmail', lang);
     return null;
   }
 
@@ -105,7 +109,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _validatePassword(String? v, String lang) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
-    if (value.length < 8) return AppLocalizations.translate('passwordLength', lang);
+    if (value.length < 8)
+      return AppLocalizations.translate('passwordLength', lang);
     return null;
   }
 
@@ -130,9 +135,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!ok || phoneError != null) {
       // لو فشل رقم الجوال، نطلع SnackBar سريع (والـUI already يبين errors تحت الحقول)
       if (phoneError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(phoneError)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(phoneError)));
       }
       return;
     }
@@ -192,7 +197,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ غير متوقع: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('خطأ غير متوقع: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -275,7 +283,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       // الاسم
                       TextFormField(
                         controller: nameController,
-                        decoration: dec(AppLocalizations.translate('fullName', lang), Icons.person),
+                        decoration: dec(
+                          AppLocalizations.translate('fullName', lang),
+                          Icons.person,
+                        ),
                         validator: (v) => _validateName(v, lang),
                         textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       ),
@@ -284,7 +295,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       // الايميل
                       TextFormField(
                         controller: emailController,
-                        decoration: dec(AppLocalizations.translate('email', lang), Icons.email),
+                        decoration: dec(
+                          AppLocalizations.translate('email', lang),
+                          Icons.email,
+                        ),
                         validator: (v) => _validateEmail(v, lang),
                         keyboardType: TextInputType.emailAddress,
                         textAlign: isArabic ? TextAlign.right : TextAlign.left,
@@ -308,15 +322,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         initialValue: _initialNumber,
                         textFieldController: phoneController,
                         formatInput: true,
-                        inputDecoration: dec(AppLocalizations.translate('phoneNumber', lang), Icons.phone),
-                        keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+                        inputDecoration: dec(
+                          AppLocalizations.translate('phoneNumber', lang),
+                          Icons.phone,
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          signed: false,
+                          decimal: false,
+                        ),
                       ),
                       const SizedBox(height: 15),
 
                       // الباسورد
                       TextFormField(
                         controller: passwordController,
-                        decoration: dec(AppLocalizations.translate('password', lang), Icons.lock),
+                        decoration: dec(
+                          AppLocalizations.translate('password', lang),
+                          Icons.lock,
+                        ),
                         validator: (v) => _validatePassword(v, lang),
                         obscureText: true,
                         textAlign: isArabic ? TextAlign.right : TextAlign.left,
@@ -326,7 +349,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       // تأكيد
                       TextFormField(
                         controller: confirmPasswordController,
-                        decoration: dec(AppLocalizations.translate('confirmPassword', lang), Icons.lock_outline),
+                        decoration: dec(
+                          AppLocalizations.translate('confirmPassword', lang),
+                          Icons.lock_outline,
+                        ),
                         validator: (v) => _validateConfirmPassword(v, lang),
                         obscureText: true,
                         textAlign: isArabic ? TextAlign.right : TextAlign.left,
@@ -340,18 +366,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           onPressed: _isLoading ? null : _handleSignUp,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: mainGreen,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: _isLoading
                               ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : Text(
-                            AppLocalizations.translate('createAccount', lang),
-                            style: const TextStyle(fontSize: 18, color: Colors.white),
-                          ),
+                                  AppLocalizations.translate(
+                                    'createAccount',
+                                    lang,
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
 
@@ -361,7 +398,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const SigninScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const SigninScreen(),
+                            ),
                           );
                         },
                         child: Text(

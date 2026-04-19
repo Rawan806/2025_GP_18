@@ -23,10 +23,7 @@ class StaffHomePage extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            AppLocalizations.translate(
-              'language',
-              currentLocale.languageCode,
-            ),
+            AppLocalizations.translate('language', currentLocale.languageCode),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -276,7 +273,7 @@ class StaffHomePage extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                    const SearchReportsPage(),
+                                        const SearchReportsPage(),
                                   ),
                                 );
                               },
@@ -322,7 +319,7 @@ class StaffHomePage extends StatelessWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: latestReports.length,
                           separatorBuilder: (_, __) =>
-                          const SizedBox(height: 12),
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final report = latestReports[index];
                             return _ReportListTile(
@@ -448,7 +445,10 @@ class _ReportListTile extends StatelessWidget {
     final id = report['doc_num']?.toString() ?? '';
     final title = report['title']?.toString() ?? '';
     final statusFromDb = report['status']?.toString() ?? '';
-    final status = _getLocalizedStatus(statusFromDb, currentLocale.languageCode);
+    final status = _getLocalizedStatus(
+      statusFromDb,
+      currentLocale.languageCode,
+    );
     final date = report['date']?.toString() ?? '';
 
     return InkWell(
@@ -489,10 +489,7 @@ class _ReportListTile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '${AppLocalizations.translate('date', currentLocale.languageCode)}: $date',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
             ),
           ],
         ),

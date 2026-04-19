@@ -26,9 +26,11 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
   String _getEnglishStatus(String status) {
     if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
       return 'Under Review';
-    } else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+    } else if (status.contains('مطابقة مبدئية') ||
+        status.contains('Preliminary Match')) {
       return 'Preliminary Match';
-    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+    } else if (status.contains('جاهز للاستلام') ||
+        status.contains('Ready for Pickup')) {
       return 'Ready for Pickup';
     } else if (status.contains('مغلق') || status.contains('Closed')) {
       return 'Closed';
@@ -37,48 +39,59 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
   }
 
   List<Map<String, dynamic>> _filterReports(
-      List<DocumentSnapshot> docs,
-      BuildContext context,
-      ) {
+    List<DocumentSnapshot> docs,
+    BuildContext context,
+  ) {
     final currentLocale = Localizations.localeOf(context);
-    final allStatusesText =
-    AppLocalizations.translate('allStatuses', currentLocale.languageCode);
+    final allStatusesText = AppLocalizations.translate(
+      'allStatuses',
+      currentLocale.languageCode,
+    );
     final searchQuery = _searchController.text.trim().toLowerCase();
 
-    return docs.where((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      final id = (data['id'] ?? doc.id).toString();
-      final docNum = (data['doc_num'] ?? '').toString();
-      final title = (data['title'] ?? '').toString().toLowerCase();
-      final status = (data['status'] ?? '').toString();
+    return docs
+        .where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final id = (data['id'] ?? doc.id).toString();
+          final docNum = (data['doc_num'] ?? '').toString();
+          final title = (data['title'] ?? '').toString().toLowerCase();
+          final status = (data['status'] ?? '').toString();
 
-      final matchesSearch = searchQuery.isEmpty ||
-          id.contains(searchQuery) ||
-          docNum.contains(searchQuery) ||
-          title.contains(searchQuery) ||
-          (data['category'] ?? '').toString().toLowerCase().contains(searchQuery) ||
-          (data['description'] ?? '').toString().toLowerCase().contains(searchQuery);
+          final matchesSearch =
+              searchQuery.isEmpty ||
+              id.contains(searchQuery) ||
+              docNum.contains(searchQuery) ||
+              title.contains(searchQuery) ||
+              (data['category'] ?? '').toString().toLowerCase().contains(
+                searchQuery,
+              ) ||
+              (data['description'] ?? '').toString().toLowerCase().contains(
+                searchQuery,
+              );
 
-      final matchesStatus = selectedStatus.isEmpty ||
-          selectedStatus == allStatusesText ||
-          _getEnglishStatus(selectedStatus) == _getEnglishStatus(status);
+          final matchesStatus =
+              selectedStatus.isEmpty ||
+              selectedStatus == allStatusesText ||
+              _getEnglishStatus(selectedStatus) == _getEnglishStatus(status);
 
-      return matchesSearch && matchesStatus;
-    }).map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      return {
-        'id': data['id'] ?? doc.id,
-        'title': data['title'] ?? '',
-        'status': data['status'] ?? '',
-        'category': data['category'] ?? '',
-        'description': data['description'] ?? '',
-        'imagePath': data['imagePath'] ?? '',
-        'date': data['date'] ?? '',
-        'itemCategory': data['itemCategory'] ?? '',
-        'doc_num': data['doc_num'] ?? '',
-        'userId': data['userId'] ?? '',
-      };
-    }).toList();
+          return matchesSearch && matchesStatus;
+        })
+        .map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {
+            'id': data['id'] ?? doc.id,
+            'title': data['title'] ?? '',
+            'status': data['status'] ?? '',
+            'category': data['category'] ?? '',
+            'description': data['description'] ?? '',
+            'imagePath': data['imagePath'] ?? '',
+            'date': data['date'] ?? '',
+            'itemCategory': data['itemCategory'] ?? '',
+            'doc_num': data['doc_num'] ?? '',
+            'userId': data['userId'] ?? '',
+          };
+        })
+        .toList();
   }
 
   @override
@@ -87,8 +100,10 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
     final isArabic = currentLocale.languageCode == 'ar';
 
     if (selectedStatus.isEmpty) {
-      selectedStatus =
-          AppLocalizations.translate('allStatuses', currentLocale.languageCode);
+      selectedStatus = AppLocalizations.translate(
+        'allStatuses',
+        currentLocale.languageCode,
+      );
     }
 
     return Directionality(
@@ -105,7 +120,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
               currentLocale.languageCode,
             ),
             style: const TextStyle(
-              color: Colors.white,      // نص أبيض
+              color: Colors.white, // نص أبيض
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -113,15 +128,13 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
           leading: IconButton(
             icon: const Icon(
               Icons.arrow_back_ios_new,
-              color: Colors.white,      // أيقونة بيضاء
+              color: Colors.white, // أيقونة بيضاء
               size: 22,
             ),
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const StaffHomePage(),
-                ),
+                MaterialPageRoute(builder: (_) => const StaffHomePage()),
               );
             },
           ),
@@ -144,12 +157,12 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                  )
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -175,15 +188,31 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                     borderSide: BorderSide.none,
                   ),
                 ),
-                items: [
-                  AppLocalizations.translate('allStatuses', currentLocale.languageCode),
-                  AppLocalizations.translate('underReview', currentLocale.languageCode),
-                  AppLocalizations.translate('preliminaryMatch', currentLocale.languageCode),
-                  AppLocalizations.translate('readyForPickup', currentLocale.languageCode),
-                  AppLocalizations.translate('closed', currentLocale.languageCode),
-                ].map((s) {
-                  return DropdownMenuItem<String>(value: s, child: Text(s));
-                }).toList(),
+                items:
+                    [
+                      AppLocalizations.translate(
+                        'allStatuses',
+                        currentLocale.languageCode,
+                      ),
+                      AppLocalizations.translate(
+                        'underReview',
+                        currentLocale.languageCode,
+                      ),
+                      AppLocalizations.translate(
+                        'preliminaryMatch',
+                        currentLocale.languageCode,
+                      ),
+                      AppLocalizations.translate(
+                        'readyForPickup',
+                        currentLocale.languageCode,
+                      ),
+                      AppLocalizations.translate(
+                        'closed',
+                        currentLocale.languageCode,
+                      ),
+                    ].map((s) {
+                      return DropdownMenuItem<String>(value: s, child: Text(s));
+                    }).toList(),
                 onChanged: (value) {
                   if (value == null) return;
                   setState(() => selectedStatus = value);
@@ -217,8 +246,11 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off,
-                              size: 80, color: Colors.grey),
+                          const Icon(
+                            Icons.search_off,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             isArabic ? 'لا توجد بلاغات' : 'No reports found',
@@ -232,8 +264,10 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                     );
                   }
 
-                  final filteredList =
-                  _filterReports(snapshot.data!.docs, context);
+                  final filteredList = _filterReports(
+                    snapshot.data!.docs,
+                    context,
+                  );
 
                   if (filteredList.isEmpty) {
                     return Center(
@@ -257,8 +291,7 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                     padding: const EdgeInsets.all(16),
                     child: ListView.separated(
                       itemCount: filteredList.length,
-                      separatorBuilder: (_, __) =>
-                      const SizedBox(height: 12),
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final report = filteredList[index];
                         return _ReportCard(
@@ -360,9 +393,7 @@ class _ReportCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  itemCategory == 'found'
-                      ? Icons.check_circle
-                      : Icons.search,
+                  itemCategory == 'found' ? Icons.check_circle : Icons.search,
                   color: mainGreen,
                   size: 30,
                 ),
@@ -393,10 +424,7 @@ class _ReportCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.green[50],
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.green,
-                              width: 1,
-                            ),
+                            border: Border.all(color: Colors.green, width: 1),
                           ),
                           child: Text(
                             currentLocale.languageCode == 'ar'
@@ -422,10 +450,7 @@ class _ReportCard extends StatelessWidget {
                   if (category.isNotEmpty && category != 'null')
                     Text(
                       '${AppLocalizations.translate('category', currentLocale.languageCode)}: $category',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -442,10 +467,7 @@ class _ReportCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       date,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ],
@@ -458,8 +480,7 @@ class _ReportCard extends StatelessWidget {
   }
 
   Color _getStatusColor(String status) {
-    if (status.contains('قيد المراجعة') ||
-        status.contains('Under Review')) {
+    if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
       return Colors.orange;
     } else if (status.contains('مطابقة مبدئية') ||
         status.contains('Preliminary Match')) {
@@ -467,8 +488,7 @@ class _ReportCard extends StatelessWidget {
     } else if (status.contains('جاهز للاستلام') ||
         status.contains('Ready for Pickup')) {
       return Colors.green;
-    } else if (status.contains('مغلق') ||
-        status.contains('Closed')) {
+    } else if (status.contains('مغلق') || status.contains('Closed')) {
       return Colors.grey;
     }
     return Colors.black87;

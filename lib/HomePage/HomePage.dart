@@ -16,21 +16,27 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  
   void _showLanguageDialog(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(AppLocalizations.translate('language', currentLocale.languageCode)),
+          title: Text(
+            AppLocalizations.translate('language', currentLocale.languageCode),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Text('🇸🇦'),
-                title: Text(AppLocalizations.translate('arabic', currentLocale.languageCode)),
+                title: Text(
+                  AppLocalizations.translate(
+                    'arabic',
+                    currentLocale.languageCode,
+                  ),
+                ),
                 onTap: () {
                   MyApp.of(context).setLocale(const Locale('ar'));
                   Navigator.pop(context);
@@ -38,7 +44,12 @@ class _HomePageState extends State<HomePage> {
               ),
               ListTile(
                 leading: const Text('🇺🇸'),
-                title: Text(AppLocalizations.translate('english', currentLocale.languageCode)),
+                title: Text(
+                  AppLocalizations.translate(
+                    'english',
+                    currentLocale.languageCode,
+                  ),
+                ),
                 onTap: () {
                   MyApp.of(context).setLocale(const Locale('en'));
                   Navigator.pop(context);
@@ -55,7 +66,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     const Color mainGreen = Color(0xFF243E36);
     const Color beigeColor = Color(0xFFC3BFB0); // لون الخلفية الجديد
-    
+
     // الحصول على اللغة الحالية
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
@@ -86,7 +97,10 @@ class _HomePageState extends State<HomePage> {
                       Image.asset('assets/logo.png', width: 72, height: 72),
                       const SizedBox(height: 8),
                       Text(
-                        AppLocalizations.translate('appTitle', currentLocale.languageCode),
+                        AppLocalizations.translate(
+                          'appTitle',
+                          currentLocale.languageCode,
+                        ),
                         style: const TextStyle(
                           color: mainGreen,
                           fontSize: 18,
@@ -99,7 +113,12 @@ class _HomePageState extends State<HomePage> {
 
                 ListTile(
                   leading: const Icon(Icons.person, color: mainGreen),
-                  title: Text(AppLocalizations.translate('account', currentLocale.languageCode)),
+                  title: Text(
+                    AppLocalizations.translate(
+                      'account',
+                      currentLocale.languageCode,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -111,19 +130,34 @@ class _HomePageState extends State<HomePage> {
 
                 ListTile(
                   leading: const Icon(Icons.article_outlined, color: mainGreen),
-                  title: Text(AppLocalizations.translate('previousReports', currentLocale.languageCode)),
+                  title: Text(
+                    AppLocalizations.translate(
+                      'previousReports',
+                      currentLocale.languageCode,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const PreviousReportsPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const PreviousReportsPage(),
+                      ),
                     );
                   },
                 ),
 
                 ListTile(
-                  leading: const Icon(Icons.chat_bubble_outline, color: mainGreen),
-                  title: Text(AppLocalizations.translate('contactUs', currentLocale.languageCode)),
+                  leading: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: mainGreen,
+                  ),
+                  title: Text(
+                    AppLocalizations.translate(
+                      'contactUs',
+                      currentLocale.languageCode,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                   },
@@ -132,9 +166,16 @@ class _HomePageState extends State<HomePage> {
                 // خيار تغيير اللغة
                 ListTile(
                   leading: const Icon(Icons.language, color: mainGreen),
-                  title: Text(AppLocalizations.translate('language', currentLocale.languageCode)),
+                  title: Text(
+                    AppLocalizations.translate(
+                      'language',
+                      currentLocale.languageCode,
+                    ),
+                  ),
                   trailing: Icon(
-                    isArabic ? Icons.keyboard_arrow_left : Icons.keyboard_arrow_right,
+                    isArabic
+                        ? Icons.keyboard_arrow_left
+                        : Icons.keyboard_arrow_right,
                     color: mainGreen,
                   ),
                   onTap: () {
@@ -147,7 +188,12 @@ class _HomePageState extends State<HomePage> {
 
                 ListTile(
                   leading: const Icon(Icons.logout, color: mainGreen),
-                  title: Text(AppLocalizations.translate('logout', currentLocale.languageCode)),
+                  title: Text(
+                    AppLocalizations.translate(
+                      'logout',
+                      currentLocale.languageCode,
+                    ),
+                  ),
                   onTap: () {
                     AuthService().signOut();
                     Navigator.pop(context);
@@ -174,7 +220,10 @@ class _HomePageState extends State<HomePage> {
               Image.asset('assets/logo.png', width: 150, height: 150),
               const SizedBox(height: 20),
               Text(
-                AppLocalizations.translate('tagline', currentLocale.languageCode),
+                AppLocalizations.translate(
+                  'tagline',
+                  currentLocale.languageCode,
+                ),
                 style: const TextStyle(fontSize: 20, color: mainGreen),
                 textAlign: TextAlign.center,
               ),
@@ -199,7 +248,10 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                   child: Text(
-                    AppLocalizations.translate('reportLost', currentLocale.languageCode),
+                    AppLocalizations.translate(
+                      'reportLost',
+                      currentLocale.languageCode,
+                    ),
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
@@ -222,11 +274,16 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const TrackReportScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const TrackReportScreen(),
+                      ),
                     );
                   },
                   child: Text(
-                    AppLocalizations.translate('trackReports', currentLocale.languageCode),
+                    AppLocalizations.translate(
+                      'trackReports',
+                      currentLocale.languageCode,
+                    ),
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),

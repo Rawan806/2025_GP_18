@@ -16,8 +16,6 @@ class AISuggester {
   static const int _inputHeight = 224;
   static const bool _expectsFloat = true;
 
-
-
   Future<void> _ensureLoaded() async {
     if (_interpreter != null && _labels.isNotEmpty) return;
 
@@ -47,8 +45,6 @@ class AISuggester {
     'analog clock': 'watch / ساعة',
     'watch': 'watch / ساعة',
   };
-
-
 
   /// ترجع:
   /// [
@@ -106,7 +102,7 @@ class AISuggester {
           'label': (i < _labels.length) ? _labels[i] : 'class_$i',
           'score': probs[i],
           'index': i,
-        }
+        },
     ];
 
     // فلترة + mapping إلى "أنواع مفقودات" مفهومة
@@ -129,9 +125,7 @@ class AISuggester {
   }
 
   /// نحول ImageNet labels إلى أنواع مفقودات (محفظة، جوال، وغيره).
-  List<Map<String, dynamic>> _mapToLostTypes(
-      List<Map<String, dynamic>> raw,
-      ) {
+  List<Map<String, dynamic>> _mapToLostTypes(List<Map<String, dynamic>> raw) {
     final result = <Map<String, dynamic>>[];
     final used = <String>{};
 
@@ -152,17 +146,12 @@ class AISuggester {
 
       if (mapped != null && !used.contains(mapped)) {
         used.add(mapped!);
-        result.add({
-          'label': mapped,
-          'score': score,
-          'index': m['index'],
-        });
+        result.add({'label': mapped, 'score': score, 'index': m['index']});
       }
     }
 
     return result;
   }
-
 
   String? _estimateColorName(Uint8List bytes) {
     final image = img.decodeImage(bytes);
@@ -171,9 +160,9 @@ class AISuggester {
     // i took the center pixeles
     // after multiple attempts I found out these numbers are the best so far
     final int startX = (image.width * 0.30).round();
-    final int endX   = (image.width * 0.70).round();
+    final int endX = (image.width * 0.70).round();
     final int startY = (image.height * 0.20).round();
-    final int endY   = (image.height * 0.80).round();
+    final int endY = (image.height * 0.80).round();
 
     double sumR = 0, sumG = 0, sumB = 0;
     double sumW = 0;
@@ -239,14 +228,12 @@ class AISuggester {
     return 'brown / بني';
   }
 
-
-
   List _preprocess(
-      Uint8List bytes, {
-        required int width,
-        required int height,
-        required bool asFloat,
-      }) {
+    Uint8List bytes, {
+    required int width,
+    required int height,
+    required bool asFloat,
+  }) {
     final original = img.decodeImage(bytes);
     if (original == null) throw Exception('Could not decode image');
     final resized = img.copyResize(original, width: width, height: height);
@@ -254,12 +241,9 @@ class AISuggester {
     if (asFloat) {
       final input = List.generate(
         1,
-            (_) => List.generate(
+        (_) => List.generate(
           height,
-              (_) => List.generate(
-            width,
-                (_) => List.filled(3, 0.0),
-          ),
+          (_) => List.generate(width, (_) => List.filled(3, 0.0)),
         ),
       );
 
@@ -275,12 +259,9 @@ class AISuggester {
     } else {
       final input = List.generate(
         1,
-            (_) => List.generate(
+        (_) => List.generate(
           height,
-              (_) => List.generate(
-            width,
-                (_) => List.filled(3, 0),
-          ),
+          (_) => List.generate(width, (_) => List.filled(3, 0)),
         ),
       );
 
