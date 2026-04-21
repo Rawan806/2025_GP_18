@@ -17,7 +17,7 @@ class _SearchPageState extends State<SearchPage> {
   Map<String, dynamic>? _searchResponse;
   int? _selectedIndex;
 
-  final String baseUrl = 'http://10.0.2.2:8000';
+  final String baseUrl = 'http://192.168.1.107:8000';
 
   Future<void> searchByDocId() async {
     final docId = _docIdController.text.trim();

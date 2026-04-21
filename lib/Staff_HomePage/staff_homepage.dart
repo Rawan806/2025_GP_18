@@ -434,6 +434,15 @@ class _ReportListTile extends StatelessWidget {
     } else if (status.contains('قيد المراجعة') ||
         status.contains('Under Review')) {
       return AppLocalizations.translate('underReview', languageCode);
+    } else if (status.contains('قيد المراجعة') ||
+        status.contains('Under Review')) {
+      return AppLocalizations.translate('underReview', languageCode);
+    } else if (status.contains('محفوظ') || status.contains('Stored')) {
+      return AppLocalizations.translate('stored', languageCode);
+    } else if (status.contains('أرسل الى المستخدم') || status.contains('Sent to User')) {
+      return AppLocalizations.translate('sent_to_user', languageCode);
+    } else if (status.contains('ملغي') || status.contains('Cancelled')) {
+      return AppLocalizations.translate('cancelled', languageCode);
     }
     return status;
   }

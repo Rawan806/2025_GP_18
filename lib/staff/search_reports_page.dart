@@ -26,6 +26,10 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
   String _getEnglishStatus(String status) {
     if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
       return 'Under Review';
+    }if (status.contains('محفوظ') || status.contains('Stored')) {
+      return 'Stored';
+    }if (status.contains('أرسل الى المستخدم') || status.contains('Sent to User')) {
+      return 'Sent to User';
     } else if (status.contains('مطابقة مبدئية') ||
         status.contains('Preliminary Match')) {
       return 'Preliminary Match';
@@ -192,6 +196,14 @@ class _SearchReportsPageState extends State<SearchReportsPage> {
                     [
                       AppLocalizations.translate(
                         'allStatuses',
+                        currentLocale.languageCode,
+                      ),
+                      AppLocalizations.translate(
+                        'stored',
+                        currentLocale.languageCode,
+                      ),
+                      AppLocalizations.translate(
+                        'sent_to_user',
                         currentLocale.languageCode,
                       ),
                       AppLocalizations.translate(

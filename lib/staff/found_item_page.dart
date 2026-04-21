@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../AI_services/ai_suggester.dart';
 import '../AI_services/found_item_service.dart';
 import '../l10n/app_localizations_helper.dart';
+import 'search_match_items_page.dart';
 
 class FoundItemPage extends StatefulWidget {
   const FoundItemPage({super.key});
@@ -175,7 +176,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
             'reportLocation': _foundLocCtrl.text.trim(),
             'imagePath': imageUrl,
             'status': AppLocalizations.translate(
-              'underReview',
+              'stored',
               locale.languageCode,
             ),
             'date': _format(_foundAt, locale.languageCode),
@@ -202,7 +203,22 @@ class _FoundItemPageState extends State<FoundItemPage> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SearchMatchItemsPage(
+            initialCreatedDoc: {
+              'firebaseDocId': doc.id,
+              'id': doc.id,
+              'doc_num': '',
+              'collection': 'foundItems',
+              '_key': 'found:${doc.id}',
+            },
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -519,6 +535,32 @@ class _FoundItemPageState extends State<FoundItemPage> {
                       style: const TextStyle(fontSize: 18),
                     ),
                   ),
+                  // const SizedBox(height: 8),
+                  // OutlinedButton(
+                  //   style: OutlinedButton.styleFrom(
+                  //     side: BorderSide(color: mainGreen),
+                  //     padding: const EdgeInsets.symmetric(vertical: 14),
+                  //   ),
+                  //   onPressed: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (_) => SearchMatchItemsPage(
+                  //           initialCreatedDoc: {
+                  //             'firebaseDocId': 'mYUF6uHsvdmy3ZCQFclO',
+                  //             'id': 'mYUF6uHsvdmy3ZCQFclO',
+                  //             '_key': 'found:mYUF6uHsvdmy3ZCQFclO',
+                  //             'collection': 'found',
+                  //           },
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  //   child: Text(
+                  //     'تجريب',
+                  //     style: TextStyle(color: mainGreen),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
