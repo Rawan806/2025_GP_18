@@ -16,7 +16,12 @@ class SearchMatchItemsPage extends StatefulWidget {
 
 class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
   final Color mainGreen = const Color(0xFF243E36);
-  final String baseUrl = 'http://192.168.1.107:8000';
+  final String baseUrl = 'http://192.168.1.119:8000';
+
+  String _tr(String key) {
+    final locale = Localizations.localeOf(context);
+    return AppLocalizations.translate(key, locale.languageCode);
+  }
 
   @override
   void initState() {
@@ -45,8 +50,8 @@ class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
     if (docId.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('لم يتم العثور على معرف المستند للبحث.'),
+        SnackBar(
+          content: Text(_tr('noDocIdFoundForSearch')),
           backgroundColor: Colors.red,
         ),
       );
@@ -79,18 +84,18 @@ class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
       appBar: AppBar(
         backgroundColor: mainGreen,
         centerTitle: true,
-        title: const Text(
-          'Matching',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          _tr('matching'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
         child: widget.initialCreatedDoc == null
-            ? const Padding(
+            ? Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'لم يتم تمرير عنصر للبحث عن المطابقات.',
+                  _tr('noItemPassedForMatching'),
                   textAlign: TextAlign.center,
                 ),
               )
@@ -99,7 +104,7 @@ class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
                 children: [
                   CircularProgressIndicator(color: mainGreen),
                   const SizedBox(height: 12),
-                  const Text('تم ارسال الطلب الى السيرفر للبحث عن العناصر المتشابهة...'),
+                  Text(_tr('searchingSimilarItemsMessage')),
                 ],
               ),
       ),
@@ -129,6 +134,11 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
   bool _isLoading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _results = [];
+
+  String _tr(String key) {
+    final locale = Localizations.localeOf(context);
+    return AppLocalizations.translate(key, locale.languageCode);
+  }
 
   @override
   void initState() {
@@ -193,18 +203,32 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
 
   Widget _detailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Colors.black87, fontSize: 14),
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 86,
+            child: Text(
+              '${_tr(label)}:',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            TextSpan(text: value.isEmpty ? '-' : value),
-          ],
-        ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ]
       ),
     );
   }
@@ -216,135 +240,191 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
         final image = (result['imageUrl'] ?? '').toString();
         final matchedDocId = (result['docId'] ?? '').toString();
 
-        return AlertDialog(
-          title: const Text('Match Details'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (image.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      image,
-                      height: 150,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 150,
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.broken_image),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 10),
-                _detailRow('ID', matchedDocId),
-                _detailRow(
-                  'Similarity',
-                  '${(((result['similarity'] ?? 0) as num).toDouble() * 100).toStringAsFixed(2)}%',
-                ),
-                _detailRow('Type', (result['collection'] ?? '').toString()),
-                _detailRow('Category', (result['category'] ?? '').toString()),
-                _detailRow('Date', (result['date'] ?? '').toString()),
-                _detailRow('Status', (result['status'] ?? '').toString()),
-                _detailRow('Color', (result['color'] ?? '').toString()),
-                _detailRow('Location', (result['location'] ?? '').toString()),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  final docRef = FirebaseFirestore.instance
-                      .collection('foundItems')
-                      .doc(widget.selectedDocId);
-                  // final snap = await docRef.get();
-                  // final currentStatus =
-                  //     (snap.data()?['status'] ?? '').toString().toLowerCase();
-
-                  // if (currentStatus.contains('under review') ||
-                  //     currentStatus.contains('قيد المراجعة')||
-                  //     currentStatus.contains('send_to_user')
-                  //     ) {
-                  // }
-                    await docRef.update({'status': 'stored'});
-                } catch (_) {}
-
-                if (!mounted) return;
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text('No Suitable Match'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: widget.mainGreen),
-              onPressed: () async {
-                Navigator.pop(context);
-
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: const Text('Confirm & Send'),
-                    content: const Text('هل تريد تأكيد هذه المطابقة وإرسالها؟'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('لا'),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: widget.mainGreen,
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 620),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _tr('matchDetails'),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Confirm & Send'),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                        splashRadius: 20,
                       ),
                     ],
                   ),
-                );
-
-                if (confirmed != true) return;
-
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('linkedLostReportId')
-                      .add({
-                    'found_doc_id': widget.selectedDocId,
-                    'matched_doc_id': matchedDocId,
-                    'createdAt': Timestamp.now(),
-                  });
-
-                  final locale = Localizations.localeOf(context);
-                  await FirebaseFirestore.instance
-                      .collection('foundItems')
-                      .doc(widget.selectedDocId)
-                      .update({'status': AppLocalizations.translate('sent_to_user', locale.languageCode)});
-
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Match confirmed and saved'),
-                      backgroundColor: Colors.green,
+                  const SizedBox(height: 8),
+                  if (image.isNotEmpty)
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.network(
+                          image,
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 150,
+                            height: 150,
+                            color: Colors.grey.shade300,
+                            child: const Icon(Icons.broken_image),
+                          ),
+                        ),
+                      ),
                     ),
-                  );
-
-                  Navigator.pop(context);
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error saving match: $e'),
-                      backgroundColor: Colors.red,
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F7F8),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _detailRow('idLabel', matchedDocId),
+                            _detailRow(
+                              'similarity',
+                              '${(((result['similarity'] ?? 0) as num).toDouble() * 100).toStringAsFixed(2)}%',
+                            ),
+                            _detailRow('type', (result['collection'] ?? '').toString()),
+                            _detailRow('matchCategory', (result['category'] ?? '').toString()),
+                            _detailRow('date', (result['date'] ?? '').toString()),
+                            _detailRow('status', (result['status'] ?? '').toString()),
+                            _detailRow('color', (result['color'] ?? '').toString()),
+                            _detailRow('location', (result['location'] ?? '').toString()),
+                          ],
+                        ),
+                      ),
                     ),
-                  );
-                }
-              },
-              child: const Text('Select This Match'),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        try {
+                          final docRef = FirebaseFirestore.instance
+                              .collection('foundItems')
+                              .doc(widget.selectedDocId);
+                          await docRef.update({'status': 'stored'});
+                        } catch (_) {}
+
+                        if (!mounted) return;
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF5B4ABF),
+                        side: const BorderSide(color: Color(0xFF5B4ABF)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(_tr('noSuitableMatch')),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.mainGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(context);
+
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: Text(_tr('confirmAndSend')),
+                            content: Text(_tr('confirmMatchAndSendQuestion')),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(_tr('no')),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: widget.mainGreen,
+                                ),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(_tr('confirmAndSend')),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed != true) return;
+
+                        try {
+                          await FirebaseFirestore.instance
+                              .collection('linkedLostReportId')
+                              .add({
+                            'found_doc_id': widget.selectedDocId,
+                            'matched_doc_id': matchedDocId,
+                            'createdAt': Timestamp.now(),
+                          });
+
+                          final locale = Localizations.localeOf(context);
+                          await FirebaseFirestore.instance
+                              .collection('foundItems')
+                              .doc(widget.selectedDocId)
+                              .update({
+                            'status': AppLocalizations.translate('sent_to_user', locale.languageCode),
+                          });
+
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(_tr('matchConfirmedAndSaved')),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
+                          Navigator.pop(context);
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${_tr('errorSavingMatch')}: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(_tr('selectThisMatch')),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -404,10 +484,10 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                       color: widget.mainGreen,
                     ),
                   ),
-                  Text('Type: ${(item['collection'] ?? '').toString()}'),
-                  Text('Date: ${(item['date'] ?? '-').toString()}'),
+                  Text('${_tr('type')}: ${(item['collection'] ?? '').toString()}'),
+                  Text('${_tr('date')}: ${(item['date'] ?? '-').toString()}'),
                   Text(
-                    'Similarity: ${(similarity * 100).toStringAsFixed(1)}%',
+                    '${_tr('similarity')}: ${(similarity * 100).toStringAsFixed(1)}%',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -420,8 +500,8 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                   color: Colors.green,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Best',
+                child: Text(
+                  _tr('bestMatch'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -441,9 +521,9 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
       backgroundColor: const Color(0xFFC3BFB0),
       appBar: AppBar(
         backgroundColor: widget.mainGreen,
-        title: const Text(
-          'Matching Results',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          _tr('matchingResults'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -462,7 +542,7 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                   ),
                 )
               : _results.isEmpty
-                  ? const Center(child: Text('No matching results returned'))
+                  ? Center(child: Text(_tr('noMatchingResultsReturned')))
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: _results.length,
