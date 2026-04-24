@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -30,22 +31,49 @@ class _LostFormState extends State<LostForm> {
   final TextEditingController itemNameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController otherCategoryController = TextEditingController();
-  final TextEditingController brandController = TextEditingController();
+
   final TextEditingController specialMarksController = TextEditingController();
+
+  final TextEditingController otherElectronicsBrandController =
+  TextEditingController();
+  final TextEditingController bagBrandController = TextEditingController();
+  final TextEditingController watchBrandController = TextEditingController();
+  final TextEditingController glassesBrandController = TextEditingController();
 
   DateTime? selectedDate;
   String? _selectedCategory;
   String? _selectedColor;
+
+  String? _selectedJewelrySubtype;
+
+  String? _selectedElectronicsBrand;
+  String? _screenBroken;
+  String? _coverColor;
+
+  String? _hasCards;
+  String? _bagSize;
+
+  String? _documentType;
+  String? _hasCover;
+  String? _coverDocumentColor;
+
+  String? _jewelryMaterial;
+  String? _hasStone;
+
+  String? _watchType;
+  String? _watchBandType;
+  String? _watchScreenBroken;
+  String? _watchShape;
+  String? _watchFaceColor;
+
+  String? _glassesType;
+  String? _glassesFrameColor;
 
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
 
   bool _isUploading = false;
 
-  // عدليه حسب بيئتك:
-  // Android emulator => 10.0.2.2
-  // iOS simulator / local desktop => 127.0.0.1
-  // real device => حطي IP جهازك
   static const String baseUrl = 'http://10.0.2.2:8000';
 
   List<String> _getCategories(String languageCode) {
@@ -73,6 +101,82 @@ class _LostFormState extends State<LostForm> {
     ];
   }
 
+  List<String> _coverColors() => ['لا يوجد', ..._getColors()];
+
+  bool _isElectronics(String languageCode) =>
+      _selectedCategory == AppLocalizations.translate('electronics', languageCode);
+
+  bool _isBags(String languageCode) =>
+      _selectedCategory == AppLocalizations.translate('bags', languageCode);
+
+  bool _isDocuments(String languageCode) =>
+      _selectedCategory == AppLocalizations.translate('documentsCards', languageCode);
+
+  bool _isJewelry(String languageCode) =>
+      _selectedCategory == AppLocalizations.translate('jewelry', languageCode);
+
+  List<String> _yesNoOptions() => ['نعم', 'لا'];
+  List<String> _bagSizes() => ['صغيرة', 'متوسطة', 'كبيرة'];
+  List<String> _documentTypes() => ['بطاقة', 'جواز سفر', 'رخصة', 'مستند'];
+  List<String> _jewelrySubtypes() => ['خاتم', 'سوار', 'سلسلة', 'ساعة', 'نظارة'];
+  List<String> _jewelryMaterials() => ['ذهب', 'فضة', 'غير ذلك'];
+  List<String> _watchTypes() => ['ذكية', 'عادية'];
+  List<String> _watchBandTypes() => ['معدني', 'جلد', 'سيليكون'];
+  List<String> _watchShapes() => ['دائرية', 'مربعة'];
+  List<String> _glassesTypes() => ['شمسية', 'طبية'];
+
+  List<String> _electronicsBrands() => [
+    'Apple',
+    'Samsung',
+    'Huawei',
+    'Xiaomi',
+    'Oppo',
+    'Realme',
+    'Nokia',
+    'HP',
+    'Dell',
+    'Lenovo',
+    'Asus',
+    'Acer',
+    'Sony',
+    'JBL',
+    'أخرى',
+  ];
+
+  bool get _isWatchSubtype => _selectedJewelrySubtype == 'ساعة';
+  bool get _isGlassesSubtype => _selectedJewelrySubtype == 'نظارة';
+  bool get _isRegularJewelrySubtype =>
+      _selectedJewelrySubtype == 'خاتم' ||
+          _selectedJewelrySubtype == 'سوار' ||
+          _selectedJewelrySubtype == 'سلسلة';
+
+  void _resetDynamicFields() {
+    _selectedJewelrySubtype = null;
+    _selectedElectronicsBrand = null;
+
+    otherElectronicsBrandController.clear();
+    bagBrandController.clear();
+    watchBrandController.clear();
+    glassesBrandController.clear();
+
+    _screenBroken = null;
+    _coverColor = null;
+    _hasCards = null;
+    _bagSize = null;
+    _documentType = null;
+    _hasCover = null;
+    _coverDocumentColor = null;
+    _jewelryMaterial = null;
+    _hasStone = null;
+    _watchType = null;
+    _watchBandType = null;
+    _watchScreenBroken = null;
+    _watchShape = null;
+    _watchFaceColor = null;
+    _glassesType = null;
+    _glassesFrameColor = null;
+  }
+
   InputDecoration _inputDeco(String label, {IconData? icon}) {
     return InputDecoration(
       labelText: label,
@@ -83,9 +187,7 @@ class _LostFormState extends State<LostForm> {
       focusedBorder: OutlineInputBorder(
         borderSide: BorderSide(color: borderBrown, width: 2),
       ),
-      border: OutlineInputBorder(
-        borderSide: BorderSide(color: borderBrown),
-      ),
+      border: OutlineInputBorder(borderSide: BorderSide(color: borderBrown)),
     );
   }
 
@@ -102,6 +204,11 @@ class _LostFormState extends State<LostForm> {
     }
   }
 
+  String _generatePinCode() {
+    final random = Random();
+    return (100000 + random.nextInt(900000)).toString();
+  }
+
   Future<void> _pickDateTime() async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -111,44 +218,44 @@ class _LostFormState extends State<LostForm> {
       locale: const Locale('ar'),
     );
 
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
+    if (pickedDate == null) return;
 
-      if (pickedTime != null) {
-        final now = DateTime.now();
-        final chosen = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          pickedTime.hour,
-          pickedTime.minute,
-        );
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
 
-        if (chosen.isAfter(now)) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.translate(
-                  'pleaseSelectValidPastDateTime',
-                  Localizations.localeOf(context).languageCode,
-                ),
-              ),
+    if (pickedTime == null) return;
+
+    final now = DateTime.now();
+    final chosen = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    if (chosen.isAfter(now)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate(
+              'pleaseSelectValidPastDateTime',
+              Localizations.localeOf(context).languageCode,
             ),
-          );
-          return;
-        }
-
-        setState(() {
-          selectedDate = chosen;
-          dateController.text =
-              intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
-        });
-      }
+          ),
+        ),
+      );
+      return;
     }
+
+    setState(() {
+      selectedDate = chosen;
+      dateController.text =
+          intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
+    });
   }
 
   Future<void> _pickImage() async {
@@ -166,13 +273,9 @@ class _LostFormState extends State<LostForm> {
 
   Future<String?> _uploadImageToFirebase(File image) async {
     try {
-      final String fileName =
-          'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      final Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
-      final UploadTask uploadTask = storageRef.putFile(image);
-      final TaskSnapshot snapshot = await uploadTask;
-
+      final fileName = 'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = FirebaseStorage.instance.ref().child(fileName);
+      final snapshot = await storageRef.putFile(image);
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading image: $e');
@@ -196,6 +299,67 @@ class _LostFormState extends State<LostForm> {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Indexing failed: ${response.body}');
     }
+  }
+
+  Future<Map<String, dynamic>> _searchMatches({
+    required String docId,
+    required String collection,
+    int topK = 5,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/search'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'docId': docId,
+        'collection': collection,
+        'top_k': topK,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Search failed: ${response.body}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Invalid search response');
+    }
+
+    return decoded;
+  }
+
+  bool _hasGoodMatch(List<Map<String, dynamic>> matches) {
+    if (matches.isEmpty) return false;
+    final label = (matches.first['match_label'] ?? '').toString();
+    return label == 'strong_match' || label == 'potential_match';
+  }
+
+  String _resolvedBrand(String languageCode) {
+    if (_isElectronics(languageCode)) {
+      if (_selectedElectronicsBrand == 'أخرى') {
+        return otherElectronicsBrandController.text.trim().toLowerCase();
+      }
+      return (_selectedElectronicsBrand ?? '').trim().toLowerCase();
+    }
+
+    if (_isBags(languageCode)) {
+      return bagBrandController.text.trim().toLowerCase();
+    }
+
+    if (_isJewelry(languageCode) && _isWatchSubtype) {
+      return watchBrandController.text.trim().toLowerCase();
+    }
+
+    if (_isJewelry(languageCode) && _isGlassesSubtype) {
+      return glassesBrandController.text.trim().toLowerCase();
+    }
+
+    return '';
+  }
+
+  String _resolvedSubtype(String languageCode) {
+    if (_isJewelry(languageCode)) return _selectedJewelrySubtype ?? '';
+    return '';
   }
 
   Future<void> _submitForm() async {
@@ -263,41 +427,112 @@ class _LostFormState extends State<LostForm> {
         }
       }
 
-      final String finalCategory =
+      final finalCategory =
       _selectedCategory ==
-          AppLocalizations.translate(
-            'other',
-            currentLocale.languageCode,
-          )
+          AppLocalizations.translate('other', currentLocale.languageCode)
           ? otherCategoryController.text.trim()
           : _selectedCategory!;
 
       final now = DateTime.now();
+      final pinCode = _generatePinCode();
+      final brand = _resolvedBrand(currentLocale.languageCode);
+      final subtype = _resolvedSubtype(currentLocale.languageCode);
+      final specialMarks = specialMarksController.text.trim();
 
-      final docRef = await FirebaseFirestore.instance.collection('lostItems').add({
+      final docRef =
+      await FirebaseFirestore.instance.collection('lostItems').add({
         'title': itemNameController.text.trim(),
         'type': finalCategory,
         'category': finalCategory,
+        'subtype': subtype,
         'color': _selectedColor ?? '',
-        'brand': brandController.text.trim(),
-        'specialMarks': specialMarksController.text.trim(),
+
+        'brand': brand,
+        'specialMarks': specialMarks,
+
         'description': descriptionController.text.trim().isEmpty
             ? 'No description provided'
             : descriptionController.text.trim(),
+
         'reportLocation': 'User Report',
-        'foundLocation': '',
+        'foundLocation': 'User Report',
+
+        'imagePath': imageUrl ?? '',
         'imageUrl': imageUrl ?? '',
+
         'status': 'submitted',
         'date': _formatDateTime(selectedDate!),
         'lostDate': Timestamp.fromDate(selectedDate!),
         'createdAt': Timestamp.fromDate(now),
         'updatedAt': Timestamp.fromDate(now),
+
         'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
         'itemCategory': 'lost',
         'userId': FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+        'pinCode': pinCode,
+
+        'screenBroken': _screenBroken ?? '',
+        'coverColor': _coverColor ?? '',
+        'hasCards': _hasCards ?? '',
+        'bagSize': _bagSize ?? '',
+        'documentType': _documentType ?? '',
+        'hasCover': _hasCover ?? '',
+        'coverDocumentColor': _coverDocumentColor ?? '',
+        'jewelryMaterial': _jewelryMaterial ?? '',
+        'hasStone': _hasStone ?? '',
+        'watchType': _watchType ?? '',
+        'watchBandType': _watchBandType ?? '',
+        'watchScreenBroken': _watchScreenBroken ?? '',
+        'watchShape': _watchShape ?? '',
+        'watchFaceColor': _watchFaceColor ?? '',
+        'glassesType': _glassesType ?? '',
+        'glassesFrameColor': _glassesFrameColor ?? '',
+
+        'dynamicAttributes': {
+          'brand': brand,
+          'subtype': subtype,
+          'specialMarks': specialMarks,
+          'screenBroken': _screenBroken ?? '',
+          'coverColor': _coverColor ?? '',
+          'hasCards': _hasCards ?? '',
+          'bagSize': _bagSize ?? '',
+          'documentType': _documentType ?? '',
+          'hasCover': _hasCover ?? '',
+          'coverDocumentColor': _coverDocumentColor ?? '',
+          'jewelryMaterial': _jewelryMaterial ?? '',
+          'hasStone': _hasStone ?? '',
+          'watchType': _watchType ?? '',
+          'watchBandType': _watchBandType ?? '',
+          'watchScreenBroken': _watchScreenBroken ?? '',
+          'watchShape': _watchShape ?? '',
+          'watchFaceColor': _watchFaceColor ?? '',
+          'glassesType': _glassesType ?? '',
+          'glassesFrameColor': _glassesFrameColor ?? '',
+        },
+
         'matchedFoundItemId': null,
+        'matchedFoundImagePath': '',
+        'matchedFoundTitle': '',
+        'matchedFoundType': '',
+        'matchedFoundColor': '',
+        'matchedFoundLocation': '',
+        'matchedFoundSimilarity': null,
+
         'evidenceImagePath': '',
         'evidenceDescription': '',
+
+        'aiSuggestions': [],
+        'aiColor': '',
+
+        'topMatches': [],
+        'potentialMatchesCount': 0,
+        'candidatePoolSize': 0,
+        'searchedIn': '',
+        'topScore': null,
+        'avgTop5Score': null,
+        'searchTimeMs': null,
+        'searchError': '',
+
         'docId': '',
         'id': '',
         'isIndexed': false,
@@ -324,15 +559,95 @@ class _LostFormState extends State<LostForm> {
         debugPrint('Indexing error: $e');
       }
 
+      try {
+        final searchResponse = await _searchMatches(
+          docId: docRef.id,
+          collection: 'lostItems',
+        );
+
+        final rawResults =
+        (searchResponse['results'] as List<dynamic>? ?? []);
+
+        final List<Map<String, dynamic>> topMatches = rawResults.map((e) {
+          final item = Map<String, dynamic>.from(e as Map);
+          return {
+            'docId': item['docId'] ?? '',
+            'collection': item['collection'] ?? '',
+            'imageUrl': item['imageUrl'] ?? '',
+            'similarity': item['similarity'] ?? 0.0,
+            'match_label': item['match_label'] ?? '',
+            'type': item['type'] ?? '',
+            'color': item['color'] ?? '',
+            'location': item['location'] ?? '',
+            'status': item['status'] ?? '',
+          };
+        }).toList();
+
+        final hasGoodMatch = _hasGoodMatch(topMatches);
+        final Map<String, dynamic>? bestMatch =
+        topMatches.isNotEmpty ? topMatches.first : null;
+
+        await docRef.update({
+          'topMatches': topMatches,
+          'potentialMatchesCount':
+          searchResponse['potential_matches_count'] ?? 0,
+          'candidatePoolSize': searchResponse['candidate_pool_size'] ?? 0,
+          'searchedIn': searchResponse['searched_in'] ?? 'foundItems',
+          'topScore': searchResponse['top_score'],
+          'avgTop5Score': searchResponse['avg_top5_score'],
+          'searchTimeMs': searchResponse['search_time_ms'],
+          'searchError': '',
+
+          'matchedFoundItemId':
+          hasGoodMatch && bestMatch != null ? bestMatch['docId'] : null,
+          'matchedFoundImagePath':
+          hasGoodMatch && bestMatch != null
+              ? (bestMatch['imageUrl'] ?? '')
+              : '',
+          'matchedFoundTitle':
+          hasGoodMatch && bestMatch != null
+              ? (bestMatch['type'] ?? '')
+              : '',
+          'matchedFoundType':
+          hasGoodMatch && bestMatch != null
+              ? (bestMatch['type'] ?? '')
+              : '',
+          'matchedFoundColor':
+          hasGoodMatch && bestMatch != null
+              ? (bestMatch['color'] ?? '')
+              : '',
+          'matchedFoundLocation':
+          hasGoodMatch && bestMatch != null
+              ? (bestMatch['location'] ?? '')
+              : '',
+          'matchedFoundSimilarity':
+          hasGoodMatch && bestMatch != null
+              ? bestMatch['similarity']
+              : null,
+
+          'status': hasGoodMatch ? 'possible_match' : 'submitted',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        await docRef.update({
+          'topMatches': [],
+          'potentialMatchesCount': 0,
+          'candidatePoolSize': 0,
+          'searchedIn': 'foundItems',
+          'topScore': null,
+          'avgTop5Score': null,
+          'searchTimeMs': null,
+          'searchError': e.toString(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.translate(
-              'reportSubmitted',
-              currentLocale.languageCode,
-            ),
+            '${AppLocalizations.translate('reportSubmitted', currentLocale.languageCode)}\nPIN: $pinCode',
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
@@ -351,15 +666,10 @@ class _LostFormState extends State<LostForm> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isUploading = false);
-      }
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -369,8 +679,11 @@ class _LostFormState extends State<LostForm> {
     itemNameController.dispose();
     descriptionController.dispose();
     otherCategoryController.dispose();
-    brandController.dispose();
     specialMarksController.dispose();
+    otherElectronicsBrandController.dispose();
+    bagBrandController.dispose();
+    watchBrandController.dispose();
+    glassesBrandController.dispose();
     super.dispose();
   }
 
@@ -388,10 +701,7 @@ class _LostFormState extends State<LostForm> {
         appBar: AppBar(
           backgroundColor: mainGreen,
           title: Text(
-            AppLocalizations.translate(
-              'reportForm',
-              currentLocale.languageCode,
-            ),
+            AppLocalizations.translate('reportForm', currentLocale.languageCode),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -453,16 +763,15 @@ class _LostFormState extends State<LostForm> {
                     ),
                   ),
                   items: categories
-                      .map(
-                        (c) => DropdownMenuItem<String>(
-                      value: c,
-                      child: Text(c),
-                    ),
-                  )
+                      .map((c) => DropdownMenuItem<String>(
+                    value: c,
+                    child: Text(c),
+                  ))
                       .toList(),
                   onChanged: (val) {
                     setState(() {
                       _selectedCategory = val;
+                      _resetDynamicFields();
                       if (_selectedCategory !=
                           AppLocalizations.translate(
                             'other',
@@ -485,22 +794,379 @@ class _LostFormState extends State<LostForm> {
                   value: _selectedColor,
                   decoration: _inputDeco('لون الغرض'),
                   items: colors
-                      .map(
-                        (color) => DropdownMenuItem<String>(
-                      value: color,
-                      child: Text(color),
-                    ),
-                  )
+                      .map((color) => DropdownMenuItem<String>(
+                    value: color,
+                    child: Text(color),
+                  ))
                       .toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedColor = val;
-                    });
-                  },
+                  onChanged: (val) => setState(() => _selectedColor = val),
                   validator: (v) =>
                   (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
                 ),
                 const SizedBox(height: 15),
+
+                if (_isElectronics(currentLocale.languageCode)) ...[
+                  DropdownButtonFormField<String>(
+                    value: _selectedElectronicsBrand,
+                    decoration: _inputDeco('العلامة التجارية'),
+                    items: _electronicsBrands()
+                        .map((b) => DropdownMenuItem<String>(
+                      value: b,
+                      child: Text(b),
+                    ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedElectronicsBrand = val;
+                        if (val != 'أخرى') {
+                          otherElectronicsBrandController.clear();
+                        }
+                      });
+                    },
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى اختيار العلامة التجارية'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  if (_selectedElectronicsBrand == 'أخرى') ...[
+                    TextFormField(
+                      controller: otherElectronicsBrandController,
+                      decoration: _inputDeco('يرجى إدخال العلامة التجارية'),
+                      validator: (v) {
+                        if (_selectedElectronicsBrand == 'أخرى' &&
+                            (v == null || v.trim().isEmpty)) {
+                          return 'يرجى إدخال العلامة التجارية';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+
+                  DropdownButtonFormField<String>(
+                    value: _screenBroken,
+                    decoration: _inputDeco('هل يوجد كسر في الشاشة؟'),
+                    items: _yesNoOptions()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _screenBroken = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى تحديد حالة الشاشة'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  DropdownButtonFormField<String>(
+                    value: _coverColor,
+                    decoration: _inputDeco('لون الغلاف'),
+                    items: _coverColors()
+                        .map((c) => DropdownMenuItem<String>(
+                      value: c,
+                      child: Text(c),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _coverColor = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى اختيار لون الغلاف'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+                ],
+
+                if (_isBags(currentLocale.languageCode)) ...[
+                  TextFormField(
+                    controller: bagBrandController,
+                    decoration: _inputDeco('العلامة التجارية'),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'يرجى إدخال العلامة التجارية'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  DropdownButtonFormField<String>(
+                    value: _hasCards,
+                    decoration: _inputDeco('هل تحتوي بطاقات؟'),
+                    items: _yesNoOptions()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _hasCards = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى تحديد ما إذا كان الغرض يحتوي بطاقات'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  DropdownButtonFormField<String>(
+                    value: _bagSize,
+                    decoration: _inputDeco('حجم الغرض'),
+                    items: _bagSizes()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _bagSize = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى اختيار حجم الغرض'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+                ],
+
+                if (_isDocuments(currentLocale.languageCode)) ...[
+                  DropdownButtonFormField<String>(
+                    value: _documentType,
+                    decoration: _inputDeco('نوع المستند'),
+                    items: _documentTypes()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _documentType = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى اختيار نوع المستند'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  DropdownButtonFormField<String>(
+                    value: _hasCover,
+                    decoration: _inputDeco('هل يوجد غلاف؟'),
+                    items: _yesNoOptions()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _hasCover = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى تحديد وجود الغلاف'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  DropdownButtonFormField<String>(
+                    value: _coverDocumentColor,
+                    decoration: _inputDeco('لون الغلاف'),
+                    items: _getColors()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => _coverDocumentColor = val),
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى اختيار لون الغلاف'
+                        : null,
+                  ),
+                  const SizedBox(height: 15),
+                ],
+
+                if (_isJewelry(currentLocale.languageCode)) ...[
+                  DropdownButtonFormField<String>(
+                    value: _selectedJewelrySubtype,
+                    decoration: _inputDeco('نوع الغرض'),
+                    items: _jewelrySubtypes()
+                        .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedJewelrySubtype = val;
+                        _jewelryMaterial = null;
+                        _hasStone = null;
+                        _watchType = null;
+                        _watchBandType = null;
+                        _watchScreenBroken = null;
+                        _watchShape = null;
+                        _watchFaceColor = null;
+                        watchBrandController.clear();
+                        _glassesType = null;
+                        _glassesFrameColor = null;
+                        glassesBrandController.clear();
+                      });
+                    },
+                    validator: (v) =>
+                    (v == null || v.isEmpty) ? 'يرجى اختيار نوع الغرض' : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  if (_isRegularJewelrySubtype) ...[
+                    DropdownButtonFormField<String>(
+                      value: _jewelryMaterial,
+                      decoration: _inputDeco('مادة الغرض'),
+                      items: _jewelryMaterials()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _jewelryMaterial = val),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار مادة الغرض'
+                          : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _hasStone,
+                      decoration: _inputDeco('هل تحتوي فص؟'),
+                      items: _yesNoOptions()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) => setState(() => _hasStone = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى تحديد وجود فص' : null,
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+
+                  if (_isWatchSubtype) ...[
+                    TextFormField(
+                      controller: watchBrandController,
+                      decoration: _inputDeco('العلامة التجارية'),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'يرجى إدخال العلامة التجارية'
+                          : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _watchType,
+                      decoration: _inputDeco('نوع الساعة'),
+                      items: _watchTypes()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) => setState(() => _watchType = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار نوع الساعة' : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _watchBandType,
+                      decoration: _inputDeco('نوع السوار'),
+                      items: _watchBandTypes()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _watchBandType = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار نوع السوار' : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _watchScreenBroken,
+                      decoration: _inputDeco('هل الشاشة مكسورة؟'),
+                      items: _yesNoOptions()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _watchScreenBroken = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى تحديد حالة الشاشة' : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _watchShape,
+                      decoration: _inputDeco('شكل الساعة'),
+                      items: _watchShapes()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) => setState(() => _watchShape = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار شكل الساعة' : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _watchFaceColor,
+                      decoration: _inputDeco('لون المينا'),
+                      items: _getColors()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _watchFaceColor = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار لون المينا' : null,
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+
+                  if (_isGlassesSubtype) ...[
+                    TextFormField(
+                      controller: glassesBrandController,
+                      decoration: _inputDeco('العلامة التجارية'),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'يرجى إدخال العلامة التجارية'
+                          : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _glassesType,
+                      decoration: _inputDeco('نوع النظارة'),
+                      items: _glassesTypes()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) => setState(() => _glassesType = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار نوع النظارة' : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    DropdownButtonFormField<String>(
+                      value: _glassesFrameColor,
+                      decoration: _inputDeco('لون الإطار'),
+                      items: _getColors()
+                          .map((v) => DropdownMenuItem<String>(
+                        value: v,
+                        child: Text(v),
+                      ))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _glassesFrameColor = val),
+                      validator: (v) =>
+                      (v == null || v.isEmpty) ? 'يرجى اختيار لون الإطار' : null,
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+                ],
 
                 if (_selectedCategory ==
                     AppLocalizations.translate(
@@ -515,8 +1181,7 @@ class _LostFormState extends State<LostForm> {
                         currentLocale.languageCode,
                       ),
                     ),
-                    validator: (v) =>
-                    (_selectedCategory ==
+                    validator: (v) => (_selectedCategory ==
                         AppLocalizations.translate(
                           'other',
                           currentLocale.languageCode,
@@ -530,12 +1195,6 @@ class _LostFormState extends State<LostForm> {
                   ),
                   const SizedBox(height: 15),
                 ],
-
-                TextFormField(
-                  controller: brandController,
-                  decoration: _inputDeco('العلامة التجارية (اختياري)'),
-                ),
-                const SizedBox(height: 15),
 
                 TextFormField(
                   controller: specialMarksController,
@@ -584,7 +1243,10 @@ class _LostFormState extends State<LostForm> {
                 const SizedBox(height: 10),
 
                 Text(
-                  'الصورة اختيارية، لكن إضافة صورة أو تفاصيل أدق تساعد في تحسين المطابقة.',
+                  AppLocalizations.translate(
+                    'photoNote',
+                    currentLocale.languageCode,
+                  ),
                   style: TextStyle(
                     color: Colors.grey.shade700,
                     fontSize: 12,

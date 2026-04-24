@@ -7,7 +7,7 @@ import '../signin/signin_screen.dart';
 import '../HomePage/HomePage.dart';
 import '../services/auth_service.dart';
 import '../l10n/app_localizations_helper.dart';
-import '../otp_verification_screen.dart';
+// import '../otp_verification_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -24,7 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
-      TextEditingController();
+  TextEditingController();
 
   final AuthService _authService = AuthService();
 
@@ -89,8 +89,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _validateEmail(String? v, String lang) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
-    if (!_isValidEmail(value))
+    if (!_isValidEmail(value)) {
       return AppLocalizations.translate('invalidEmail', lang);
+    }
     return null;
   }
 
@@ -109,8 +110,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _validatePassword(String? v, String lang) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return AppLocalizations.translate('fillAllFields', lang);
-    if (value.length < 8)
+    if (value.length < 8) {
       return AppLocalizations.translate('passwordLength', lang);
+    }
     return null;
   }
 
@@ -133,7 +135,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final ok = _formKey.currentState?.validate() ?? false;
     final phoneError = _validatePhone(lang);
     if (!ok || phoneError != null) {
-      // لو فشل رقم الجوال، نطلع SnackBar سريع (والـUI already يبين errors تحت الحقول)
       if (phoneError != null) {
         ScaffoldMessenger.of(
           context,
@@ -162,17 +163,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
 
       // 2) أرسل SMS وانتقل لصفحة OTP
-      Navigator.push(
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (_) => OtpVerificationScreen(
+      //       phoneE164: phone,
+      //       name: name,
+      //       email: email,
+      //       userType: 'visitor',
+      //       onVerifiedNavigateToHome: true,
+      //     ),
+      //   ),
+      // );
+
+      // الانتقال مباشرة بدون OTP
+      Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            phoneE164: phone,
-            name: name,
-            email: email,
-            userType: 'visitor',
-            onVerifiedNavigateToHome: true,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => const HomePage()),
+            (route) => false,
       );
     } on FirebaseAuthException catch (e) {
       String message;
@@ -372,23 +380,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           child: _isLoading
                               ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                               : Text(
-                                  AppLocalizations.translate(
-                                    'createAccount',
-                                    lang,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                            AppLocalizations.translate(
+                              'createAccount',
+                              lang,
+                            ),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
 

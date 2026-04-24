@@ -49,17 +49,12 @@ docid_to_index: Dict[str, int] = {}
 index_info: Dict[str, Any] = {}
 preprocess_config: Dict[str, Any] = {}
 
-# legacy meta support
 meta_items_list: List[Dict[str, Any]] = []
 meta_items_map: Dict[str, Dict[str, Any]] = {}
 
 STRONG_MATCH_THRESHOLD = 0.85
 POTENTIAL_MATCH_THRESHOLD = 0.75
 
-COLLECTION_MAP = {
-    "lostItems": "lostItems",
-    "foundItems": "foundItems"
-}
 
 # =========================================
 # Helpers
@@ -99,7 +94,8 @@ def get_dynamic_embedding_path(doc_id: str) -> str:
 
 
 def load_artifacts():
-    global embeddings, docid_to_index, index_info, preprocess_config, meta_items_list, meta_items_map
+    global embeddings, docid_to_index, index_info, preprocess_config
+    global meta_items_list, meta_items_map
 
     print("DEBUG: BASE_DIR =", BASE_DIR)
     print("DEBUG: ARTIFACTS_DIR =", ARTIFACTS_DIR)
@@ -122,7 +118,9 @@ def load_artifacts():
         normalized_item = dict(item)
 
         try:
-            normalized_item["collection"] = normalize_collection_name(item.get("collection", ""))
+            normalized_item["collection"] = normalize_collection_name(
+                item.get("collection", "")
+            )
         except Exception:
             continue
 
@@ -172,7 +170,6 @@ def normalize_vector(vec: np.ndarray) -> np.ndarray:
 def get_embedding_by_doc_id(doc_id: str) -> Optional[np.ndarray]:
     normalized_doc_id = normalize_doc_id(doc_id)
 
-    # 1) Dynamic embedding first
     dynamic_path = get_dynamic_embedding_path(normalized_doc_id)
     if os.path.exists(dynamic_path):
         try:
@@ -183,7 +180,6 @@ def get_embedding_by_doc_id(doc_id: str) -> Optional[np.ndarray]:
         except Exception as e:
             print(f"DEBUG: failed loading dynamic embedding for {normalized_doc_id}: {e}")
 
-    # 2) Fallback to static embedding
     if embeddings is None:
         return None
 
@@ -207,7 +203,6 @@ def get_item_from_firestore(collection: str, doc_id: str) -> Optional[Dict[str, 
     normalized_collection = normalize_collection_name(collection)
     normalized_doc_id = normalize_doc_id(doc_id)
 
-    # direct by document id
     doc_ref = db.collection(normalized_collection).document(normalized_doc_id)
     doc = doc_ref.get()
 
@@ -217,8 +212,13 @@ def get_item_from_firestore(collection: str, doc_id: str) -> Optional[Dict[str, 
         data["collection"] = normalized_collection
         return data
 
-    # fallback by field docId
-    docs = db.collection(normalized_collection).where("docId", "==", normalized_doc_id).stream()
+    docs = (
+        db.collection(normalized_collection)
+        .where("docId", "==", normalized_doc_id)
+        .limit(1)
+        .stream()
+    )
+
     for matched_doc in docs:
         data = matched_doc.to_dict() or {}
         data["docId"] = normalize_doc_id(data.get("docId", matched_doc.id))
@@ -241,7 +241,44 @@ def get_item_from_meta(doc_id: str) -> Optional[Dict[str, Any]]:
     return normalized_item
 
 
-def fetch_candidates_from_firestore(target_collection: str, exclude_doc_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def infer_collection_by_doc_id(doc_id: str) -> str:
+    normalized_doc_id = normalize_doc_id(doc_id)
+
+    for collection in ["lostItems", "foundItems"]:
+        doc = db.collection(collection).document(normalized_doc_id).get()
+        if doc.exists:
+            return collection
+
+        docs = (
+            db.collection(collection)
+            .where("docId", "==", normalized_doc_id)
+            .limit(1)
+            .stream()
+        )
+        for _ in docs:
+            return collection
+
+    meta_item = get_item_from_meta(normalized_doc_id)
+    if meta_item is not None:
+        return normalize_collection_name(meta_item.get("collection"))
+
+    raise HTTPException(
+        status_code=404,
+        detail="DocId not found in lostItems or foundItems"
+    )
+
+
+def resolve_collection(optional_collection: Optional[str], doc_id: str) -> str:
+    if optional_collection and optional_collection.strip():
+        return normalize_collection_name(optional_collection)
+
+    return infer_collection_by_doc_id(doc_id)
+
+
+def fetch_candidates_from_firestore(
+        target_collection: str,
+        exclude_doc_id: Optional[str] = None
+) -> List[Dict[str, Any]]:
     normalized_collection = normalize_collection_name(target_collection)
     docs = db.collection(normalized_collection).stream()
     candidates = []
@@ -261,13 +298,15 @@ def fetch_candidates_from_firestore(target_collection: str, exclude_doc_id: Opti
     return candidates
 
 
-def fetch_candidates_combined(target_collection: str, exclude_doc_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def fetch_candidates_combined(
+        target_collection: str,
+        exclude_doc_id: Optional[str] = None
+) -> List[Dict[str, Any]]:
     normalized_collection = normalize_collection_name(target_collection)
     excluded = normalize_doc_id(exclude_doc_id) if exclude_doc_id else None
 
     combined: Dict[str, Dict[str, Any]] = {}
 
-    # 1) Firestore candidates
     firestore_candidates = fetch_candidates_from_firestore(
         target_collection=normalized_collection,
         exclude_doc_id=excluded
@@ -279,7 +318,6 @@ def fetch_candidates_combined(target_collection: str, exclude_doc_id: Optional[s
             continue
         combined[item_doc_id] = item
 
-    # 2) Legacy meta candidates
     for item in meta_items_list:
         item_doc_id = normalize_doc_id(item.get("docId"))
         item_collection = normalize_collection_name(item.get("collection", ""))
@@ -299,7 +337,10 @@ def fetch_candidates_combined(target_collection: str, exclude_doc_id: Optional[s
 def build_stats_from_firestore() -> Dict[str, Any]:
     lost_docs = list(db.collection("lostItems").stream())
     found_docs = list(db.collection("foundItems").stream())
-    dynamic_count = len([f for f in os.listdir(DYNAMIC_EMBEDDINGS_DIR) if f.endswith(".npy")])
+    dynamic_count = len([
+        f for f in os.listdir(DYNAMIC_EMBEDDINGS_DIR)
+        if f.endswith(".npy")
+    ])
 
     return {
         "indexed_count": len(lost_docs) + len(found_docs),
@@ -342,6 +383,7 @@ def extract_embedding_from_pil(img: Image.Image) -> np.ndarray:
     emb = feature_extractor.predict(x, verbose=0)[0]
     emb = emb.astype("float32")
     emb = emb / (np.linalg.norm(emb) + 1e-10)
+
     return emb
 
 
@@ -357,13 +399,16 @@ def update_index_status(
         error_message: Optional[str] = None
 ):
     doc_ref = db.collection(collection).document(doc_id)
+
     payload = {
         "isIndexed": status == "ready",
         "indexStatus": status,
         "indexedAt": None if status != "ready" else time.strftime("%Y-%m-%d %H:%M:%S"),
     }
+
     if error_message:
         payload["indexError"] = error_message
+
     doc_ref.update(payload)
 
 
@@ -372,13 +417,19 @@ def update_index_status(
 # =========================================
 class SearchRequest(BaseModel):
     docId: str = Field(..., description="The query item document ID")
-    collection: str = Field(..., description="Either 'lostItems' or 'foundItems'")
+    collection: Optional[str] = Field(
+        None,
+        description="Optional. If omitted, backend will infer lostItems/foundItems."
+    )
     top_k: int = Field(5, ge=1, le=50)
 
 
 class IndexItemRequest(BaseModel):
     docId: str = Field(..., description="The item document ID")
-    collection: str = Field(..., description="Either 'lostItems' or 'foundItems'")
+    collection: Optional[str] = Field(
+        None,
+        description="Optional. If omitted, backend will infer lostItems/foundItems."
+    )
 
 
 class SearchResult(BaseModel):
@@ -436,7 +487,7 @@ async def lifespan(app: FastAPI):
 # =========================================
 app = FastAPI(
     title="Wadiah Backend API",
-    version="2.3.1",
+    version="2.4.0",
     lifespan=lifespan
 )
 
@@ -448,7 +499,8 @@ app = FastAPI(
 def root():
     return {
         "message": "Wadiah API is running",
-        "data_source": "Firestore + legacy meta + local embeddings + dynamic indexing"
+        "data_source": "Firestore + legacy meta + local embeddings + dynamic indexing",
+        "collection_mode": "collection is optional; backend can infer it from docId"
     }
 
 
@@ -483,7 +535,6 @@ def get_item(collection: str, doc_id: str):
 
     item = get_item_from_firestore(normalized_collection, doc_id)
 
-    # fallback to legacy meta
     if item is None:
         item = get_item_from_meta(doc_id)
         if item is not None and item.get("collection") != normalized_collection:
@@ -496,21 +547,42 @@ def get_item(collection: str, doc_id: str):
     return item
 
 
-@app.post("/index-item")
-def index_item(payload: IndexItemRequest):
-    try:
-        collection = normalize_collection_name(payload.collection)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@app.get("/item/{doc_id}")
+def get_item_auto(doc_id: str):
+    collection = infer_collection_by_doc_id(doc_id)
+    item = get_item_from_firestore(collection, doc_id)
 
-    item = get_item_from_firestore(collection, payload.docId)
+    if item is None:
+        item = get_item_from_meta(doc_id)
+
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
 
+    item["collection"] = collection
+    item["has_embedding"] = get_embedding_by_doc_id(item["docId"]) is not None
+    return item
+
+
+@app.post("/index-item")
+def index_item(payload: IndexItemRequest):
+    collection = resolve_collection(payload.collection, payload.docId)
+
+    item = get_item_from_firestore(collection, payload.docId)
+
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found in Firestore. Legacy meta items cannot be re-indexed without Firestore image data."
+        )
+
     image_url = item.get("imageUrl") or item.get("imagePath")
+
     if not image_url:
         update_index_status(collection, payload.docId, "failed", "Missing imageUrl/imagePath")
-        raise HTTPException(status_code=400, detail="Item has no imageUrl or imagePath")
+        raise HTTPException(
+            status_code=400,
+            detail="Item has no imageUrl or imagePath"
+        )
 
     try:
         update_index_status(collection, payload.docId, "processing")
@@ -540,16 +612,11 @@ def index_item(payload: IndexItemRequest):
 def search_similar_items(payload: SearchRequest):
     start_time = time.perf_counter()
 
-    try:
-        query_collection = normalize_collection_name(payload.collection)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+    query_collection = resolve_collection(payload.collection, payload.docId)
     target_collection = get_opposite_collection(query_collection)
 
     query_item = get_item_from_firestore(query_collection, payload.docId)
 
-    # fallback to legacy meta
     if query_item is None:
         query_item = get_item_from_meta(payload.docId)
         if query_item is not None and query_item.get("collection") != query_collection:
@@ -570,6 +637,7 @@ def search_similar_items(payload: SearchRequest):
         }
 
     query_embedding = get_embedding_by_doc_id(query_item["docId"])
+
     if query_embedding is None:
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 3)
         return {
@@ -595,9 +663,11 @@ def search_similar_items(payload: SearchRequest):
 
     for item in candidates:
         emb = get_embedding_by_doc_id(item["docId"])
+
         if emb is None:
             skipped_count += 1
             continue
+
         candidate_embeddings.append(emb)
         candidate_items.append(item)
 
@@ -621,6 +691,7 @@ def search_similar_items(payload: SearchRequest):
     top_indices = np.argsort(-scores)[:payload.top_k]
 
     results = []
+
     for idx in top_indices:
         item = candidate_items[int(idx)]
         sim = float(scores[int(idx)])
@@ -659,7 +730,11 @@ def search_similar_items(payload: SearchRequest):
 
 @app.get("/debug/meta-check")
 def debug_meta_check():
-    dynamic_files = [f for f in os.listdir(DYNAMIC_EMBEDDINGS_DIR) if f.endswith(".npy")]
+    dynamic_files = [
+        f for f in os.listdir(DYNAMIC_EMBEDDINGS_DIR)
+        if f.endswith(".npy")
+    ]
+
     return {
         "FIRESTORE_COLLECTIONS_EXPECTED": ["lostItems", "foundItems"],
         "MAPPED_DOCIDS_COUNT": len(docid_to_index),

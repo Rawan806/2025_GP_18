@@ -1,4 +1,3 @@
-// lib/AI_services/found_item_service.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,8 +9,8 @@ class FoundItemService {
   final _fs = FirebaseFirestore.instance;
   final _storage = FirebaseStorage.instance;
 
-  // عدلي هذا حسب جهازك/السيرفر
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  // Android emulator
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   Future<String> uploadImage(File image) async {
     final name = 'found_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -38,6 +37,33 @@ class FoundItemService {
     }
   }
 
+  Future<Map<String, dynamic>> searchMatches({
+    required String docId,
+    required String collection,
+    int topK = 5,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/search'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'docId': docId,
+        'collection': collection,
+        'top_k': topK,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Search failed: ${response.body}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Invalid search response');
+    }
+
+    return decoded;
+  }
+
   Future<String> saveFoundItem({
     required String type,
     required String color,
@@ -61,7 +87,7 @@ class FoundItemService {
       'imageUrl': imageUrl,
       'status': 'pending',
       'aiTypes': aiTypes ?? [],
-      'aiColor': aiColor,
+      'aiColor': aiColor ?? '',
       'createdAt': now,
       'updatedAt': now,
       'docId': '',
@@ -87,6 +113,70 @@ class FoundItemService {
         'isIndexed': false,
         'indexStatus': 'failed',
         'indexError': e.toString(),
+      });
+      return docRef.id;
+    }
+
+    try {
+      final searchResponse = await searchMatches(
+        docId: docRef.id,
+        collection: 'foundItems',
+      );
+
+      final List<dynamic> rawResults =
+      (searchResponse['results'] as List<dynamic>? ?? []);
+
+      final topMatches = rawResults.map((e) {
+        final item = Map<String, dynamic>.from(e as Map);
+        return {
+          'docId': item['docId'] ?? '',
+          'collection': item['collection'] ?? '',
+          'imageUrl': item['imageUrl'] ?? '',
+          'similarity': item['similarity'] ?? 0.0,
+          'match_label': item['match_label'] ?? '',
+          'type': item['type'] ?? '',
+          'color': item['color'] ?? '',
+          'location': item['location'] ?? '',
+          'status': item['status'] ?? '',
+        };
+      }).toList();
+
+      final hasPotentialMatch = topMatches.any((m) {
+        final label = (m['match_label'] ?? '').toString();
+        return label == 'strong_match' || label == 'potential_match';
+      });
+
+      final bestMatch = topMatches.isNotEmpty ? topMatches.first : null;
+
+      await docRef.update({
+        'topMatches': topMatches,
+        'potentialMatchesCount': searchResponse['potential_matches_count'] ?? 0,
+        'candidatePoolSize': searchResponse['candidate_pool_size'] ?? 0,
+        'searchedIn': searchResponse['searched_in'] ?? 'lostItems',
+        'topScore': searchResponse['top_score'],
+        'avgTop5Score': searchResponse['avg_top5_score'],
+        'searchTimeMs': searchResponse['search_time_ms'],
+        'hasPotentialMatches': hasPotentialMatch,
+        'bestMatchedLostReportId': bestMatch?['docId'],
+        'bestMatchedLostImageUrl': bestMatch?['imageUrl'],
+        'bestMatchedLostType': bestMatch?['type'],
+        'bestMatchedLostColor': bestMatch?['color'],
+        'bestMatchedLostLocation': bestMatch?['location'],
+        'bestMatchedLostSimilarity': bestMatch?['similarity'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      await docRef.update({
+        'topMatches': [],
+        'potentialMatchesCount': 0,
+        'candidatePoolSize': 0,
+        'searchedIn': 'lostItems',
+        'topScore': null,
+        'avgTop5Score': null,
+        'searchTimeMs': null,
+        'hasPotentialMatches': false,
+        'searchError': e.toString(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     }
 
