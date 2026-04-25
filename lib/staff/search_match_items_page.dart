@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import '../l10n/app_localizations_helper.dart';
 
 class SearchMatchItemsPage extends StatefulWidget {
@@ -33,20 +35,40 @@ class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
     final firebaseDocId = (doc['firebaseDocId'] ?? '').toString();
     if (firebaseDocId.isNotEmpty && firebaseDocId != 'null') return firebaseDocId;
 
-    final docId = (doc['id'] ?? doc['docId'] ?? '').toString();
+    final docId = (doc['docId'] ?? doc['id'] ?? '').toString();
     if (docId.isNotEmpty && docId != 'null') return docId;
 
     final docNum = (doc['doc_num'] ?? '').toString();
     return docNum;
   }
 
-  Future<void> _startMatchingFlow() async {
-    final report = widget.initialCreatedDoc;
-    if (report == null) {
-      return;
+  String _resolveApiCollection(Map<String, dynamic> doc) {
+    final apiCollection = (doc['apiCollection'] ?? '').toString();
+    if (apiCollection == 'lostItems' || apiCollection == 'foundItems') {
+      return apiCollection;
     }
 
+    final collection = (doc['collection'] ?? '').toString();
+    if (collection == 'lost') return 'lostItems';
+    if (collection == 'found') return 'foundItems';
+    if (collection == 'lostItems' || collection == 'foundItems') {
+      return collection;
+    }
+
+    final itemCategory = (doc['itemCategory'] ?? '').toString();
+    if (itemCategory == 'lost') return 'lostItems';
+    if (itemCategory == 'found') return 'foundItems';
+
+    return 'foundItems';
+  }
+
+  Future<void> _startMatchingFlow() async {
+    final report = widget.initialCreatedDoc;
+    if (report == null) return;
+
     final docId = _resolveSearchDocId(report);
+    final collection = _resolveApiCollection(report);
+
     if (docId.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -58,17 +80,20 @@ class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
       return;
     }
 
-    final requestBody = <String, dynamic>{
+    final requestBody = {
       'docId': docId,
+      'collection': collection,
       'top_k': 5,
     };
 
     if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => MatchResultsPage(
           selectedDocId: docId,
+          selectedCollection: collection,
           baseUrl: baseUrl,
           initialRequestBody: requestBody,
           mainGreen: mainGreen,
@@ -93,20 +118,20 @@ class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
       body: Center(
         child: widget.initialCreatedDoc == null
             ? Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  _tr('noItemPassedForMatching'),
-                  textAlign: TextAlign.center,
-                ),
-              )
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            _tr('noItemPassedForMatching'),
+            textAlign: TextAlign.center,
+          ),
+        )
             : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: mainGreen),
-                  const SizedBox(height: 12),
-                  Text(_tr('searchingSimilarItemsMessage')),
-                ],
-              ),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: mainGreen),
+            const SizedBox(height: 12),
+            Text(_tr('searchingSimilarItemsMessage')),
+          ],
+        ),
       ),
     );
   }
@@ -116,12 +141,14 @@ class MatchResultsPage extends StatefulWidget {
   const MatchResultsPage({
     super.key,
     required this.selectedDocId,
+    required this.selectedCollection,
     required this.baseUrl,
     required this.initialRequestBody,
     required this.mainGreen,
   });
 
   final String selectedDocId;
+  final String selectedCollection;
   final String baseUrl;
   final Map<String, dynamic> initialRequestBody;
   final Color mainGreen;
@@ -132,8 +159,13 @@ class MatchResultsPage extends StatefulWidget {
 
 class _MatchResultsPageState extends State<MatchResultsPage> {
   bool _isLoading = true;
+  bool _isActionLoading = false;
+
   String? _errorMessage;
   List<Map<String, dynamic>> _results = [];
+
+  String? _selectedResultDocId;
+  Map<String, dynamic>? _confirmedMatch;
 
   String _tr(String key) {
     final locale = Localizations.localeOf(context);
@@ -146,15 +178,22 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
     _fetchMatchesForReport();
   }
 
+  // =========================
+  // API Search
+  // =========================
   Future<void> _fetchMatchesForReport() async {
     final requestBody = Map<String, dynamic>.from(widget.initialRequestBody);
+
     requestBody['docId'] = widget.selectedDocId;
+    requestBody['collection'] = widget.selectedCollection;
     requestBody['top_k'] = 5;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _results = [];
+      _selectedResultDocId = null;
+      _confirmedMatch = null;
     });
 
     try {
@@ -169,6 +208,7 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
+
       final rawResults = (data['results'] as List<dynamic>? ?? [])
           .map((item) => Map<String, dynamic>.from(item as Map))
           .toList();
@@ -194,6 +234,317 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
     }
   }
 
+  // =========================
+  // Helpers
+  // =========================
+  String _generatePin() {
+    final random = Random.secure();
+    return (100000 + random.nextInt(900000)).toString();
+  }
+
+  String _oppositeCollection(String collection) {
+    return collection == 'lostItems' ? 'foundItems' : 'lostItems';
+  }
+
+  String _safeString(dynamic value) {
+    return (value ?? '').toString();
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getDoc(
+      String collection,
+      String docId,
+      ) {
+    return FirebaseFirestore.instance.collection(collection).doc(docId).get();
+  }
+
+  // =========================
+  // Confirm Match
+  // =========================
+  Future<void> _confirmMatch(Map<String, dynamic> selected) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Confirm Match'),
+        content: const Text('هل تريد تأكيد هذه المطابقة؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('لا'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: widget.mainGreen),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('نعم'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isActionLoading = true);
+
+    try {
+      final queryCollection = widget.selectedCollection;
+      final matchedCollection = _safeString(selected['collection']).isNotEmpty
+          ? _safeString(selected['collection'])
+          : _oppositeCollection(queryCollection);
+
+      final queryDocId = widget.selectedDocId;
+      final matchedDocId = _safeString(selected['docId']);
+
+      if (matchedDocId.isEmpty) {
+        throw Exception('Matched docId is missing');
+      }
+
+      late final String foundId;
+      late final String lostId;
+
+      if (queryCollection == 'foundItems') {
+        foundId = queryDocId;
+        lostId = matchedDocId;
+      } else {
+        foundId = matchedDocId;
+        lostId = queryDocId;
+      }
+
+      final foundRef =
+      FirebaseFirestore.instance.collection('foundItems').doc(foundId);
+      final lostRef =
+      FirebaseFirestore.instance.collection('lostItems').doc(lostId);
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      batch.update(foundRef, {
+        'status': 'has_match',
+        'matchedLostItemId': lostId,
+        'matchedSimilarity': selected['similarity'],
+        'matchedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      batch.update(lostRef, {
+        'status': 'possible_match',
+        'matchedFoundItemId': foundId,
+        'matchedFoundImagePath': selected['imageUrl'] ?? '',
+        'matchedFoundTitle': selected['type'] ?? '',
+        'matchedFoundType': selected['type'] ?? '',
+        'matchedFoundColor': selected['color'] ?? '',
+        'matchedFoundLocation': selected['location'] ?? '',
+        'matchedFoundSimilarity': selected['similarity'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      final linkRef = FirebaseFirestore.instance.collection('matchLinks').doc();
+      batch.set(linkRef, {
+        'foundItemId': foundId,
+        'lostReportId': lostId,
+        'queryCollection': queryCollection,
+        'matchedCollection': matchedCollection,
+        'similarity': selected['similarity'],
+        'status': 'possible_match',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+
+      setState(() {
+        _confirmedMatch = {
+          ...selected,
+          'foundItemId': foundId,
+          'lostReportId': lostId,
+          'matchLinkId': linkRef.id,
+        };
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تأكيد المطابقة بنجاح'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error confirming match: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isActionLoading = false);
+    }
+  }
+
+  // =========================
+  // Approve for Handover + Generate PIN
+  // =========================
+  Future<void> _approveForHandover() async {
+    final match = _confirmedMatch;
+    if (match == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please confirm a match first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Approve for Handover'),
+        content: const Text(
+          'سيتم توليد PIN وتجهيز العنصر للاستلام. هل تريدين المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: widget.mainGreen),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Approve'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isActionLoading = true);
+
+    try {
+      final foundId = _safeString(match['foundItemId']);
+      final lostId = _safeString(match['lostReportId']);
+
+      if (foundId.isEmpty || lostId.isEmpty) {
+        throw Exception('Missing foundId or lostId');
+      }
+
+      final pin = _generatePin();
+
+      final lostSnap = await _getDoc('lostItems', lostId);
+      final lostData = lostSnap.data() ?? {};
+      final linkedUserId = _safeString(lostData['userId']);
+
+      final foundRef =
+      FirebaseFirestore.instance.collection('foundItems').doc(foundId);
+      final lostRef =
+      FirebaseFirestore.instance.collection('lostItems').doc(lostId);
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      batch.update(foundRef, {
+        'status': 'ready_to_handover',
+        'linkedLostReportId': lostId,
+        'linkedUserId': linkedUserId,
+        'handoverPin': pin,
+        'pinGeneratedAt': FieldValue.serverTimestamp(),
+        'handoverStatus': 'pending',
+        'isPinUsed': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      batch.update(lostRef, {
+        'status': 'ready_to_handover',
+        'matchedFoundItemId': foundId,
+        'handoverPin': pin,
+        'handoverStatus': 'pending',
+        'isPinUsed': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      final logRef =
+      FirebaseFirestore.instance.collection('handoverLogs').doc();
+
+      batch.set(logRef, {
+        'foundItemId': foundId,
+        'lostReportId': lostId,
+        'userId': linkedUserId,
+        'action': 'pin_generated',
+        'status': 'ready_to_handover',
+        'pinGenerated': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('PIN Generated'),
+          content: Text(
+            'The item is ready for handover.\n\nPIN: $pin',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: widget.mainGreen),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تجهيز العنصر للاستلام وتوليد PIN'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error approving handover: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isActionLoading = false);
+    }
+  }
+
+  // =========================
+  // Optional PIN Verification Helper
+  // تستخدم لاحقًا في HandoverPinScreen
+  // =========================
+  Future<bool> verifyHandoverPin({
+    required String foundItemId,
+    required String enteredPin,
+  }) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('foundItems')
+        .doc(foundItemId)
+        .get();
+
+    if (!doc.exists) return false;
+
+    final data = doc.data() ?? {};
+    final storedPin = _safeString(data['handoverPin']);
+    final status = _safeString(data['status']);
+    final isPinUsed = data['isPinUsed'] == true;
+
+    return status == 'ready_to_handover' &&
+        !isPinUsed &&
+        storedPin == enteredPin.trim();
+  }
+
+  // =========================
+  // UI
+  // =========================
   Widget _imagePlaceholder() {
     return Container(
       color: Colors.grey.shade300,
@@ -208,9 +559,9 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 86,
+            width: 90,
             child: Text(
-              '${_tr(label)}:',
+              '$label:',
               style: TextStyle(
                 color: Colors.grey.shade700,
                 fontSize: 13,
@@ -228,7 +579,7 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
               ),
             ),
           ),
-        ]
+        ],
       ),
     );
   }
@@ -237,27 +588,29 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
     await showDialog<void>(
       context: context,
       builder: (_) {
-        final image = (result['imageUrl'] ?? '').toString();
-        final matchedDocId = (result['docId'] ?? '').toString();
+        final image = _safeString(result['imageUrl']);
+        final matchedDocId = _safeString(result['docId']);
+        final similarity =
+        (((result['similarity'] ?? 0) as num).toDouble() * 100)
+            .toStringAsFixed(2);
 
         return Dialog(
           insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 620),
+            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 650),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Text(
-                          _tr('matchDetails'),
-                          style: const TextStyle(
-                            fontSize: 24,
+                          'Match Details',
+                          style: TextStyle(
+                            fontSize: 22,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -265,7 +618,6 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.close),
-                        splashRadius: 20,
                       ),
                     ],
                   ),
@@ -279,12 +631,7 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                           width: 150,
                           height: 150,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 150,
-                            height: 150,
-                            color: Colors.grey.shade300,
-                            child: const Icon(Icons.broken_image),
-                          ),
+                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
                         ),
                       ),
                     ),
@@ -301,17 +648,13 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _detailRow('idLabel', matchedDocId),
-                            _detailRow(
-                              'similarity',
-                              '${(((result['similarity'] ?? 0) as num).toDouble() * 100).toStringAsFixed(2)}%',
-                            ),
-                            _detailRow('type', (result['collection'] ?? '').toString()),
-                            _detailRow('matchCategory', (result['category'] ?? '').toString()),
-                            _detailRow('date', (result['date'] ?? '').toString()),
-                            _detailRow('status', (result['status'] ?? '').toString()),
-                            _detailRow('color', (result['color'] ?? '').toString()),
-                            _detailRow('location', (result['location'] ?? '').toString()),
+                            _detailRow('ID', matchedDocId),
+                            _detailRow('Similarity', '$similarity%'),
+                            _detailRow('Collection', _safeString(result['collection'])),
+                            _detailRow('Type', _safeString(result['type'])),
+                            _detailRow('Color', _safeString(result['color'])),
+                            _detailRow('Location', _safeString(result['location'])),
+                            _detailRow('Status', _safeString(result['status'])),
                           ],
                         ),
                       ),
@@ -320,34 +663,13 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                   const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        try {
-                          final docRef = FirebaseFirestore.instance
-                              .collection('foundItems')
-                              .doc(widget.selectedDocId);
-                          await docRef.update({'status': 'stored'});
-                        } catch (_) {}
-
-                        if (!mounted) return;
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF5B4ABF),
-                        side: const BorderSide(color: Color(0xFF5B4ABF)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(_tr('noSuitableMatch')),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
                     child: ElevatedButton(
+                      onPressed: _isActionLoading
+                          ? null
+                          : () async {
+                        Navigator.pop(context);
+                        await _confirmMatch(result);
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: widget.mainGreen,
                         foregroundColor: Colors.white,
@@ -356,69 +678,7 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () async {
-                        Navigator.pop(context);
-
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: Text(_tr('confirmAndSend')),
-                            content: Text(_tr('confirmMatchAndSendQuestion')),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(_tr('no')),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: widget.mainGreen,
-                                ),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: Text(_tr('confirmAndSend')),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirmed != true) return;
-
-                        try {
-                          await FirebaseFirestore.instance
-                              .collection('linkedLostReportId')
-                              .add({
-                            'found_doc_id': widget.selectedDocId,
-                            'matched_doc_id': matchedDocId,
-                            'createdAt': Timestamp.now(),
-                          });
-
-                          final locale = Localizations.localeOf(context);
-                          await FirebaseFirestore.instance
-                              .collection('foundItems')
-                              .doc(widget.selectedDocId)
-                              .update({
-                            'status': AppLocalizations.translate('sent_to_user', locale.languageCode),
-                          });
-
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(_tr('matchConfirmedAndSaved')),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-
-                          Navigator.pop(context);
-                        } catch (e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${_tr('errorSavingMatch')}: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                      child: Text(_tr('selectThisMatch')),
+                      child: const Text('Confirm This Match'),
                     ),
                   ),
                 ],
@@ -431,13 +691,17 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
   }
 
   Widget _buildResultCard(Map<String, dynamic> item, int index) {
-    final docId = (item['docId'] ?? '').toString();
-    final image = (item['imageUrl'] ?? '').toString();
+    final docId = _safeString(item['docId']);
+    final image = _safeString(item['imageUrl']);
     final similarity = ((item['similarity'] ?? 0) as num).toDouble();
     final isBest = index == 0;
+    final isSelected = _selectedResultDocId == docId;
 
     return InkWell(
-      onTap: () => _showResultDetails(item),
+      onTap: () {
+        setState(() => _selectedResultDocId = docId);
+      },
+      onLongPress: () => _showResultDetails(item),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.all(10),
@@ -445,7 +709,9 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
           color: isBest ? const Color(0xFFEFF8F0) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isBest ? Colors.green.shade400 : Colors.transparent,
+            color: isSelected
+                ? widget.mainGreen
+                : (isBest ? Colors.green.shade400 : Colors.transparent),
             width: 2,
           ),
           boxShadow: const [
@@ -465,10 +731,10 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                 height: 72,
                 child: image.isNotEmpty
                     ? Image.network(
-                        image,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                      )
+                  image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                )
                     : _imagePlaceholder(),
               ),
             ),
@@ -483,34 +749,86 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                       fontWeight: FontWeight.bold,
                       color: widget.mainGreen,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Text('${_tr('type')}: ${(item['collection'] ?? '').toString()}'),
-                  Text('${_tr('date')}: ${(item['date'] ?? '-').toString()}'),
+                  Text('Collection: ${_safeString(item['collection'])}'),
+                  Text('Type: ${_safeString(item['type'])}'),
                   Text(
-                    '${_tr('similarity')}: ${(similarity * 100).toStringAsFixed(1)}%',
+                    'Similarity: ${(similarity * 100).toStringAsFixed(1)}%',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
             ),
-            if (isBest)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _tr('bestMatch'),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+            Column(
+              children: [
+                if (isBest)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Best',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
+                IconButton(
+                  onPressed: () => _showResultDetails(item),
+                  icon: const Icon(Icons.info_outline),
                 ),
-              ),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmedMatchSection() {
+    if (_confirmedMatch == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.green.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Confirmed Match',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Text('Found ID: ${_safeString(_confirmedMatch!['foundItemId'])}'),
+          Text('Lost ID: ${_safeString(_confirmedMatch!['lostReportId'])}'),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isActionLoading ? null : _approveForHandover,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.mainGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+              icon: const Icon(Icons.pin),
+              label: const Text('Approve for Handover & Generate PIN'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -521,9 +839,9 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
       backgroundColor: const Color(0xFFC3BFB0),
       appBar: AppBar(
         backgroundColor: widget.mainGreen,
-        title: Text(
-          _tr('matchingResults'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: const Text(
+          'Matching Results',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -531,26 +849,64 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: widget.mainGreen))
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
+          ? Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            _errorMessage!,
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      )
+          : ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Search Summary',
+                  style: TextStyle(
+                    color: widget.mainGreen,
+                    fontWeight: FontWeight.bold,
                   ),
-                )
-              : _results.isEmpty
-                  ? Center(child: Text(_tr('noMatchingResultsReturned')))
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _results.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        return _buildResultCard(_results[index], index);
-                      },
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text('Query Doc ID: ${widget.selectedDocId}'),
+                Text('Query Collection: ${widget.selectedCollection}'),
+                Text('Results: ${_results.length}'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildConfirmedMatchSection(),
+          if (_confirmedMatch != null) const SizedBox(height: 12),
+          if (_results.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 30),
+              child: Center(
+                child: Text('No matching results returned'),
+              ),
+            )
+          else
+            ListView.separated(
+              itemCount: _results.length,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                return _buildResultCard(_results[index], index);
+              },
+            ),
+        ],
+      ),
     );
   }
 }

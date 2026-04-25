@@ -503,6 +503,41 @@ abstract class AppLocalizations {
   /// **'No matching results.'**
   String get noMatchingResults;
 
+
+  String get handoverForm;
+  String get linkedLostReport;
+  String get pinStatus;
+  String get pinGenerated;
+  String get noPin;
+  String get enterPin;
+  String get verifyPin;
+  String get pinVerified;
+  String get recipientName;
+  String get recipientId;
+  String get recipientPhone;
+  String get idVerificationMethod;
+  String get nationalId;
+  String get studentId;
+  String get phoneVerification;
+  String get itemConditionAtHandover;
+  String get good;
+  String get damaged;
+  String get needsReview;
+  String get typedSignature;
+  String get handoverDisclaimer;
+  String get confirmPhysicalHandover;
+  String get submitting;
+  String get pleaseEnterPin;
+  String get itemNotReadyForHandover;
+  String get pinAlreadyUsed;
+  String get pinVerifiedSuccessfully;
+  String get incorrectPin;
+  String get fillRequiredFields;
+  String get acceptDisclaimer;
+  String get itemHandedOverSuccessfully;
+  String get errorLoadingHandoverData;
+  String get errorCompletingHandover;
+
   /// No description provided for @item.
   ///
   /// In en, this message translates to:

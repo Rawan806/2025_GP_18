@@ -213,5 +213,105 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noMatchingResults => 'لا توجد نتائج مطابقة.';
 
   @override
+  String get handoverForm => 'نموذج التسليم';
+
+  @override
+  String get linkedLostReport => 'بلاغ الفقد المرتبط';
+
+  @override
+  String get pinStatus => 'حالة الرمز';
+
+  @override
+  String get pinGenerated => 'تم توليد الرمز';
+
+  @override
+  String get noPin => 'لا يوجد رمز';
+
+  @override
+  String get enterPin => 'أدخل الرمز الذي عرضه المستخدم';
+
+  @override
+  String get verifyPin => 'تحقق من الرمز';
+
+  @override
+  String get pinVerified => 'تم التحقق من الرمز. يرجى إكمال نموذج المستلم.';
+
+  @override
+  String get recipientName => 'اسم المستلم الكامل *';
+
+  @override
+  String get recipientId => 'رقم الهوية / الرقم الجامعي *';
+
+  @override
+  String get recipientPhone => 'رقم الجوال *';
+
+  @override
+  String get idVerificationMethod => 'طريقة التحقق من الهوية';
+
+  @override
+  String get nationalId => 'الهوية الوطنية';
+
+  @override
+  String get studentId => 'الرقم الجامعي';
+
+  @override
+  String get phoneVerification => 'التحقق بالجوال';
+
+  @override
+  String get itemConditionAtHandover => 'حالة العنصر عند التسليم';
+
+  @override
+  String get good => 'جيدة';
+
+  @override
+  String get damaged => 'متضرر';
+
+  @override
+  String get needsReview => 'يحتاج مراجعة';
+
+  @override
+  String get typedSignature => 'التوقيع النصي / الاسم الكامل *';
+
+  @override
+  String get handoverDisclaimer =>
+      'أقرّ بأن المستلم قد استلم العنصر، وأن مكتب المفقودات لا يتحمل أي مسؤولية بعد إتمام التسليم.';
+
+  @override
+  String get confirmPhysicalHandover => 'تأكيد التسليم الفعلي';
+
+  @override
+  String get submitting => 'جاري الحفظ...';
+
+  @override
+  String get pleaseEnterPin => 'يرجى إدخال الرمز';
+
+  @override
+  String get itemNotReadyForHandover => 'هذا العنصر غير جاهز للتسليم';
+
+  @override
+  String get pinAlreadyUsed => 'تم استخدام هذا الرمز مسبقًا';
+
+  @override
+  String get pinVerifiedSuccessfully => 'تم التحقق من الرمز بنجاح';
+
+  @override
+  String get incorrectPin => 'الرمز غير صحيح';
+
+  @override
+  String get fillRequiredFields => 'يرجى تعبئة جميع الحقول المطلوبة';
+
+  @override
+  String get acceptDisclaimer => 'يرجى قبول إخلاء المسؤولية';
+
+  @override
+  String get itemHandedOverSuccessfully => 'تم تسليم العنصر بنجاح';
+
+  @override
+  String get errorLoadingHandoverData => 'حدث خطأ أثناء تحميل بيانات التسليم';
+
+  @override
+  String get errorCompletingHandover => 'حدث خطأ أثناء إتمام التسليم';
+
+  @override
   String get item => 'العنصر';
 }
