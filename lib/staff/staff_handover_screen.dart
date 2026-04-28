@@ -2,7 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class StaffHandoverScreen extends StatefulWidget {
-  const StaffHandoverScreen({super.key});
+  final Map<String, dynamic> lostReportData;
+
+  const StaffHandoverScreen({
+    super.key,
+    required this.lostReportData,
+  });
 
   @override
   State<StaffHandoverScreen> createState() => _StaffHandoverScreenState();
@@ -12,156 +17,113 @@ class _StaffHandoverScreenState extends State<StaffHandoverScreen> {
   static const Color mainGreen = Color(0xFF243E36);
   static const Color beigeColor = Color(0xFFC3BFB0);
 
-  final TextEditingController pinController = TextEditingController();
-  final TextEditingController recipientNameController = TextEditingController();
-  final TextEditingController recipientIdController = TextEditingController();
-  final TextEditingController recipientPhoneController = TextEditingController();
-  final TextEditingController staffNotesController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController idController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
-  Map<String, dynamic>? selectedItem;
-  String? selectedFoundId;
-  bool pinVerified = false;
   bool disclaimerAccepted = false;
   bool isLoading = false;
+  bool formSubmitted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    formSubmitted = widget.lostReportData['handoverFormSubmitted'] == true;
+  }
 
   @override
   void dispose() {
-    pinController.dispose();
-    recipientNameController.dispose();
-    recipientIdController.dispose();
-    recipientPhoneController.dispose();
-    staffNotesController.dispose();
+    nameController.dispose();
+    idController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
-  Future<void> verifyPin() async {
-    if (selectedItem == null || selectedFoundId == null) return;
-
-    final enteredPin = pinController.text.trim();
-    final storedPin = (selectedItem!['handoverPin'] ?? '').toString();
-    final status = (selectedItem!['status'] ?? '').toString();
-    final isPinUsed = selectedItem!['isPinUsed'] == true;
-
-    if (enteredPin.isEmpty) {
-      _snack('Please enter PIN', Colors.orange);
-      return;
-    }
-
-    if (status != 'ready_to_handover') {
-      _snack('This item is not ready for handover', Colors.red);
-      return;
-    }
-
-    if (isPinUsed) {
-      _snack('This PIN was already used', Colors.red);
-      return;
-    }
-
-    if (enteredPin == storedPin) {
-      setState(() => pinVerified = true);
-      _snack('PIN verified successfully', Colors.green);
-    } else {
-      setState(() => pinVerified = false);
-      _snack('Wrong PIN', Colors.red);
-    }
+  String _t(String ar, String en) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return isArabic ? ar : en;
   }
 
-  Future<void> confirmHandover() async {
-    if (selectedItem == null || selectedFoundId == null) return;
+  String _getImageUrl() {
+    final possibleKeys = [
+      'matchedFoundImagePath',
+      'matchedFoundImageUrl',
+      'matchedImageUrl',
+      'imagePath',
+      'imageUrl',
+      'photoUrl',
+    ];
 
-    if (!pinVerified) {
-      _snack('Please verify PIN first', Colors.orange);
-      return;
+    for (final key in possibleKeys) {
+      final value = (widget.lostReportData[key] ?? '').toString().trim();
+      if (value.isNotEmpty) return value;
     }
 
-    if (recipientNameController.text.trim().isEmpty ||
-        recipientIdController.text.trim().isEmpty ||
-        recipientPhoneController.text.trim().isEmpty) {
-      _snack('Please fill recipient information', Colors.orange);
+    return '';
+  }
+
+  InputDecoration _dec(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: mainGreen),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: mainGreen, width: 2),
+      ),
+    );
+  }
+
+  Future<void> submitForm() async {
+    if (nameController.text.trim().isEmpty ||
+        idController.text.trim().isEmpty ||
+        phoneController.text.trim().isEmpty) {
+      _snack(
+        _t('يرجى تعبئة جميع البيانات', 'Please fill all fields'),
+        Colors.orange,
+      );
       return;
     }
 
     if (!disclaimerAccepted) {
-      _snack('Please accept the disclaimer', Colors.orange);
+      _snack(
+        _t('يرجى قبول التعهد', 'Please accept the disclaimer'),
+        Colors.orange,
+      );
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      final foundId = selectedFoundId!;
-      final lostId = (selectedItem!['linkedLostReportId'] ??
-          selectedItem!['matchedLostItemId'] ??
-          '')
-          .toString();
-      final userId = (selectedItem!['linkedUserId'] ?? '').toString();
+      final docId = (widget.lostReportData['docId'] ?? '').toString();
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      final foundRef =
-      FirebaseFirestore.instance.collection('foundItems').doc(foundId);
-
-      batch.update(foundRef, {
-        'status': 'completed',
-        'handoverStatus': 'completed',
-        'isPinUsed': true,
-        'handoverConfirmedAt': FieldValue.serverTimestamp(),
-        'recipientFullName': recipientNameController.text.trim(),
-        'recipientIdNumber': recipientIdController.text.trim(),
-        'recipientPhone': recipientPhoneController.text.trim(),
-        'disclaimerAccepted': true,
-        'staffNotes': staffNotesController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (lostId.isNotEmpty) {
-        final lostRef =
-        FirebaseFirestore.instance.collection('lostItems').doc(lostId);
-
-        batch.update(lostRef, {
-          'status': 'completed',
-          'handoverStatus': 'completed',
-          'isPinUsed': true,
-          'handoverConfirmedAt': FieldValue.serverTimestamp(),
-          'recipientFullName': recipientNameController.text.trim(),
-          'recipientIdNumber': recipientIdController.text.trim(),
-          'recipientPhone': recipientPhoneController.text.trim(),
+      if (docId.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('lostItems').doc(docId).update({
+          'handoverFormSubmitted': true,
+          'handoverFormSubmittedAt': FieldValue.serverTimestamp(),
+          'recipientName': nameController.text.trim(),
+          'recipientId': idController.text.trim(),
+          'recipientPhone': phoneController.text.trim(),
           'disclaimerAccepted': true,
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
 
-      final logRef = FirebaseFirestore.instance.collection('handoverLogs').doc();
-
-      batch.set(logRef, {
-        'foundItemId': foundId,
-        'lostReportId': lostId,
-        'userId': userId,
-        'action': 'handover_completed',
-        'pinVerified': true,
-        'recipientFullName': recipientNameController.text.trim(),
-        'recipientIdNumber': recipientIdController.text.trim(),
-        'recipientPhone': recipientPhoneController.text.trim(),
-        'disclaimerAccepted': true,
-        'staffNotes': staffNotesController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      await batch.commit();
-
-      _snack('Item handed over successfully', Colors.green);
-
       setState(() {
-        selectedItem = null;
-        selectedFoundId = null;
-        pinVerified = false;
-        disclaimerAccepted = false;
-        pinController.clear();
-        recipientNameController.clear();
-        recipientIdController.clear();
-        recipientPhoneController.clear();
-        staffNotesController.clear();
+        formSubmitted = true;
+        widget.lostReportData['handoverFormSubmitted'] = true;
       });
+
+      _snack(
+        _t(
+          'تم إرسال النموذج، يمكنك الآن عرض رمز التسليم',
+          'Form submitted. You can now view your PIN',
+        ),
+        Colors.green,
+      );
     } catch (e) {
       _snack('Error: $e', Colors.red);
     } finally {
@@ -170,267 +132,253 @@ class _StaffHandoverScreenState extends State<StaffHandoverScreen> {
   }
 
   void _snack(String msg, Color color) {
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: color),
     );
   }
 
-  void selectItem(String id, Map<String, dynamic> data) {
-    setState(() {
-      selectedFoundId = id;
-      selectedItem = data;
-      pinVerified = false;
-      disclaimerAccepted = false;
-      pinController.clear();
-      recipientNameController.clear();
-      recipientIdController.clear();
-      recipientPhoneController.clear();
-      staffNotesController.clear();
-    });
-  }
-
-  InputDecoration _dec(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: beigeColor,
-      appBar: AppBar(
-        backgroundColor: mainGreen,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        title: const Text('Staff Handover'),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Row(
-        children: [
-          Expanded(
-            flex: 1,
-            child: _readyItemsList(),
-          ),
-          Expanded(
-            flex: 1,
-            child: _handoverPanel(),
-          ),
-        ],
-      ),
-    );
-  }
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
-  Widget _readyItemsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('foundItems')
-          .where('status', isEqualTo: 'ready_to_handover')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final title = (widget.lostReportData['title'] ??
+            widget.lostReportData['type'] ??
+            widget.lostReportData['itemName'] ??
+            '')
+        .toString();
 
-        if (snapshot.hasError) {
-          return const Center(child: Text('Error loading ready items'));
-        }
+    final pin = (widget.lostReportData['pinCode'] ??
+            widget.lostReportData['handoverPin'] ??
+            '')
+        .toString();
 
-        final docs = snapshot.data?.docs ?? [];
+    final image = _getImageUrl();
 
-        if (docs.isEmpty) {
-          return const Center(child: Text('No items ready for handover'));
-        }
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: beigeColor,
+        appBar: AppBar(
+          backgroundColor: mainGreen,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          title: Text(_t('نموذج التسليم', 'Handover Form')),
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _t('العنصر جاهز للاستلام', 'Item Ready for Handover'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: mainGreen,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: docs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final doc = docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final image = (data['imageUrl'] ?? data['imagePath'] ?? '').toString();
-            final title = (data['title'] ?? data['type'] ?? 'Found Item').toString();
-            final lostId =
-            (data['linkedLostReportId'] ?? data['matchedLostItemId'] ?? '')
-                .toString();
+                      const SizedBox(height: 16),
 
-            final isSelected = selectedFoundId == doc.id;
+                      if (image.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            image,
+                            height: 190,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                          ),
+                        )
+                      else
+                        _placeholder(),
 
-            return InkWell(
-              onTap: () => selectItem(doc.id, data),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.green.shade50 : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? mainGreen : Colors.transparent,
-                    width: 2,
+                      const SizedBox(height: 16),
+
+                      if (title.isNotEmpty)
+                        Text(
+                          '${_t('العنصر', 'Item')}: $title',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      if (formSubmitted) ...[
+                        Text(
+                          _t('رمز التسليم الخاص بك', 'Your Handover PIN'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          decoration: BoxDecoration(
+                            color: mainGreen,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            pin.isEmpty ? '------' : pin,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              letterSpacing: 4,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          _t(
+                            'يرجى إظهار هذا الرمز للموظف عند الاستلام.',
+                            'Please show this PIN to the staff during handover.',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                            height: 1.5,
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.5),
+                            ),
+                          ),
+                          child: Text(
+                            _t(
+                              'يرجى تعبئة نموذج التسليم أولاً، وبعد الإرسال سيظهر لك رمز التسليم.',
+                              'Please fill the handover form first. After submission, your PIN will appear.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.orange[900],
+                              fontWeight: FontWeight.w600,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        Text(
+                          _t('بيانات المستلم', 'Recipient Information'),
+                          style: const TextStyle(
+                            color: mainGreen,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        TextField(
+                          controller: nameController,
+                          decoration: _dec(
+                            _t('الاسم الكامل', 'Full Name'),
+                            Icons.person,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        TextField(
+                          controller: idController,
+                          keyboardType: TextInputType.number,
+                          decoration: _dec(
+                            _t('رقم الهوية / الإقامة', 'National ID / Iqama'),
+                            Icons.badge,
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        TextField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: _dec(
+                            _t('رقم الجوال', 'Phone Number'),
+                            Icons.phone,
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        CheckboxListTile(
+                          value: disclaimerAccepted,
+                          onChanged: (value) {
+                            setState(() => disclaimerAccepted = value ?? false);
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Text(
+                            _t(
+                              'أقر بأنني سأحضر رمز التسليم وأثبت ملكيتي للعنصر عند الاستلام.',
+                              'I confirm that I will present the PIN and prove ownership during handover.',
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        ElevatedButton.icon(
+                          onPressed: submitForm,
+                          icon: const Icon(Icons.send),
+                          label: Text(_t('إرسال النموذج', 'Submit Form')),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: mainGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: image.isNotEmpty
-                          ? Image.network(
-                        image,
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(),
-                      )
-                          : _placeholder(),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Found ID: ${doc.id}', maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Lost ID: $lostId', maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            );
-          },
-        );
-      },
+      ),
     );
   }
 
   Widget _placeholder() {
     return Container(
-      width: 64,
-      height: 64,
-      color: Colors.grey.shade300,
-      child: const Icon(Icons.image_not_supported),
-    );
-  }
-
-  Widget _handoverPanel() {
-    if (selectedItem == null) {
-      return const Center(child: Text('Select an item to start handover'));
-    }
-
-    final title = (selectedItem!['title'] ?? selectedItem!['type'] ?? '-').toString();
-    final storedPin = (selectedItem!['handoverPin'] ?? '').toString();
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Handover Form',
-              style: TextStyle(
-                color: mainGreen,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('Item: $title'),
-            Text('Found ID: $selectedFoundId'),
-            const SizedBox(height: 18),
-
-            TextField(
-              controller: pinController,
-              keyboardType: TextInputType.number,
-              decoration: _dec('Enter PIN shown by user'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: verifyPin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: mainGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              icon: const Icon(Icons.verified_user),
-              label: const Text('Verify PIN'),
-            ),
-
-            if (pinVerified) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: Text('PIN verified: $storedPin'),
-              ),
-              const SizedBox(height: 20),
-
-              TextField(
-                controller: recipientNameController,
-                decoration: _dec('Recipient Full Name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: recipientIdController,
-                decoration: _dec('National ID / Student ID'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: recipientPhoneController,
-                keyboardType: TextInputType.phone,
-                decoration: _dec('Phone Number'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: staffNotesController,
-                maxLines: 3,
-                decoration: _dec('Staff Notes (optional)'),
-              ),
-              const SizedBox(height: 12),
-
-              CheckboxListTile(
-                value: disclaimerAccepted,
-                onChanged: (value) {
-                  setState(() {
-                    disclaimerAccepted = value ?? false;
-                  });
-                },
-                title: const Text(
-                  'I confirm that the recipient received the item and the Lost & Found office is no longer responsible after handover.',
-                ),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: confirmHandover,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                icon: const Icon(Icons.check_circle),
-                label: const Text('Confirm Physical Handover'),
-              ),
-            ],
-          ],
-        ),
+      height: 190,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: const Icon(Icons.image_not_supported, size: 48),
     );
   }
 }

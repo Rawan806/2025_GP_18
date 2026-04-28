@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
 import '../MatchReview/MatchReviewScreen.dart';
-import '../HandoverPin/HandoverPinScreen.dart';
+import '../staff/staff_handover_screen.dart';
 
 class TrackReportScreen extends StatelessWidget {
   const TrackReportScreen({super.key});
@@ -11,7 +11,13 @@ class TrackReportScreen extends StatelessWidget {
   final Color mainGreen = const Color(0xFF243E36);
   final Color beigeColor = const Color(0xFFC3BFB0);
 
+  bool _isReadyToHandover(String status) {
+    return status == 'ready_to_handover' || status == 'جاهز للاستلام';
+  }
+
   Color _getStatusColor(String status) {
+    if (_isReadyToHandover(status)) return Colors.green;
+
     switch (status) {
       case 'submitted':
         return Colors.orange;
@@ -21,8 +27,6 @@ class TrackReportScreen extends StatelessWidget {
         return Colors.deepPurple;
       case 'approved_by_staff':
         return Colors.teal;
-      case 'ready_to_handover':
-        return Colors.green;
       case 'completed':
         return Colors.grey;
       case 'cancelled':
@@ -37,6 +41,10 @@ class TrackReportScreen extends StatelessWidget {
   bool _canUserCancel(String status) => status == 'submitted';
 
   String _getLocalizedStatus(String status, String languageCode) {
+    if (_isReadyToHandover(status)) {
+      return languageCode == 'ar' ? 'جاهز للاستلام' : 'Ready for Handover';
+    }
+
     switch (status) {
       case 'submitted':
         return languageCode == 'ar' ? 'تم رفع البلاغ' : 'Submitted';
@@ -52,8 +60,6 @@ class TrackReportScreen extends StatelessWidget {
         return languageCode == 'ar'
             ? 'تمت الموافقة من الموظف'
             : 'Approved by Staff';
-      case 'ready_to_handover':
-        return languageCode == 'ar' ? 'جاهز للتسليم' : 'Ready for Handover';
       case 'completed':
         return languageCode == 'ar' ? 'مكتمل' : 'Completed';
       case 'cancelled':
@@ -69,15 +75,12 @@ class TrackReportScreen extends StatelessWidget {
     required String languageCode,
   }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('lostItems')
-          .doc(docId)
-          .update({
-            'status': 'cancelled',
-            'cancelledBy': 'user',
-            'cancelledAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await FirebaseFirestore.instance.collection('lostItems').doc(docId).update({
+        'status': 'cancelled',
+        'cancelledBy': 'user',
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       if (!context.mounted) return;
 
@@ -161,11 +164,14 @@ class TrackReportScreen extends StatelessWidget {
     );
   }
 
-  void _openHandoverPin(BuildContext context, Map<String, dynamic> data) {
+  void _openHandoverForm(
+    BuildContext context,
+    Map<String, dynamic> reportData,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => HandoverPinScreen(lostReportData: data),
+        builder: (_) => StaffHandoverScreen(lostReportData: reportData),
       ),
     );
   }
@@ -296,6 +302,11 @@ class TrackReportScreen extends StatelessWidget {
                         final doc = activeDocs[index];
                         final data = doc.data() as Map<String, dynamic>;
 
+                        final reportData = {
+                          ...data,
+                          'docId': doc.id,
+                        };
+
                         final title = (data['title'] ?? '').toString();
                         final rawStatus = (data['status'] ?? '').toString();
                         final status = _getLocalizedStatus(
@@ -304,10 +315,17 @@ class TrackReportScreen extends StatelessWidget {
                         );
                         final date = (data['date'] ?? '').toString();
                         final imagePath = (data['imagePath'] ?? '').toString();
-                        final pinCode = (data['pinCode'] ?? '').toString();
+                        final pinCode =
+                            (data['pinCode'] ?? data['handoverPin'] ?? '')
+                                .toString();
                         final docNum = (data['doc_num'] ?? '').toString();
 
                         final canCancel = _canUserCancel(rawStatus);
+                        final readyToHandover = _isReadyToHandover(rawStatus);
+
+                        // أهم تعديل: ما نعرض PIN إلا بعد إرسال نموذج التسليم
+                        final handoverFormSubmitted =
+                            data['handoverFormSubmitted'] == true;
 
                         return Container(
                           padding: const EdgeInsets.all(16),
@@ -339,9 +357,8 @@ class TrackReportScreen extends StatelessWidget {
                                         height: 60,
                                         decoration: BoxDecoration(
                                           color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         child: const Icon(
                                           Icons.image_not_supported,
@@ -365,7 +382,9 @@ class TrackReportScreen extends StatelessWidget {
                                     size: 30,
                                   ),
                                 ),
+
                               const SizedBox(width: 12),
+
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,6 +413,7 @@ class TrackReportScreen extends StatelessWidget {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
+
                                     if (date.isNotEmpty) ...[
                                       const SizedBox(height: 4),
                                       Text(
@@ -404,18 +424,37 @@ class TrackReportScreen extends StatelessWidget {
                                         ),
                                       ),
                                     ],
+
                                     if (pinCode.isNotEmpty &&
-                                        rawStatus == 'ready_to_handover') ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'PIN: $pinCode',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.brown[700],
-                                          fontWeight: FontWeight.bold,
+                                        readyToHandover &&
+                                        handoverFormSubmitted) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              Colors.green.withOpacity(0.08),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color:
+                                                Colors.green.withOpacity(0.5),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'PIN: $pinCode',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.green[800],
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
                                     ],
+
                                     const SizedBox(height: 10),
 
                                     if (rawStatus == 'possible_match')
@@ -427,7 +466,7 @@ class TrackReportScreen extends StatelessWidget {
                                           onPressed: () => _openMatchReview(
                                             context,
                                             doc.id,
-                                            data,
+                                            reportData,
                                           ),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: mainGreen,
@@ -441,20 +480,24 @@ class TrackReportScreen extends StatelessWidget {
                                         ),
                                       ),
 
-                                    if (rawStatus == 'ready_to_handover')
+                                    if (readyToHandover)
                                       Align(
                                         alignment: isArabic
                                             ? Alignment.centerLeft
                                             : Alignment.centerRight,
                                         child: ElevatedButton(
-                                          onPressed: () =>
-                                              _openHandoverPin(context, data),
+                                          onPressed: () => _openHandoverForm(
+                                            context,
+                                            reportData,
+                                          ),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.green,
                                             foregroundColor: Colors.white,
                                           ),
                                           child: Text(
-                                            isArabic ? 'عرض PIN' : 'View PIN',
+                                            isArabic
+                                                ? 'تعبئة نموذج التسليم'
+                                                : 'Fill Handover Form',
                                           ),
                                         ),
                                       ),
@@ -498,8 +541,10 @@ class TrackReportScreen extends StatelessWidget {
                 },
               ),
             ),
+
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,

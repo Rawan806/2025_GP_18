@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../l10n/app_localizations_helper.dart';
+import '../HandoverPin/HandoverPinScreen.dart';
 
 class ReportDetailsPage extends StatefulWidget {
   final Map<String, dynamic> report;
@@ -21,16 +23,29 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   final TextEditingController _notesController = TextEditingController();
   late TextEditingController _descriptionController;
 
-  // بيانات المستخدم
   String _reporterName = '-';
   String _reporterPhone = '-';
   bool _isLoadingUserData = true;
+
+  bool _showHandoverUserFormButton = false;
+  String _generatedPinCode = '';
+
+  String _generatePinCode() {
+    final random = Random();
+    return (100000 + random.nextInt(900000)).toString();
+  }
 
   @override
   void initState() {
     super.initState();
     final currentDescription = (widget.report['description'] ?? '').toString();
     _descriptionController = TextEditingController(text: currentDescription);
+
+    _generatedPinCode = (widget.report['pinCode'] ??
+            widget.report['handoverPin'] ??
+            '')
+        .toString();
+
     _loadUserData();
   }
 
@@ -47,10 +62,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         return;
       }
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
       if (userDoc.exists) {
         final userData = userDoc.data();
@@ -85,7 +98,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   Future<void> _saveChanges(Locale currentLocale) async {
     try {
-      // ناخذ docId من الماب لو موجود، أو نرجع لـ id
       final rawDocId = widget.report['docId'] ?? widget.report['id'];
       final docId = rawDocId?.toString();
 
@@ -102,14 +114,11 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         return;
       }
 
-      await FirebaseFirestore.instance
-          .collection('lostItems')
-          .doc(docId)
-          .update({
-            'status': _selectedStatus,
-            'description': _descriptionController.text.trim(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await FirebaseFirestore.instance.collection('lostItems').doc(docId).update({
+        'status': _selectedStatus,
+        'description': _descriptionController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -135,7 +144,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   Future<void> _confirmPickup(Locale currentLocale) async {
     try {
-      // نفس منطق docId هنا
       final rawDocId = widget.report['docId'] ?? widget.report['id'];
       final docId = rawDocId?.toString();
 
@@ -152,27 +160,30 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         return;
       }
 
-      // دائماً نستخدم النص العربي للحفظ في Firebase
       final readyText = AppLocalizations.translate('readyForPickup', 'ar');
+      final pin = _generatePinCode();
 
-      await FirebaseFirestore.instance
-          .collection('lostItems')
-          .doc(docId)
-          .update({
-            'status': readyText,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await FirebaseFirestore.instance.collection('lostItems').doc(docId).update({
+        'status': readyText,
+        'pinCode': pin,
+        'handoverPin': pin,
+        'pinGeneratedAt': FieldValue.serverTimestamp(),
+        'isPinUsed': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       setState(() {
         _selectedStatus = readyText;
+        _generatedPinCode = pin;
+        _showHandoverUserFormButton = true;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             currentLocale.languageCode == 'ar'
-                ? 'تم تحديث الحالة إلى جاهز للاستلام.'
-                : 'Status updated to Ready for Pickup.',
+                ? 'تم توليد PIN وتحديث الحالة إلى جاهز للاستلام.'
+                : 'PIN generated and status updated to Ready for Pickup.',
           ),
         ),
       );
@@ -181,12 +192,34 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         SnackBar(
           content: Text(
             currentLocale.languageCode == 'ar'
-                ? 'حدث خطأ أثناء تحديث الحالة.'
-                : 'Error while updating status.',
+                ? 'حدث خطأ أثناء تحديث الحالة وتوليد PIN.'
+                : 'Error while updating status and generating PIN.',
           ),
         ),
       );
     }
+  }
+
+  void _openUserHandoverPinScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HandoverPinScreen(
+          lostReportData: {
+            ...widget.report,
+            'pinCode': _generatedPinCode.isNotEmpty
+                ? _generatedPinCode
+                : (widget.report['pinCode'] ??
+                        widget.report['handoverPin'] ??
+                        '')
+                    .toString(),
+            'matchedFoundImagePath': widget.report['imagePath'] ?? '',
+            'matchedFoundLocation': widget.report['foundLocation'] ?? '',
+            'matchedFoundTitle': widget.report['title'] ?? '',
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -198,49 +231,43 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     if (_selectedStatus.isEmpty) {
       _selectedStatus =
           (report['status'] as String?) ??
-          AppLocalizations.translate(
-            'underReview',
-            'ar', // دائماً بالعربية
-          );
+          AppLocalizations.translate('underReview', 'ar');
     }
 
-    // القيم دائماً بالعربية لأن Firebase يخزنها بالعربية
+    final readyText = AppLocalizations.translate('readyForPickup', 'ar');
+
     final statuses = [
       AppLocalizations.translate('underReview', 'ar'),
       AppLocalizations.translate('preliminaryMatch', 'ar'),
-      AppLocalizations.translate('readyForPickup', 'ar'),
+      readyText,
       AppLocalizations.translate('closed', 'ar'),
     ];
 
-    // العناوين المعروضة حسب اللغة الحالية
     final statusLabels = [
       AppLocalizations.translate('underReview', currentLocale.languageCode),
-      AppLocalizations.translate(
-        'preliminaryMatch',
-        currentLocale.languageCode,
-      ),
+      AppLocalizations.translate('preliminaryMatch', currentLocale.languageCode),
       AppLocalizations.translate('readyForPickup', currentLocale.languageCode),
       AppLocalizations.translate('closed', currentLocale.languageCode),
     ];
 
-    // FIX: Ensure _selectedStatus is in the list to avoid dropdown crash
     if (!statuses.contains(_selectedStatus)) {
       statuses.add(_selectedStatus);
-      // Try to localize it if possible, otherwise use as is
       statusLabels.add(_selectedStatus);
     }
 
-    final String id = report['id']?.toString() ?? '';
     final String docNum = report['doc_num']?.toString() ?? '';
     final String title = report['title']?.toString() ?? '';
     final String type = report['type']?.toString() ?? '-';
     final String color = report['color']?.toString() ?? '-';
-    final String description = report['description']?.toString() ?? '-';
     final String reportLocation = report['reportLocation']?.toString() ?? '-';
     final String foundLocation = report['foundLocation']?.toString() ?? '-';
     final String createdAt = report['createdAt']?.toString() ?? '-';
     final String updatedAt = report['updatedAt']?.toString() ?? '-';
-    final String pinCode = report['pinCode']?.toString() ?? '';
+
+    final String pinCode = _generatedPinCode.isNotEmpty
+        ? _generatedPinCode
+        : (report['pinCode'] ?? report['handoverPin'] ?? '').toString();
+
     final String? imagePath = report['imagePath'] as String?;
 
     return Directionality(
@@ -426,9 +453,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         TextField(
                           controller: _descriptionController,
                           maxLines: 3,
-                          textAlign: isArabic
-                              ? TextAlign.right
-                              : TextAlign.left,
+                          textAlign: isArabic ? TextAlign.right : TextAlign.left,
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white,
@@ -467,11 +492,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                           items: List.generate(
                             statuses.length,
                             (index) => DropdownMenuItem(
-                              value:
-                                  statuses[index], // القيمة بالعربية للحفظ في Firebase
-                              child: Text(
-                                statusLabels[index],
-                              ), // العرض حسب اللغة الحالية
+                              value: statuses[index],
+                              child: Text(statusLabels[index]),
                             ),
                           ),
                           onChanged: (value) {
@@ -523,9 +545,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         TextField(
                           controller: _notesController,
                           maxLines: 4,
-                          textAlign: isArabic
-                              ? TextAlign.right
-                              : TextAlign.left,
+                          textAlign: isArabic ? TextAlign.right : TextAlign.left,
                           decoration: InputDecoration(
                             hintText: AppLocalizations.translate(
                               'writeNotesPlaceholder',
@@ -543,9 +563,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: TextButton.icon(
-                            onPressed: () {
-                              // مكان حفظ الملاحظات داخليًا (لو حابة نربطه بفايرستور نقدر نكتبه)
-                            },
+                            onPressed: () {},
                             icon: const Icon(Icons.save_outlined),
                             label: Text(
                               AppLocalizations.translate(
@@ -557,53 +575,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         ),
 
                         const SizedBox(height: 24),
-
-                        // Container(
-                        //   padding: const EdgeInsets.all(12),
-                        //   decoration: BoxDecoration(
-                        //     color: Colors.white,
-                        //     borderRadius: BorderRadius.circular(12),
-                        //     border:
-                        //     Border.all(color: Colors.grey.shade300),
-                        //   ),
-                        //   child: Column(
-                        //     crossAxisAlignment: CrossAxisAlignment.start,
-                        //     children: [
-                        //       const Text(
-                        //         'مطابقات مقترحة بواسطة الذكاء الاصطناعي (قريبًا)',
-                        //         style: TextStyle(
-                        //           fontSize: 15,
-                        //           fontWeight: FontWeight.w600,
-                        //         ),
-                        //       ),
-                        //       const SizedBox(height: 8),
-                        //       Text(
-                        //         'سيظهر هنا في المستقبل عناصر يُعتقد أنها تطابق هذا البلاغ، مع أزرار قبول / رفض.',
-                        //         style: TextStyle(
-                        //           fontSize: 13,
-                        //           color: Colors.grey.shade800,
-                        //         ),
-                        //       ),
-                        //       const SizedBox(height: 8),
-                        //       Wrap(
-                        //         spacing: 10,
-                        //         children: [
-                        //           OutlinedButton.icon(
-                        //             onPressed: null,
-                        //             icon: const Icon(Icons.check),
-                        //             label : const Text('قبول المطابقة'),
-                        //           ),
-                        //           OutlinedButton.icon(
-                        //             onPressed: null,
-                        //             icon: const Icon(Icons.close),
-                        //             label: const Text('رفض المطابقة'),
-                        //           ),
-                        //         ],
-                        //       ),
-                        //     ],
-                        //   ),
-                        // ),
-                        const SizedBox(height: 16),
 
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
@@ -628,6 +599,33 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),
+
+                        if (_showHandoverUserFormButton ||
+                            _selectedStatus == readyText)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: widget.mainGreen,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _openUserHandoverPinScreen,
+                              icon: const Icon(Icons.assignment_outlined),
+                              label: Text(
+                                currentLocale.languageCode == 'ar'
+                                    ? 'عرض فورم التسليم للمستخدم'
+                                    : 'Show User Handover Form',
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -660,7 +658,9 @@ class _InfoRow extends StatelessWidget {
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 14)),
+          ),
         ],
       ),
     );
