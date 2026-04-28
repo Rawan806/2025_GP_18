@@ -46,7 +46,7 @@ class _SearchPageState extends State<SearchPage> {
 
   List<Map<String, dynamic>> _cachedReports = [];
 
-  final String baseUrl = 'http://192.168.1.107:8000';
+  final String baseUrl = 'http://10.0.2.2:8001';
 
   @override
   void initState() {
@@ -969,6 +969,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedItemType,
                     decoration: _dropdownDecoration('Type'),
                     items: const [
@@ -989,6 +990,7 @@ class _SearchPageState extends State<SearchPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedStatus,
                     decoration: _dropdownDecoration('Status'),
                     items: const [
@@ -1042,6 +1044,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: validSelectedCategory,
                     decoration: _dropdownDecoration('Category'),
                     items: [
@@ -1066,6 +1069,7 @@ class _SearchPageState extends State<SearchPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<TimeRangeFilter>(
+                    isExpanded: true,
                     value: _timeRangeFilter,
                     decoration: _dropdownDecoration('Time Range'),
                     items: const [
@@ -1606,7 +1610,7 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
                     child: Image.network(
                       image,
                       height: 150,
-                      width: double.infinity,
+                      width: 250,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         height: 150,

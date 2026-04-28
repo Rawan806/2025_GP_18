@@ -20,40 +20,14 @@ class MatchReviewScreen extends StatelessWidget {
     final currentLocale = Localizations.localeOf(context);
 
     try {
-      final matchedFoundItemId =
-      (lostReportData['matchedFoundItemId'] ?? '').toString();
-
-      final batch = FirebaseFirestore.instance.batch();
-
-      final lostRef = FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('lostItems')
-          .doc(lostReportId);
-
-      batch.update(lostRef, {
-        'status': 'submitted',
-        'matchedFoundItemId': null,
-        'matchedFoundImagePath': null,
-        'matchedFoundTitle': null,
-        'matchedFoundType': null,
-        'matchedFoundColor': null,
-        'matchedFoundLocation': null,
-        'matchedFoundSimilarity': null,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (matchedFoundItemId.isNotEmpty) {
-        final foundRef = FirebaseFirestore.instance
-            .collection('foundItems')
-            .doc(matchedFoundItemId);
-
-        batch.update(foundRef, {
-          'status': 'stored',
-          'matchedLostItemId': null,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      await batch.commit();
+          .doc(lostReportId)
+          .update({
+            'status': 'submitted',
+            'matchedFoundItemId': null,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       if (!context.mounted) return;
 

@@ -223,6 +223,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       AppLocalizations.translate('closed', currentLocale.languageCode),
     ];
 
+    // FIX: Ensure _selectedStatus is in the list to avoid dropdown crash
+    if (!statuses.contains(_selectedStatus)) {
+      statuses.add(_selectedStatus);
+      // Try to localize it if possible, otherwise use as is
+      statusLabels.add(_selectedStatus);
+    }
+
     final String id = report['id']?.toString() ?? '';
     final String docNum = report['doc_num']?.toString() ?? '';
     final String title = report['title']?.toString() ?? '';

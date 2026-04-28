@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,7 +24,7 @@ class _AddEvidenceScreenState extends State<AddEvidenceScreen> {
   static const Color borderBrown = Color(0xFF272525);
 
   final TextEditingController evidenceDescriptionController =
-  TextEditingController();
+      TextEditingController();
   final TextEditingController brandController = TextEditingController();
   final TextEditingController specialMarksController = TextEditingController();
 
@@ -104,38 +103,17 @@ class _AddEvidenceScreenState extends State<AddEvidenceScreen> {
         evidenceImageUrl = await _uploadEvidenceImage(_selectedEvidenceImage!);
       }
 
-      final matchedFoundItemId =
-      (widget.lostReportData['matchedFoundItemId'] ?? '').toString();
-
-      final batch = FirebaseFirestore.instance.batch();
-
-      final lostRef = FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('lostItems')
-          .doc(widget.lostReportId);
-
-      batch.update(lostRef, {
-        'evidenceImagePath': evidenceImageUrl ?? '',
-        'evidenceImageUrl': evidenceImageUrl ?? '',
-        'evidenceDescription': evidenceDescriptionController.text.trim(),
-        'evidenceBrand': brandController.text.trim(),
-        'evidenceSpecialMarks': specialMarksController.text.trim(),
-        'status': 'waiting_for_staff_review',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (matchedFoundItemId.isNotEmpty) {
-        final foundRef = FirebaseFirestore.instance
-            .collection('foundItems')
-            .doc(matchedFoundItemId);
-
-        batch.update(foundRef, {
-          'status': 'waiting_for_staff_review',
-          'linkedLostReportId': widget.lostReportId,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      await batch.commit();
+          .doc(widget.lostReportId)
+          .update({
+            'evidenceImagePath': evidenceImageUrl ?? '',
+            'evidenceDescription': evidenceDescriptionController.text.trim(),
+            'evidenceBrand': brandController.text.trim(),
+            'evidenceSpecialMarks': specialMarksController.text.trim(),
+            'status': 'waiting_for_staff_review',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       if (!mounted) return;
 
@@ -279,17 +257,17 @@ class _AddEvidenceScreenState extends State<AddEvidenceScreen> {
                 ),
                 child: _isSubmitting
                     ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : Text(
-                  isArabic ? 'إرسال الأدلة' : 'Submit Evidence',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                        isArabic ? 'إرسال الأدلة' : 'Submit Evidence',
+                        style: const TextStyle(fontSize: 16),
+                      ),
               ),
             ],
           ),

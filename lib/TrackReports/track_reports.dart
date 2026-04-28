@@ -304,8 +304,8 @@ class TrackReportScreen extends StatelessWidget {
                         );
                         final date = (data['date'] ?? '').toString();
                         final imagePath = (data['imagePath'] ?? '').toString();
-                        final pinCode =
-                        (data['handoverPin'] ?? data['pinCode'] ?? '').toString();                        final docNum = (data['doc_num'] ?? '').toString();
+                        final pinCode = (data['pinCode'] ?? '').toString();
+                        final docNum = (data['doc_num'] ?? '').toString();
 
                         final canCancel = _canUserCancel(rawStatus);
 

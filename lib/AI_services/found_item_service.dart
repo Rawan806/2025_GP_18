@@ -10,7 +10,7 @@ class FoundItemService {
   final _storage = FirebaseStorage.instance;
 
   // Android emulator
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = 'http://10.0.2.2:8001';
 
   Future<String> uploadImage(File image) async {
     final name = 'found_${DateTime.now().millisecondsSinceEpoch}.jpg';

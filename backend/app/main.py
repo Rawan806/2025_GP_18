@@ -15,7 +15,7 @@ import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV3Small
 from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
 
-from .firebase_config import init_firestore
+from firebase_config import init_firestore
 
 # =========================================
 # Paths
