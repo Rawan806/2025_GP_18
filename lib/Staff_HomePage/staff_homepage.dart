@@ -126,10 +126,19 @@ class _StaffHomePageState extends State<StaffHomePage> {
 
     // Filter by Tab (Type)
     if (_selectedTabIndex == 0) {
-      combined = _lostItems;
+      // Lost reports that are only in the "stored" status.
+      combined = _lostItems.where((item) {
+        final s = (item['status'] ?? '').toString().toLowerCase();
+        return s.contains('stored') || s.contains('محفوظ');
+      }).toList();
     } else if (_selectedTabIndex == 1) {
-      combined = _foundItems;
+      // Find reports that are only in the "stored" status.
+      combined = _foundItems.where((item) {
+        final s = (item['status'] ?? '').toString().toLowerCase();
+        return s.contains('stored') || s.contains('محفوظ');
+      }).toList();
     } else if (_selectedTabIndex == 2) {
+      // Reports that are "sent to user," "approved by user," and "ready to handover."
       final processingCondition = (Map<String, dynamic> item) {
         final s = (item['status'] ?? '').toString().toLowerCase();
         return s.contains('sent') ||
@@ -137,20 +146,18 @@ class _StaffHomePageState extends State<StaffHomePage> {
             s.contains('approv') ||
             s.contains('موافق') ||
             s.contains('ready') ||
-            s.contains('جاهز') ||
-            s.contains('under review') ||
-            s.contains('قيد المراجعة');
+            s.contains('جاهز');
       };
       combined.addAll(_lostItems.where(processingCondition));
       combined.addAll(_foundItems.where(processingCondition));
     } else if (_selectedTabIndex == 3) {
+      // Closed / completed Reports
       final completedCondition = (Map<String, dynamic> item) {
         final s = (item['status'] ?? '').toString().toLowerCase();
         return s.contains('clos') ||
             s.contains('مغلق') ||
             s.contains('complet') ||
-            s.contains('مكتمل') ||
-            s.contains('resolv');
+            s.contains('مكتمل');
       };
       combined.addAll(_lostItems.where(completedCondition));
       combined.addAll(_foundItems.where(completedCondition));
