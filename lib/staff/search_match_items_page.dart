@@ -17,7 +17,7 @@ class SearchMatchItemsPage extends StatefulWidget {
 
 class _SearchMatchItemsPageState extends State<SearchMatchItemsPage> {
   final Color mainGreen = const Color(0xFF243E36);
-  final String baseUrl = 'http://10.0.2.2:8001';
+  final String baseUrl = 'http://192.168.1.106:8000';
 
   String _tr(String key) {
     final locale = Localizations.localeOf(context);
