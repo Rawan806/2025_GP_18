@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../staff/found_item_page.dart';
+import '../staff/found_items_rematch_page.dart';
 import '../search_page.dart';
 import '../welcomePage/welcome_screen.dart';
 import '../staff/search_reports_page.dart';
@@ -22,6 +23,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
   final Color borderBrown = const Color(0xFF272525);
 
   int _selectedTabIndex = 0; // 0: Lost, 1: Found, 2: Processing, 3: Completed
+  String _selectedTypeFilter = 'Lost';
   bool _sortNewestFirst = true;
 
   StreamSubscription? _lostSub;
@@ -50,32 +52,32 @@ class _StaffHomePageState extends State<StaffHomePage> {
         .collection('lostItems')
         .snapshots()
         .listen((snapshot) {
-      if (!mounted) return;
-      setState(() {
-        _lostItems = snapshot.docs.map((d) {
-          final data = d.data();
-          data['docId'] = d.id;
-          data['isLost'] = true;
-          return data;
-        }).toList();
-        _isLoading = false;
-      });
-    });
+          if (!mounted) return;
+          setState(() {
+            _lostItems = snapshot.docs.map((d) {
+              final data = d.data();
+              data['docId'] = d.id;
+              data['isLost'] = true;
+              return data;
+            }).toList();
+            _isLoading = false;
+          });
+        });
 
     _foundSub = FirebaseFirestore.instance
         .collection('foundItems')
         .snapshots()
         .listen((snapshot) {
-      if (!mounted) return;
-      setState(() {
-        _foundItems = snapshot.docs.map((d) {
-          final data = d.data();
-          data['docId'] = d.id;
-          data['isLost'] = false;
-          return data;
-        }).toList();
-      });
-    });
+          if (!mounted) return;
+          setState(() {
+            _foundItems = snapshot.docs.map((d) {
+              final data = d.data();
+              data['docId'] = d.id;
+              data['isLost'] = false;
+              return data;
+            }).toList();
+          });
+        });
   }
 
   @override
@@ -100,7 +102,12 @@ class _StaffHomePageState extends State<StaffHomePage> {
             children: [
               ListTile(
                 leading: const Text('🇸🇦'),
-                title: Text(AppLocalizations.translate('arabic', currentLocale.languageCode)),
+                title: Text(
+                  AppLocalizations.translate(
+                    'arabic',
+                    currentLocale.languageCode,
+                  ),
+                ),
                 onTap: () {
                   MyApp.of(context).setLocale(const Locale('ar'));
                   Navigator.pop(context);
@@ -108,7 +115,12 @@ class _StaffHomePageState extends State<StaffHomePage> {
               ),
               ListTile(
                 leading: const Text('🇺🇸'),
-                title: Text(AppLocalizations.translate('english', currentLocale.languageCode)),
+                title: Text(
+                  AppLocalizations.translate(
+                    'english',
+                    currentLocale.languageCode,
+                  ),
+                ),
                 onTap: () {
                   MyApp.of(context).setLocale(const Locale('en'));
                   Navigator.pop(context);
@@ -129,7 +141,10 @@ class _StaffHomePageState extends State<StaffHomePage> {
       // Lost reports that are only in the "stored" status.
       combined = _lostItems.where((item) {
         final s = (item['status'] ?? '').toString().toLowerCase();
-        return s.contains('stored') || s.contains('محفوظ');
+        return s.contains('stored') ||
+            s.contains('محفوظ') ||
+            s.contains('under') ||
+            s.contains('قيد');
       }).toList();
     } else if (_selectedTabIndex == 1) {
       // Find reports that are only in the "stored" status.
@@ -139,6 +154,9 @@ class _StaffHomePageState extends State<StaffHomePage> {
       }).toList();
     } else if (_selectedTabIndex == 2) {
       // Reports that are "sent to user," "approved by user," and "ready to handover."
+      final sourceItems = _selectedTypeFilter == 'Lost'
+          ? _lostItems
+          : _foundItems;
       final processingCondition = (Map<String, dynamic> item) {
         final s = (item['status'] ?? '').toString().toLowerCase();
         return s.contains('sent') ||
@@ -146,12 +164,16 @@ class _StaffHomePageState extends State<StaffHomePage> {
             s.contains('approv') ||
             s.contains('موافق') ||
             s.contains('ready') ||
-            s.contains('جاهز');
+            s.contains('جاهز') ||
+            s.contains('match') ||
+            s.contains('مطابقة');
       };
-      combined.addAll(_lostItems.where(processingCondition));
-      combined.addAll(_foundItems.where(processingCondition));
+      combined.addAll(sourceItems.where(processingCondition));
     } else if (_selectedTabIndex == 3) {
       // Closed / completed Reports
+      final sourceItems = _selectedTypeFilter == 'Lost'
+          ? _lostItems
+          : _foundItems;
       final completedCondition = (Map<String, dynamic> item) {
         final s = (item['status'] ?? '').toString().toLowerCase();
         return s.contains('clos') ||
@@ -159,27 +181,37 @@ class _StaffHomePageState extends State<StaffHomePage> {
             s.contains('complet') ||
             s.contains('مكتمل');
       };
-      combined.addAll(_lostItems.where(completedCondition));
-      combined.addAll(_foundItems.where(completedCondition));
+      combined.addAll(sourceItems.where(completedCondition));
     }
 
     // Apply Additional Filters
     return combined.where((item) {
       final s = (item['status'] ?? '').toString().toLowerCase();
       final cat = (item['category'] ?? '').toString().toLowerCase();
-      final createdAt = item['createdAt'] is Timestamp
-          ? (item['createdAt'] as Timestamp).toDate()
-          : DateTime.fromMillisecondsSinceEpoch(0);
+      final reportDate = _extractReportDate(item);
 
       // Exclude cancelled
       if (s.contains('ملغي') || s.contains('cancel')) return false;
 
       // Status Filter
       if (_selectedStatusFilter != 'all') {
-        if (_selectedStatusFilter == 'stored' && !s.contains('stored') && !s.contains('محفوظ')) return false;
-        if (_selectedStatusFilter == 'pending' && !s.contains('pending') && !s.contains('wait')) return false;
-        if (_selectedStatusFilter == 'processing' && !s.contains('sent') && !s.contains('ready') && !s.contains('review')) return false;
-        if (_selectedStatusFilter == 'completed' && !s.contains('clos') && !s.contains('complet')) return false;
+        if (_selectedStatusFilter == 'stored' &&
+            !s.contains('stored') &&
+            !s.contains('محفوظ'))
+          return false;
+        if (_selectedStatusFilter == 'pending' &&
+            !s.contains('pending') &&
+            !s.contains('wait'))
+          return false;
+        if (_selectedStatusFilter == 'processing' &&
+            !s.contains('sent') &&
+            !s.contains('ready') &&
+            !s.contains('review'))
+          return false;
+        if (_selectedStatusFilter == 'completed' &&
+            !s.contains('clos') &&
+            !s.contains('complet'))
+          return false;
       }
 
       // Category Filter
@@ -188,30 +220,54 @@ class _StaffHomePageState extends State<StaffHomePage> {
       }
 
       // Date Range Filter
-      if (_fromDate != null && createdAt.isBefore(_fromDate!)) return false;
-      if (_toDate != null) {
-        final endOfDay = DateTime(_toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59);
-        if (createdAt.isAfter(endOfDay)) return false;
+      if (_fromDate != null &&
+          (reportDate == null || reportDate.isBefore(_fromDate!))) {
+        return false;
+      }
+      if (_toDate != null && reportDate != null) {
+        final endOfDay = DateTime(
+          _toDate!.year,
+          _toDate!.month,
+          _toDate!.day,
+          23,
+          59,
+          59,
+        );
+        if (reportDate.isAfter(endOfDay)) return false;
       }
 
       // Time Range Filter (Quick Select)
-      if (_selectedTimeFilter != 'all') {
+      if (_selectedTimeFilter != 'all' && reportDate != null) {
         final now = DateTime.now();
-        if (_selectedTimeFilter == '7days' && createdAt.isBefore(now.subtract(const Duration(days: 7)))) return false;
-        if (_selectedTimeFilter == '30days' && createdAt.isBefore(now.subtract(const Duration(days: 30)))) return false;
+        if (_selectedTimeFilter == '7days' &&
+            reportDate.isBefore(now.subtract(const Duration(days: 7))))
+          return false;
+        if (_selectedTimeFilter == '30days' &&
+            reportDate.isBefore(now.subtract(const Duration(days: 30))))
+          return false;
       }
 
       return true;
-    }).toList()
-      ..sort((a, b) {
-        final tA = a['createdAt'] is Timestamp
-            ? (a['createdAt'] as Timestamp).toDate()
-            : DateTime.fromMillisecondsSinceEpoch(0);
-        final tB = b['createdAt'] is Timestamp
-            ? (b['createdAt'] as Timestamp).toDate()
-            : DateTime.fromMillisecondsSinceEpoch(0);
-        return _sortNewestFirst ? tB.compareTo(tA) : tA.compareTo(tB);
-      });
+    }).toList()..sort((a, b) {
+      final tA =
+          _extractReportDate(a) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final tB =
+          _extractReportDate(b) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return _sortNewestFirst ? tB.compareTo(tA) : tA.compareTo(tB);
+    });
+  }
+
+  DateTime? _extractReportDate(Map<String, dynamic> report) {
+    final lostDate = report['lostDate'];
+    if (lostDate is Timestamp) return lostDate.toDate();
+
+    final foundAt = report['foundAt'];
+    if (foundAt is Timestamp) return foundAt.toDate();
+
+    final createdAt = report['createdAt'];
+    if (createdAt is Timestamp) return createdAt.toDate();
+
+    return null;
   }
 
   @override
@@ -236,17 +292,25 @@ class _StaffHomePageState extends State<StaffHomePage> {
             IconButton(
               onPressed: () => _showLanguageDialog(context),
               icon: const Icon(Icons.language),
-              tooltip: AppLocalizations.translate('language', currentLocale.languageCode),
+              tooltip: AppLocalizations.translate(
+                'language',
+                currentLocale.languageCode,
+              ),
             ),
             IconButton(
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const WelcomeScreen(),
+                  ),
                 );
               },
               icon: const Icon(Icons.logout),
-              tooltip: AppLocalizations.translate('logout', currentLocale.languageCode),
+              tooltip: AppLocalizations.translate(
+                'logout',
+                currentLocale.languageCode,
+              ),
             ),
           ],
         ),
@@ -271,14 +335,24 @@ class _StaffHomePageState extends State<StaffHomePage> {
                         child: reports.isEmpty
                             ? Center(
                                 child: Text(
-                                  isArabic ? 'لا توجد بلاغات حالياً' : 'No reports yet',
-                                  style: TextStyle(fontSize: 16, color: Colors.grey[800], fontWeight: FontWeight.w600),
+                                  isArabic
+                                      ? 'لا توجد بلاغات حالياً'
+                                      : 'No reports yet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[800],
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                                 itemCount: reports.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
                                   final report = reports[index];
                                   return _ReportListTile(
@@ -309,29 +383,83 @@ class _StaffHomePageState extends State<StaffHomePage> {
 
   Widget _buildHeaderActions(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
-    final isArabic = currentLocale.languageCode == 'ar';
+    final isShowingFoundStored = _selectedTabIndex == 1;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 4,
-            ),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const FoundItemPage()));
-            },
-            icon: const Icon(Icons.add_circle_outline),
-            label: Text(
-              AppLocalizations.translate('reportFoundedItem', currentLocale.languageCode),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          Expanded(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 4,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FoundItemPage()),
+                );
+              },
+              icon: const Icon(Icons.add_circle_outline),
+              label: Text(
+                AppLocalizations.translate(
+                  'reportFoundedItem',
+                  currentLocale.languageCode,
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
+          if (isShowingFoundStored) ...[
+            const SizedBox(width: 8),
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: mainGreen,
+                  side: BorderSide(color: mainGreen),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: _filteredReports.isEmpty
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FoundItemsRematchPage(
+                              foundItems: List<Map<String, dynamic>>.from(
+                                _filteredReports,
+                              ),
+                              mainGreen: mainGreen,
+                            ),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: Text(
+                  currentLocale.languageCode == 'ar' ? 'إعادة المطابقة' : 'Rematch',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -340,6 +468,11 @@ class _StaffHomePageState extends State<StaffHomePage> {
   void _syncTypeWithTab(int index) {
     setState(() {
       _selectedTabIndex = index;
+      if (index == 0) {
+        _selectedTypeFilter = 'Lost';
+      } else if (index == 1) {
+        _selectedTypeFilter = 'Found';
+      }
     });
   }
 
@@ -358,18 +491,33 @@ class _StaffHomePageState extends State<StaffHomePage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.teal.withOpacity(0.3)),
-                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   const Icon(Icons.filter_list, size: 20, color: Colors.teal),
                   const SizedBox(width: 8),
                   Text(
-                    AppLocalizations.translate('filters', currentLocale.languageCode),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    AppLocalizations.translate(
+                      'filters',
+                      currentLocale.languageCode,
+                    ),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const Spacer(),
-                  Icon(_filtersExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.black54),
+                  Icon(
+                    _filtersExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.black54,
+                  ),
                 ],
               ),
             ),
@@ -384,34 +532,76 @@ class _StaffHomePageState extends State<StaffHomePage> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    Expanded(child: _buildFilterDropdown('Type', _getTypeString(), _getTypeOptions(), (val) {
-                      if (val == 'Lost') _syncTypeWithTab(0);
-                      else if (val == 'Found') _syncTypeWithTab(1);
-                      else if (val == 'Under Processing') _syncTypeWithTab(2);
-                      else if (val == 'Completed') _syncTypeWithTab(3);
-                    })),
+                    Expanded(
+                      child: _buildFilterDropdown(
+                        'Type',
+                        _selectedTypeFilter,
+                        _getTypeOptions(),
+                        (val) {
+                          if (val == null) return;
+                          setState(() {
+                            _selectedTypeFilter = val;
+                            _selectedTabIndex = val == 'Lost' ? 0 : 1;
+                          });
+                        },
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildFilterDropdown('Status', _selectedStatusFilter, ['all', 'stored', 'pending', 'processing', 'completed'], (val) {
-                      setState(() => _selectedStatusFilter = val!);
-                    })),
+                    Expanded(
+                      child: _buildFilterDropdown(
+                        'Status',
+                        _selectedStatusFilter,
+                        ['all', 'stored', 'pending', 'processing', 'completed'],
+                        (val) {
+                          setState(() => _selectedStatusFilter = val!);
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: _buildFilterDropdown('Category', _selectedCategoryFilter, ['all', 'electronics', 'jewelry', 'bags', 'documentsCards', 'other'], (val) {
-                      setState(() => _selectedCategoryFilter = val!);
-                    })),
+                    Expanded(
+                      child: _buildFilterDropdown(
+                        'Category',
+                        _selectedCategoryFilter,
+                        [
+                          'all',
+                          'electronics',
+                          'jewelry',
+                          'bags',
+                          'documentsCards',
+                          'other',
+                        ],
+                        (val) {
+                          setState(() => _selectedCategoryFilter = val!);
+                        },
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildFilterDropdown('Time', _selectedTimeFilter, ['all', '7days', '30days'], (val) {
-                      setState(() => _selectedTimeFilter = val!);
-                    })),
+                    Expanded(
+                      child: _buildFilterDropdown(
+                        'Time',
+                        _selectedTimeFilter,
+                        ['all', '7days', '30days'],
+                        (val) {
+                          setState(() => _selectedTimeFilter = val!);
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -420,14 +610,28 @@ class _StaffHomePageState extends State<StaffHomePage> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _pickDate(isFrom: true),
-                        child: Text(_fromDate == null ? AppLocalizations.translate('fromDate', currentLocale.languageCode) : '${_fromDate!.day}/${_fromDate!.month}'),
+                        child: Text(
+                          _fromDate == null
+                              ? AppLocalizations.translate(
+                                  'fromDate',
+                                  currentLocale.languageCode,
+                                )
+                              : '${_fromDate!.day}/${_fromDate!.month}',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _pickDate(isFrom: false),
-                        child: Text(_toDate == null ? AppLocalizations.translate('toDate', currentLocale.languageCode) : '${_toDate!.day}/${_toDate!.month}'),
+                        child: Text(
+                          _toDate == null
+                              ? AppLocalizations.translate(
+                                  'toDate',
+                                  currentLocale.languageCode,
+                                )
+                              : '${_toDate!.day}/${_toDate!.month}',
+                        ),
                       ),
                     ),
                   ],
@@ -436,9 +640,17 @@ class _StaffHomePageState extends State<StaffHomePage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade200, foregroundColor: Colors.black87),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade200,
+                      foregroundColor: Colors.black87,
+                    ),
                     onPressed: _resetFilters,
-                    child: Text(AppLocalizations.translate('reset', currentLocale.languageCode)),
+                    child: Text(
+                      AppLocalizations.translate(
+                        'reset',
+                        currentLocale.languageCode,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -455,7 +667,10 @@ class _StaffHomePageState extends State<StaffHomePage> {
             children: [
               _buildTabButton(0, isArabic ? 'مفقود' : 'Lost'),
               _buildTabButton(1, isArabic ? 'معثور عليه' : 'Found'),
-              _buildTabButton(2, isArabic ? 'قيد المعالجة' : 'Under Processing'),
+              _buildTabButton(
+                2,
+                isArabic ? 'قيد المعالجة' : 'Under Processing',
+              ),
               _buildTabButton(3, isArabic ? 'مكتمل' : 'Completed'),
             ],
           ),
@@ -474,8 +689,20 @@ class _StaffHomePageState extends State<StaffHomePage> {
                 underline: const SizedBox(),
                 icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                 items: [
-                  DropdownMenuItem(value: true, child: Text(isArabic ? 'الأحدث' : 'Newest', style: const TextStyle(fontSize: 12))),
-                  DropdownMenuItem(value: false, child: Text(isArabic ? 'الأقدم' : 'Oldest', style: const TextStyle(fontSize: 12))),
+                  DropdownMenuItem(
+                    value: true,
+                    child: Text(
+                      isArabic ? 'الأحدث' : 'Newest',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: false,
+                    child: Text(
+                      isArabic ? 'الأقدم' : 'Oldest',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _sortNewestFirst = val);
@@ -488,24 +715,31 @@ class _StaffHomePageState extends State<StaffHomePage> {
     );
   }
 
-  String _getTypeString() {
-    if (_selectedTabIndex == 0) return 'Lost';
-    if (_selectedTabIndex == 1) return 'Found';
-    if (_selectedTabIndex == 2) return 'Under Processing';
-    if (_selectedTabIndex == 3) return 'Completed';
-    return 'Lost';
-  }
-
   List<String> _getTypeOptions() {
-    return ['Lost', 'Found', 'Under Processing', 'Completed'];
+    return ['Lost', 'Found'];
   }
 
-  Widget _buildFilterDropdown(String label, String value, List<String> options, ValueChanged<String?> onChanged) {
+  Widget _buildFilterDropdown(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
     final currentLocale = Localizations.localeOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(AppLocalizations.translate(label.toLowerCase(), currentLocale.languageCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
+        Text(
+          AppLocalizations.translate(
+            label.toLowerCase(),
+            currentLocale.languageCode,
+          ),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.black54,
+          ),
+        ),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -520,14 +754,23 @@ class _StaffHomePageState extends State<StaffHomePage> {
               items: options.map((opt) {
                 String key = opt;
                 if (opt == 'all') {
-                  if (label == 'Status') key = 'allStatuses';
-                  else if (label == 'Type') key = 'allTypes';
-                  else if (label == 'Category') key = 'allCategories';
-                  else if (label == 'Time') key = 'allTime';
+                  if (label == 'Status')
+                    key = 'allStatuses';
+                  else if (label == 'Type')
+                    key = 'allTypes';
+                  else if (label == 'Category')
+                    key = 'allCategories';
+                  else if (label == 'Time')
+                    key = 'allTime';
+                } else if (label == 'Type') {
+                  key = opt == 'Lost' ? 'Lost' : 'Found';
                 }
                 return DropdownMenuItem(
                   value: opt,
-                  child: Text(AppLocalizations.translate(key, currentLocale.languageCode), style: const TextStyle(fontSize: 13)),
+                  child: Text(
+                    AppLocalizations.translate(key, currentLocale.languageCode),
+                    style: const TextStyle(fontSize: 13),
+                  ),
                 );
               }).toList(),
               onChanged: onChanged,
@@ -547,8 +790,10 @@ class _StaffHomePageState extends State<StaffHomePage> {
     );
     if (picked != null) {
       setState(() {
-        if (isFrom) _fromDate = picked;
-        else _toDate = picked;
+        if (isFrom)
+          _fromDate = picked;
+        else
+          _toDate = picked;
       });
     }
   }
@@ -611,7 +856,13 @@ class _QuickActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withOpacity(0.90),
           borderRadius: BorderRadius.circular(14),
-          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26, offset: Offset(0, 3))],
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 6,
+              color: Colors.black26,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -620,7 +871,11 @@ class _QuickActionCard extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -647,17 +902,22 @@ class _ReportListTile extends StatelessWidget {
       return AppLocalizations.translate('open', languageCode);
     } else if (statusLower.contains('closed') || statusLower.contains('مغلق')) {
       return AppLocalizations.translate('closed', languageCode);
-    } else if (statusLower.contains('pending') || statusLower.contains('قيد الانتظار')) {
+    } else if (statusLower.contains('pending') ||
+        statusLower.contains('قيد الانتظار')) {
       return AppLocalizations.translate('pending', languageCode);
-    } else if (status.contains('مطابقة مبدئية') || status.contains('Preliminary Match')) {
+    } else if (status.contains('مطابقة مبدئية') ||
+        status.contains('Preliminary Match')) {
       return AppLocalizations.translate('preliminaryMatch', languageCode);
-    } else if (status.contains('جاهز للاستلام') || status.contains('Ready for Pickup')) {
+    } else if (status.contains('جاهز للاستلام') ||
+        status.contains('Ready for Pickup')) {
       return AppLocalizations.translate('readyForPickup', languageCode);
-    } else if (status.contains('قيد المراجعة') || status.contains('Under Review')) {
+    } else if (status.contains('قيد المراجعة') ||
+        status.contains('Under Review')) {
       return AppLocalizations.translate('underReview', languageCode);
     } else if (status.contains('محفوظ') || status.contains('Stored')) {
       return AppLocalizations.translate('stored', languageCode);
-    } else if (status.contains('أرسل الى المستخدم') || status.contains('Sent to User')) {
+    } else if (status.contains('أرسل الى المستخدم') ||
+        status.contains('Sent to User')) {
       return AppLocalizations.translate('sent_to_user', languageCode);
     } else if (status.contains('ملغي') || status.contains('Cancelled')) {
       return AppLocalizations.translate('cancelled', languageCode);
@@ -667,7 +927,10 @@ class _ReportListTile extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     final s = status.toLowerCase();
-    if (s.contains('stored') || s.contains('محفوظ') || s.contains('submit') || s.contains('pending')) {
+    if (s.contains('stored') ||
+        s.contains('محفوظ') ||
+        s.contains('submit') ||
+        s.contains('pending')) {
       return mainColor;
     } else if (s.contains('sent') || s.contains('أرسل')) {
       return Colors.amber.shade700;
@@ -681,17 +944,79 @@ class _ReportListTile extends StatelessWidget {
     return mainColor;
   }
 
+  DateTime? _asDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  DateTime? _extractReportDate() {
+    return _asDateTime(report['lostDate']) ?? _asDateTime(report['foundAt']);
+  }
+
+  DateTime? _extractCreatedAt() {
+    return _asDateTime(report['createdAt']);
+  }
+
+  bool _isSameDay(DateTime left, DateTime right) {
+    return left.year == right.year &&
+        left.month == right.month &&
+        left.day == right.day;
+  }
+
+  String _formatTime(BuildContext context, DateTime value) {
+    final localizations = MaterialLocalizations.of(context);
+    return localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(value),
+      alwaysUse24HourFormat: false,
+    );
+  }
+
+  String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month/${value.year} - $hour:$minute';
+  }
+
+  String _buildCardDateText(BuildContext context) {
+    final reportDate = _extractReportDate();
+    final createdAt = _extractCreatedAt();
+
+    if (reportDate != null && _isSameDay(reportDate, DateTime.now())) {
+      if (createdAt != null) return _formatTime(context, createdAt);
+      return _formatTime(context, reportDate);
+    }
+
+    if (reportDate != null) return _formatDateTime(reportDate);
+
+    final fallbackDate = report['date']?.toString();
+    if (fallbackDate != null && fallbackDate.isNotEmpty) return fallbackDate;
+
+    if (createdAt != null) return _formatDateTime(createdAt);
+
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context);
     final isArabic = currentLocale.languageCode == 'ar';
 
-    final id = report['doc_num']?.toString() ?? report['docId']?.toString() ?? '';
-    final title = report['title']?.toString() ?? report['type']?.toString() ?? '';
+    final id =
+        report['doc_num']?.toString() ?? report['docId']?.toString() ?? '';
+    final title =
+        report['title']?.toString() ?? report['type']?.toString() ?? '';
     final statusFromDb = report['status']?.toString() ?? '';
-    final status = _getLocalizedStatus(statusFromDb, currentLocale.languageCode);
-    final date = report['date']?.toString() ?? '';
-    final imageUrl = report['imagePath']?.toString() ?? report['imageUrl']?.toString() ?? '';
+    final status = _getLocalizedStatus(
+      statusFromDb,
+      currentLocale.languageCode,
+    );
+    final date = _buildCardDateText(context);
+    final imageUrl =
+        report['imagePath']?.toString() ?? report['imageUrl']?.toString() ?? '';
     final isLost = report['isLost'] == true;
 
     final statusColor = _getStatusColor(statusFromDb);
@@ -704,7 +1029,13 @@ class _ReportListTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,8 +1046,23 @@ class _ReportListTile extends StatelessWidget {
                 width: 80,
                 height: 80,
                 child: imageUrl.isNotEmpty
-                    ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported, color: Colors.grey.shade400, size: 40))
-                    : Container(color: Colors.grey.shade200, child: Icon(Icons.image, color: Colors.grey.shade400, size: 40)),
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey.shade400,
+                          size: 40,
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.image,
+                          color: Colors.grey.shade400,
+                          size: 40,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -730,14 +1076,21 @@ class _ReportListTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '#$id',
-                          style: TextStyle(fontSize: 14, color: mainColor, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: mainColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -745,7 +1098,11 @@ class _ReportListTile extends StatelessWidget {
                         ),
                         child: Text(
                           status,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
                         ),
                       ),
                     ],
@@ -753,23 +1110,48 @@ class _ReportListTile extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 12, color: Colors.grey.shade600),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 12,
+                        color: Colors.grey.shade600,
+                      ),
                       const SizedBox(width: 4),
-                      Text(date, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text(
+                        date,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                         child: Text(
-                          isLost ? (isArabic ? 'مفقود' : 'Lost') : (isArabic ? 'معثور عليه' : 'Found'),
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                          isLost
+                              ? (isArabic ? 'مفقود' : 'Lost')
+                              : (isArabic ? 'معثور عليه' : 'Found'),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade800,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
