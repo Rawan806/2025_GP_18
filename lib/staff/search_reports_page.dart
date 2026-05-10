@@ -488,7 +488,7 @@ class _ReportCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ); 
   }
 
   Color _getStatusColor(String status) {

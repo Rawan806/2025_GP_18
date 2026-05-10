@@ -5,3 +5,6 @@ pydantic
 python-multipart
 pillow
 requests
+tensorflow
+firebase-admin
+sentence-transformers
