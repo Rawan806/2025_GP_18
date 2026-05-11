@@ -394,17 +394,6 @@ class _FoundItemPageState extends State<FoundItemPage> {
   Future<void> _save() async {
     final locale = Localizations.localeOf(context);
 
-    if (_image == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.translate('pleaseAddPhoto', locale.languageCode),
-          ),
-        ),
-      );
-      return;
-    }
-
     if (_typeCtrl.text.trim().isEmpty ||
         _colorCtrl.text.trim().isEmpty ||
         _foundLocCtrl.text.trim().isEmpty) {
@@ -424,7 +413,12 @@ class _FoundItemPageState extends State<FoundItemPage> {
     setState(() => _busy = true);
 
     try {
-      final imageUrl = await _service.uploadImage(_image!);
+      String imageUrl = '';
+
+      if (_image != null) {
+        imageUrl = await _service.uploadImage(_image!);
+      }
+
       final brand = _resolvedBrand();
 
       final docId = await _service.saveFoundItem(
@@ -639,10 +633,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
                     child: _image == null
                         ? Center(
                       child: Text(
-                        AppLocalizations.translate(
-                          'noImageSelected',
-                          locale.languageCode,
-                        ),
+                        'الصورة اختيارية',
                         style: const TextStyle(color: Colors.black54),
                       ),
                     )
@@ -812,15 +803,29 @@ class _FoundItemPageState extends State<FoundItemPage> {
                     const SizedBox(height: 12),
                   ],
 
-                  TextField(
-                    controller: _colorCtrl,
+                  DropdownButtonFormField<String>(
+                    value: _getColors().contains(_colorCtrl.text.trim())
+                        ? _colorCtrl.text.trim()
+                        : null,
                     decoration: _dec(
                       AppLocalizations.translate(
                         'color',
                         locale.languageCode,
                       ),
                     ),
-                    textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    items: _getColors()
+                        .map(
+                          (c) => DropdownMenuItem<String>(
+                            value: c,
+                            child: Text(c),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _colorCtrl.text = val ?? '';
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
 
