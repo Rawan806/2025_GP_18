@@ -33,9 +33,11 @@ class _LostFormState extends State<LostForm> {
   final TextEditingController otherCategoryController = TextEditingController();
 
   final TextEditingController specialMarksController = TextEditingController();
+  final TextEditingController manualBrandController = TextEditingController();
+  final TextEditingController manualDetailsController = TextEditingController();
 
   final TextEditingController otherElectronicsBrandController =
-  TextEditingController();
+      TextEditingController();
   final TextEditingController bagBrandController = TextEditingController();
   final TextEditingController watchBrandController = TextEditingController();
   final TextEditingController glassesBrandController = TextEditingController();
@@ -43,10 +45,12 @@ class _LostFormState extends State<LostForm> {
   DateTime? selectedDate;
   String? _selectedCategory;
   String? _selectedColor;
+  bool _noImageSelected = false;
 
   String? _selectedJewelrySubtype;
 
   String? _selectedElectronicsBrand;
+  String? _manualCondition;
   String? _screenBroken;
   String? _coverColor;
 
@@ -74,7 +78,7 @@ class _LostFormState extends State<LostForm> {
 
   bool _isUploading = false;
 
-  static const String baseUrl = 'http://10.0.2.2:8001';
+  static const String baseUrl = 'http://192.168.1.119:8001';
 
   List<String> _getCategories(String languageCode) {
     return [
@@ -104,18 +108,21 @@ class _LostFormState extends State<LostForm> {
   List<String> _coverColors() => ['لا يوجد', ..._getColors()];
 
   bool _isElectronics(String languageCode) =>
-      _selectedCategory == AppLocalizations.translate('electronics', languageCode);
+      _selectedCategory ==
+      AppLocalizations.translate('electronics', languageCode);
 
   bool _isBags(String languageCode) =>
       _selectedCategory == AppLocalizations.translate('bags', languageCode);
 
   bool _isDocuments(String languageCode) =>
-      _selectedCategory == AppLocalizations.translate('documentsCards', languageCode);
+      _selectedCategory ==
+      AppLocalizations.translate('documentsCards', languageCode);
 
   bool _isJewelry(String languageCode) =>
       _selectedCategory == AppLocalizations.translate('jewelry', languageCode);
 
   List<String> _yesNoOptions() => ['نعم', 'لا'];
+  List<String> _manualConditions() => ['جديد', 'مستعمل', 'به خدوش'];
   List<String> _bagSizes() => ['صغيرة', 'متوسطة', 'كبيرة'];
   List<String> _documentTypes() => ['بطاقة', 'جواز سفر', 'رخصة', 'مستند'];
   List<String> _jewelrySubtypes() => ['خاتم', 'سوار', 'سلسلة', 'ساعة', 'نظارة'];
@@ -147,8 +154,10 @@ class _LostFormState extends State<LostForm> {
   bool get _isGlassesSubtype => _selectedJewelrySubtype == 'نظارة';
   bool get _isRegularJewelrySubtype =>
       _selectedJewelrySubtype == 'خاتم' ||
-          _selectedJewelrySubtype == 'سوار' ||
-          _selectedJewelrySubtype == 'سلسلة';
+      _selectedJewelrySubtype == 'سوار' ||
+      _selectedJewelrySubtype == 'سلسلة';
+
+  bool get _usesManualEntry => _noImageSelected;
 
   void _resetDynamicFields() {
     _selectedJewelrySubtype = null;
@@ -160,6 +169,7 @@ class _LostFormState extends State<LostForm> {
     glassesBrandController.clear();
 
     _screenBroken = null;
+    _manualCondition = null;
     _coverColor = null;
     _hasCards = null;
     _bagSize = null;
@@ -253,8 +263,9 @@ class _LostFormState extends State<LostForm> {
 
     setState(() {
       selectedDate = chosen;
-      dateController.text =
-          intl.DateFormat('yyyy-MM-dd – HH:mm').format(selectedDate!);
+      dateController.text = intl.DateFormat(
+        'yyyy-MM-dd – HH:mm',
+      ).format(selectedDate!);
     });
   }
 
@@ -267,13 +278,15 @@ class _LostFormState extends State<LostForm> {
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
+        _noImageSelected = false;
       });
     }
   }
 
   Future<String?> _uploadImageToFirebase(File image) async {
     try {
-      final fileName = 'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          'lost_items/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = FirebaseStorage.instance.ref().child(fileName);
       final snapshot = await storageRef.putFile(image);
       return await snapshot.ref.getDownloadURL();
@@ -290,10 +303,7 @@ class _LostFormState extends State<LostForm> {
     final response = await http.post(
       Uri.parse('$baseUrl/index-item'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'docId': docId,
-        'collection': collection,
-      }),
+      body: jsonEncode({'docId': docId, 'collection': collection}),
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -335,6 +345,10 @@ class _LostFormState extends State<LostForm> {
   }
 
   String _resolvedBrand(String languageCode) {
+    if (_usesManualEntry) {
+      return manualBrandController.text.trim().toLowerCase();
+    }
+
     if (_isElectronics(languageCode)) {
       if (_selectedElectronicsBrand == 'أخرى') {
         return otherElectronicsBrandController.text.trim().toLowerCase();
@@ -357,9 +371,38 @@ class _LostFormState extends State<LostForm> {
     return '';
   }
 
+  String _resolvedManualDetails() {
+    return manualDetailsController.text.trim();
+  }
+
   String _resolvedSubtype(String languageCode) {
     if (_isJewelry(languageCode)) return _selectedJewelrySubtype ?? '';
     return '';
+  }
+
+  String _buildSearchableText({
+    required String type,
+    required String color,
+    required String description,
+    required String brand,
+    required Map<String, String> dynamicAttributes,
+  }) {
+    final parts = <String>[
+      if (type.trim().isNotEmpty) 'type: ${type.trim()}',
+      if (color.trim().isNotEmpty) 'color: ${color.trim()}',
+      if (description.trim().isNotEmpty) 'description: ${description.trim()}',
+      if (brand.trim().isNotEmpty) 'brand: ${brand.trim()}',
+    ];
+
+    dynamicAttributes.forEach((key, value) {
+      final safeKey = key.trim();
+      final safeValue = value.trim();
+      if (safeKey.isNotEmpty && safeValue.isNotEmpty) {
+        parts.add('$safeKey: $safeValue');
+      }
+    });
+
+    return parts.join(' | ');
   }
 
   Future<void> _submitForm() async {
@@ -409,9 +452,33 @@ class _LostFormState extends State<LostForm> {
     }
 
     if (_selectedColor == null || _selectedColor!.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار اللون')));
+      return;
+    }
+
+    if (_selectedImage == null && !_usesManualEntry) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار اللون')),
+        const SnackBar(
+          content: Text('يرجى إرفاق صورة أو تفعيل خيار الإدخال اليدوي'),
+        ),
       );
+      return;
+    }
+
+    if (_usesManualEntry && manualBrandController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال العلامة التجارية')),
+      );
+      return;
+    }
+
+    if (_usesManualEntry &&
+        (_manualCondition == null || _manualCondition!.isEmpty)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار الحالة')));
       return;
     }
 
@@ -428,8 +495,8 @@ class _LostFormState extends State<LostForm> {
       }
 
       final finalCategory =
-      _selectedCategory ==
-          AppLocalizations.translate('other', currentLocale.languageCode)
+          _selectedCategory ==
+              AppLocalizations.translate('other', currentLocale.languageCode)
           ? otherCategoryController.text.trim()
           : _selectedCategory!;
 
@@ -438,39 +505,17 @@ class _LostFormState extends State<LostForm> {
       final brand = _resolvedBrand(currentLocale.languageCode);
       final subtype = _resolvedSubtype(currentLocale.languageCode);
       final specialMarks = specialMarksController.text.trim();
+      final manualDetails = _resolvedManualDetails();
+      final description = descriptionController.text.trim().isEmpty
+          ? 'No description provided'
+          : descriptionController.text.trim();
 
-      final docRef =
-      await FirebaseFirestore.instance.collection('lostItems').add({
-        'title': itemNameController.text.trim(),
-        'type': finalCategory,
-        'category': finalCategory,
-        'subtype': subtype,
-        'color': _selectedColor ?? '',
-
+      final dynamicAttributes = <String, String>{
         'brand': brand,
+        'subtype': subtype,
         'specialMarks': specialMarks,
-
-        'description': descriptionController.text.trim().isEmpty
-            ? 'No description provided'
-            : descriptionController.text.trim(),
-
-        'reportLocation': 'User Report',
-        'foundLocation': 'User Report',
-
-        'imagePath': imageUrl ?? '',
-        'imageUrl': imageUrl ?? '',
-
-        'status': 'submitted',
-        'date': _formatDateTime(selectedDate!),
-        'lostDate': Timestamp.fromDate(selectedDate!),
-        'createdAt': Timestamp.fromDate(now),
-        'updatedAt': Timestamp.fromDate(now),
-
-        'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
-        'itemCategory': 'lost',
-        'userId': FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
-        'pinCode': pinCode,
-
+        'manualCondition': _manualCondition ?? '',
+        'manualDetails': manualDetails,
         'screenBroken': _screenBroken ?? '',
         'coverColor': _coverColor ?? '',
         'hasCards': _hasCards ?? '',
@@ -487,69 +532,107 @@ class _LostFormState extends State<LostForm> {
         'watchFaceColor': _watchFaceColor ?? '',
         'glassesType': _glassesType ?? '',
         'glassesFrameColor': _glassesFrameColor ?? '',
+      };
 
-        'dynamicAttributes': {
-          'brand': brand,
-          'subtype': subtype,
-          'specialMarks': specialMarks,
-          'screenBroken': _screenBroken ?? '',
-          'coverColor': _coverColor ?? '',
-          'hasCards': _hasCards ?? '',
-          'bagSize': _bagSize ?? '',
-          'documentType': _documentType ?? '',
-          'hasCover': _hasCover ?? '',
-          'coverDocumentColor': _coverDocumentColor ?? '',
-          'jewelryMaterial': _jewelryMaterial ?? '',
-          'hasStone': _hasStone ?? '',
-          'watchType': _watchType ?? '',
-          'watchBandType': _watchBandType ?? '',
-          'watchScreenBroken': _watchScreenBroken ?? '',
-          'watchShape': _watchShape ?? '',
-          'watchFaceColor': _watchFaceColor ?? '',
-          'glassesType': _glassesType ?? '',
-          'glassesFrameColor': _glassesFrameColor ?? '',
-        },
+      final searchableText = _buildSearchableText(
+        type: finalCategory,
+        color: _selectedColor ?? '',
+        description: description,
+        brand: brand,
+        dynamicAttributes: dynamicAttributes,
+      );
 
-        'matchedFoundItemId': null,
-        'matchedFoundImagePath': '',
-        'matchedFoundTitle': '',
-        'matchedFoundType': '',
-        'matchedFoundColor': '',
-        'matchedFoundLocation': '',
-        'matchedFoundSimilarity': null,
+      final docRef = await FirebaseFirestore.instance
+          .collection('lostItems')
+          .add({
+            'title': itemNameController.text.trim(),
+            'type': finalCategory,
+            'category': finalCategory,
+            'subtype': subtype,
+            'color': _selectedColor ?? '',
 
-        'evidenceImagePath': '',
-        'evidenceDescription': '',
+            'brand': brand,
+            'specialMarks': specialMarks,
+            'manualCondition': _manualCondition ?? '',
+            'manualDetails': manualDetails,
+            'searchableText': searchableText,
+            'hasImage': imageUrl != null,
+            'manualEntryEnabled': _usesManualEntry,
 
-        'aiSuggestions': [],
-        'aiColor': '',
+            'description': description,
 
-        'topMatches': [],
-        'potentialMatchesCount': 0,
-        'candidatePoolSize': 0,
-        'searchedIn': '',
-        'topScore': null,
-        'avgTop5Score': null,
-        'searchTimeMs': null,
-        'searchError': '',
+            'reportLocation': 'User Report',
+            'foundLocation': 'User Report',
 
-        'docId': '',
-        'id': '',
-        'isIndexed': false,
-        'indexStatus': 'pending',
-        'indexError': '',
-      });
+            'imagePath': imageUrl ?? '',
+            'imageUrl': imageUrl ?? '',
 
-      await docRef.update({
-        'id': docRef.id,
-        'docId': docRef.id,
-      });
+            'status': 'submitted',
+            'date': _formatDateTime(selectedDate!),
+            'lostDate': Timestamp.fromDate(selectedDate!),
+            'createdAt': Timestamp.fromDate(now),
+            'updatedAt': Timestamp.fromDate(now),
+
+            'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
+            'itemCategory': 'lost',
+            'userId':
+                FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
+            'pinCode': pinCode,
+
+            'screenBroken': _screenBroken ?? '',
+            'coverColor': _coverColor ?? '',
+            'hasCards': _hasCards ?? '',
+            'bagSize': _bagSize ?? '',
+            'documentType': _documentType ?? '',
+            'hasCover': _hasCover ?? '',
+            'coverDocumentColor': _coverDocumentColor ?? '',
+            'jewelryMaterial': _jewelryMaterial ?? '',
+            'hasStone': _hasStone ?? '',
+            'watchType': _watchType ?? '',
+            'watchBandType': _watchBandType ?? '',
+            'watchScreenBroken': _watchScreenBroken ?? '',
+            'watchShape': _watchShape ?? '',
+            'watchFaceColor': _watchFaceColor ?? '',
+            'glassesType': _glassesType ?? '',
+            'glassesFrameColor': _glassesFrameColor ?? '',
+
+            'dynamicAttributes': dynamicAttributes,
+
+            'matchedFoundItemId': null,
+            'matchedFoundImagePath': '',
+            'matchedFoundTitle': '',
+            'matchedFoundType': '',
+            'matchedFoundColor': '',
+            'matchedFoundLocation': '',
+            'matchedFoundSimilarity': null,
+
+            'evidenceImagePath': '',
+            'evidenceDescription': '',
+
+            'aiSuggestions': [],
+            'aiColor': '',
+
+            'topMatches': [],
+            'potentialMatchesCount': 0,
+            'candidatePoolSize': 0,
+            'searchedIn': '',
+            'matchMode': '',
+            'topScore': null,
+            'avgTop5Score': null,
+            'searchTimeMs': null,
+            'searchError': '',
+
+            'docId': '',
+            'id': '',
+            'isIndexed': false,
+            'indexStatus': 'pending',
+            'indexError': '',
+          });
+
+      await docRef.update({'id': docRef.id, 'docId': docRef.id});
 
       try {
-        await _triggerIndexing(
-          docId: docRef.id,
-          collection: 'lostItems',
-        );
+        await _triggerIndexing(docId: docRef.id, collection: 'lostItems');
       } catch (e) {
         await docRef.update({
           'isIndexed': false,
@@ -565,8 +648,7 @@ class _LostFormState extends State<LostForm> {
           collection: 'lostItems',
         );
 
-        final rawResults =
-        (searchResponse['results'] as List<dynamic>? ?? []);
+        final rawResults = (searchResponse['results'] as List<dynamic>? ?? []);
 
         final List<Map<String, dynamic>> topMatches = rawResults.map((e) {
           final item = Map<String, dynamic>.from(e as Map);
@@ -576,6 +658,9 @@ class _LostFormState extends State<LostForm> {
             'imageUrl': item['imageUrl'] ?? '',
             'similarity': item['similarity'] ?? 0.0,
             'match_label': item['match_label'] ?? '',
+            'matchMode': item['matchMode'] ?? searchResponse['matchMode'] ?? '',
+            'finalScore': item['finalScore'] ?? item['similarity'] ?? 0.0,
+            'textSimilarity': item['textSimilarity'],
             'type': item['type'] ?? '',
             'color': item['color'] ?? '',
             'location': item['location'] ?? '',
@@ -584,44 +669,41 @@ class _LostFormState extends State<LostForm> {
         }).toList();
 
         final hasGoodMatch = _hasGoodMatch(topMatches);
-        final Map<String, dynamic>? bestMatch =
-        topMatches.isNotEmpty ? topMatches.first : null;
+        final Map<String, dynamic>? bestMatch = topMatches.isNotEmpty
+            ? topMatches.first
+            : null;
 
         await docRef.update({
           'topMatches': topMatches,
           'potentialMatchesCount':
-          searchResponse['potential_matches_count'] ?? 0,
+              searchResponse['potential_matches_count'] ?? 0,
           'candidatePoolSize': searchResponse['candidate_pool_size'] ?? 0,
           'searchedIn': searchResponse['searched_in'] ?? 'foundItems',
+          'matchMode': searchResponse['matchMode'] ?? '',
           'topScore': searchResponse['top_score'],
           'avgTop5Score': searchResponse['avg_top5_score'],
           'searchTimeMs': searchResponse['search_time_ms'],
           'searchError': '',
 
-          'matchedFoundItemId':
-          hasGoodMatch && bestMatch != null ? bestMatch['docId'] : null,
-          'matchedFoundImagePath':
-          hasGoodMatch && bestMatch != null
+          'matchedFoundItemId': hasGoodMatch && bestMatch != null
+              ? bestMatch['docId']
+              : null,
+          'matchedFoundImagePath': hasGoodMatch && bestMatch != null
               ? (bestMatch['imageUrl'] ?? '')
               : '',
-          'matchedFoundTitle':
-          hasGoodMatch && bestMatch != null
+          'matchedFoundTitle': hasGoodMatch && bestMatch != null
               ? (bestMatch['type'] ?? '')
               : '',
-          'matchedFoundType':
-          hasGoodMatch && bestMatch != null
+          'matchedFoundType': hasGoodMatch && bestMatch != null
               ? (bestMatch['type'] ?? '')
               : '',
-          'matchedFoundColor':
-          hasGoodMatch && bestMatch != null
+          'matchedFoundColor': hasGoodMatch && bestMatch != null
               ? (bestMatch['color'] ?? '')
               : '',
-          'matchedFoundLocation':
-          hasGoodMatch && bestMatch != null
+          'matchedFoundLocation': hasGoodMatch && bestMatch != null
               ? (bestMatch['location'] ?? '')
               : '',
-          'matchedFoundSimilarity':
-          hasGoodMatch && bestMatch != null
+          'matchedFoundSimilarity': hasGoodMatch && bestMatch != null
               ? bestMatch['similarity']
               : null,
 
@@ -634,6 +716,7 @@ class _LostFormState extends State<LostForm> {
           'potentialMatchesCount': 0,
           'candidatePoolSize': 0,
           'searchedIn': 'foundItems',
+          'matchMode': '',
           'topScore': null,
           'avgTop5Score': null,
           'searchTimeMs': null,
@@ -659,7 +742,7 @@ class _LostFormState extends State<LostForm> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const HomePage()),
-                (route) => false,
+            (route) => false,
           );
         }
       });
@@ -680,6 +763,8 @@ class _LostFormState extends State<LostForm> {
     descriptionController.dispose();
     otherCategoryController.dispose();
     specialMarksController.dispose();
+    manualBrandController.dispose();
+    manualDetailsController.dispose();
     otherElectronicsBrandController.dispose();
     bagBrandController.dispose();
     watchBrandController.dispose();
@@ -701,7 +786,10 @@ class _LostFormState extends State<LostForm> {
         appBar: AppBar(
           backgroundColor: mainGreen,
           title: Text(
-            AppLocalizations.translate('reportForm', currentLocale.languageCode),
+            AppLocalizations.translate(
+              'reportForm',
+              currentLocale.languageCode,
+            ),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -730,9 +818,9 @@ class _LostFormState extends State<LostForm> {
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppLocalizations.translate(
-                    'pleaseSelectDateTime',
-                    currentLocale.languageCode,
-                  )
+                          'pleaseSelectDateTime',
+                          currentLocale.languageCode,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 15),
@@ -747,9 +835,9 @@ class _LostFormState extends State<LostForm> {
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppLocalizations.translate(
-                    'pleaseEnterItemName',
-                    currentLocale.languageCode,
-                  )
+                          'pleaseEnterItemName',
+                          currentLocale.languageCode,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 15),
@@ -763,10 +851,10 @@ class _LostFormState extends State<LostForm> {
                     ),
                   ),
                   items: categories
-                      .map((c) => DropdownMenuItem<String>(
-                    value: c,
-                    child: Text(c),
-                  ))
+                      .map(
+                        (c) =>
+                            DropdownMenuItem<String>(value: c, child: Text(c)),
+                      )
                       .toList(),
                   onChanged: (val) {
                     setState(() {
@@ -783,9 +871,9 @@ class _LostFormState extends State<LostForm> {
                   },
                   validator: (v) => (v == null || v.isEmpty)
                       ? AppLocalizations.translate(
-                    'pleaseSelectCategory',
-                    currentLocale.languageCode,
-                  )
+                          'pleaseSelectCategory',
+                          currentLocale.languageCode,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 15),
@@ -794,14 +882,16 @@ class _LostFormState extends State<LostForm> {
                   value: _selectedColor,
                   decoration: _inputDeco('لون الغرض'),
                   items: colors
-                      .map((color) => DropdownMenuItem<String>(
-                    value: color,
-                    child: Text(color),
-                  ))
+                      .map(
+                        (color) => DropdownMenuItem<String>(
+                          value: color,
+                          child: Text(color),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) => setState(() => _selectedColor = val),
                   validator: (v) =>
-                  (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
+                      (v == null || v.isEmpty) ? 'يرجى اختيار اللون' : null,
                 ),
                 const SizedBox(height: 15),
 
@@ -810,10 +900,12 @@ class _LostFormState extends State<LostForm> {
                     value: _selectedElectronicsBrand,
                     decoration: _inputDeco('العلامة التجارية'),
                     items: _electronicsBrands()
-                        .map((b) => DropdownMenuItem<String>(
-                      value: b,
-                      child: Text(b),
-                    ))
+                        .map(
+                          (b) => DropdownMenuItem<String>(
+                            value: b,
+                            child: Text(b),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       setState(() {
@@ -848,10 +940,12 @@ class _LostFormState extends State<LostForm> {
                     value: _screenBroken,
                     decoration: _inputDeco('هل يوجد كسر في الشاشة؟'),
                     items: _yesNoOptions()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => _screenBroken = val),
                     validator: (v) => (v == null || v.isEmpty)
@@ -864,10 +958,12 @@ class _LostFormState extends State<LostForm> {
                     value: _coverColor,
                     decoration: _inputDeco('لون الغلاف'),
                     items: _coverColors()
-                        .map((c) => DropdownMenuItem<String>(
-                      value: c,
-                      child: Text(c),
-                    ))
+                        .map(
+                          (c) => DropdownMenuItem<String>(
+                            value: c,
+                            child: Text(c),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => _coverColor = val),
                     validator: (v) => (v == null || v.isEmpty)
@@ -891,10 +987,12 @@ class _LostFormState extends State<LostForm> {
                     value: _hasCards,
                     decoration: _inputDeco('هل تحتوي بطاقات؟'),
                     items: _yesNoOptions()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => _hasCards = val),
                     validator: (v) => (v == null || v.isEmpty)
@@ -907,10 +1005,12 @@ class _LostFormState extends State<LostForm> {
                     value: _bagSize,
                     decoration: _inputDeco('حجم الغرض'),
                     items: _bagSizes()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => _bagSize = val),
                     validator: (v) => (v == null || v.isEmpty)
@@ -925,10 +1025,12 @@ class _LostFormState extends State<LostForm> {
                     value: _documentType,
                     decoration: _inputDeco('نوع المستند'),
                     items: _documentTypes()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => _documentType = val),
                     validator: (v) => (v == null || v.isEmpty)
@@ -941,10 +1043,12 @@ class _LostFormState extends State<LostForm> {
                     value: _hasCover,
                     decoration: _inputDeco('هل يوجد غلاف؟'),
                     items: _yesNoOptions()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => _hasCover = val),
                     validator: (v) => (v == null || v.isEmpty)
@@ -957,10 +1061,12 @@ class _LostFormState extends State<LostForm> {
                     value: _coverDocumentColor,
                     decoration: _inputDeco('لون الغلاف'),
                     items: _getColors()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) =>
                         setState(() => _coverDocumentColor = val),
@@ -976,10 +1082,12 @@ class _LostFormState extends State<LostForm> {
                     value: _selectedJewelrySubtype,
                     decoration: _inputDeco('نوع الغرض'),
                     items: _jewelrySubtypes()
-                        .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
+                        .map(
+                          (v) => DropdownMenuItem<String>(
+                            value: v,
+                            child: Text(v),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       setState(() {
@@ -997,8 +1105,9 @@ class _LostFormState extends State<LostForm> {
                         glassesBrandController.clear();
                       });
                     },
-                    validator: (v) =>
-                    (v == null || v.isEmpty) ? 'يرجى اختيار نوع الغرض' : null,
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'يرجى اختيار نوع الغرض'
+                        : null,
                   ),
                   const SizedBox(height: 15),
 
@@ -1007,10 +1116,12 @@ class _LostFormState extends State<LostForm> {
                       value: _jewelryMaterial,
                       decoration: _inputDeco('مادة الغرض'),
                       items: _jewelryMaterials()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) =>
                           setState(() => _jewelryMaterial = val),
@@ -1024,14 +1135,17 @@ class _LostFormState extends State<LostForm> {
                       value: _hasStone,
                       decoration: _inputDeco('هل تحتوي فص؟'),
                       items: _yesNoOptions()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) => setState(() => _hasStone = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى تحديد وجود فص' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى تحديد وجود فص'
+                          : null,
                     ),
                     const SizedBox(height: 15),
                   ],
@@ -1050,14 +1164,17 @@ class _LostFormState extends State<LostForm> {
                       value: _watchType,
                       decoration: _inputDeco('نوع الساعة'),
                       items: _watchTypes()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) => setState(() => _watchType = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار نوع الساعة' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار نوع الساعة'
+                          : null,
                     ),
                     const SizedBox(height: 15),
 
@@ -1065,15 +1182,17 @@ class _LostFormState extends State<LostForm> {
                       value: _watchBandType,
                       decoration: _inputDeco('نوع السوار'),
                       items: _watchBandTypes()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
-                      onChanged: (val) =>
-                          setState(() => _watchBandType = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار نوع السوار' : null,
+                      onChanged: (val) => setState(() => _watchBandType = val),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار نوع السوار'
+                          : null,
                     ),
                     const SizedBox(height: 15),
 
@@ -1081,15 +1200,18 @@ class _LostFormState extends State<LostForm> {
                       value: _watchScreenBroken,
                       decoration: _inputDeco('هل الشاشة مكسورة؟'),
                       items: _yesNoOptions()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) =>
                           setState(() => _watchScreenBroken = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى تحديد حالة الشاشة' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى تحديد حالة الشاشة'
+                          : null,
                     ),
                     const SizedBox(height: 15),
 
@@ -1097,14 +1219,17 @@ class _LostFormState extends State<LostForm> {
                       value: _watchShape,
                       decoration: _inputDeco('شكل الساعة'),
                       items: _watchShapes()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) => setState(() => _watchShape = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار شكل الساعة' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار شكل الساعة'
+                          : null,
                     ),
                     const SizedBox(height: 15),
 
@@ -1112,15 +1237,17 @@ class _LostFormState extends State<LostForm> {
                       value: _watchFaceColor,
                       decoration: _inputDeco('لون المينا'),
                       items: _getColors()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
-                      onChanged: (val) =>
-                          setState(() => _watchFaceColor = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار لون المينا' : null,
+                      onChanged: (val) => setState(() => _watchFaceColor = val),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار لون المينا'
+                          : null,
                     ),
                     const SizedBox(height: 15),
                   ],
@@ -1139,14 +1266,17 @@ class _LostFormState extends State<LostForm> {
                       value: _glassesType,
                       decoration: _inputDeco('نوع النظارة'),
                       items: _glassesTypes()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) => setState(() => _glassesType = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار نوع النظارة' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار نوع النظارة'
+                          : null,
                     ),
                     const SizedBox(height: 15),
 
@@ -1154,15 +1284,18 @@ class _LostFormState extends State<LostForm> {
                       value: _glassesFrameColor,
                       decoration: _inputDeco('لون الإطار'),
                       items: _getColors()
-                          .map((v) => DropdownMenuItem<String>(
-                        value: v,
-                        child: Text(v),
-                      ))
+                          .map(
+                            (v) => DropdownMenuItem<String>(
+                              value: v,
+                              child: Text(v),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) =>
                           setState(() => _glassesFrameColor = val),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'يرجى اختيار لون الإطار' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'يرجى اختيار لون الإطار'
+                          : null,
                     ),
                     const SizedBox(height: 15),
                   ],
@@ -1181,16 +1314,17 @@ class _LostFormState extends State<LostForm> {
                         currentLocale.languageCode,
                       ),
                     ),
-                    validator: (v) => (_selectedCategory ==
-                        AppLocalizations.translate(
-                          'other',
-                          currentLocale.languageCode,
-                        ) &&
-                        (v == null || v.trim().isEmpty))
+                    validator: (v) =>
+                        (_selectedCategory ==
+                                AppLocalizations.translate(
+                                  'other',
+                                  currentLocale.languageCode,
+                                ) &&
+                            (v == null || v.trim().isEmpty))
                         ? AppLocalizations.translate(
-                      'pleaseSpecifyCategory',
-                      currentLocale.languageCode,
-                    )
+                            'pleaseSpecifyCategory',
+                            currentLocale.languageCode,
+                          )
                         : null,
                   ),
                   const SizedBox(height: 15),
@@ -1242,6 +1376,87 @@ class _LostFormState extends State<LostForm> {
                 ),
                 const SizedBox(height: 10),
 
+                CheckboxListTile(
+                  value: _noImageSelected,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text(
+                    'ليس لدي صورة للغرض (إدخال المواصفات يدوياً)',
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _noImageSelected = value ?? false;
+                      if (_noImageSelected) {
+                        _selectedImage = null;
+                      }
+                    });
+                  },
+                ),
+                if (_noImageSelected) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: mainGreen.withOpacity(0.25)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'المواصفات اليدوية للغرض',
+                          style: TextStyle(
+                            color: mainGreen,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: manualBrandController,
+                          decoration: _inputDeco('العلامة التجارية'),
+                          validator: (v) {
+                            if (_usesManualEntry &&
+                                (v == null || v.trim().isEmpty)) {
+                              return 'يرجى إدخال العلامة التجارية';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _manualCondition,
+                          decoration: _inputDeco('الحالة'),
+                          items: _manualConditions()
+                              .map(
+                                (condition) => DropdownMenuItem<String>(
+                                  value: condition,
+                                  child: Text(condition),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) =>
+                              setState(() => _manualCondition = value),
+                          validator: (v) =>
+                              (_usesManualEntry && (v == null || v.isEmpty))
+                              ? 'يرجى اختيار الحالة'
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: manualDetailsController,
+                          maxLines: 2,
+                          decoration: _inputDeco('تفاصيل دقيقة'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                ],
+
                 Text(
                   AppLocalizations.translate(
                     'photoNote',
@@ -1277,20 +1492,20 @@ class _LostFormState extends State<LostForm> {
                   onPressed: _isUploading ? null : _submitForm,
                   child: _isUploading
                       ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(
-                    AppLocalizations.translate(
-                      'submitReport',
-                      currentLocale.languageCode,
-                    ),
-                    style: const TextStyle(fontSize: 18),
-                  ),
+                          AppLocalizations.translate(
+                            'submitReport',
+                            currentLocale.languageCode,
+                          ),
+                          style: const TextStyle(fontSize: 18),
+                        ),
                 ),
               ],
             ),
