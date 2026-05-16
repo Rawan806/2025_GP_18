@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'l10n/app_localizations_helper.dart';
+
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -46,7 +48,7 @@ class _SearchPageState extends State<SearchPage> {
 
   List<Map<String, dynamic>> _cachedReports = [];
 
-  final String baseUrl = 'http://10.0.2.2:8001';
+  final String baseUrl = 'http://192.168.1.109:8001';
 
   @override
   void initState() {
@@ -1487,17 +1489,48 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
   bool _isLoading = true;
   String? _errorMessage;
   Map<String, dynamic>? _searchResponse;
+  late String _selectedMatchMode;
 
   @override
   void initState() {
     super.initState();
+    _selectedMatchMode = _normalizeMatchMode(
+      widget.initialRequestBody['matchMode'],
+    );
     _fetchMatchesForReport();
+  }
+
+  String _normalizeMatchMode(dynamic value) {
+    final normalized = value?.toString().trim().toLowerCase();
+    return normalized == 'text' ? 'text' : 'image';
+  }
+
+  String _tr(String key) {
+    final locale = Localizations.localeOf(context);
+    return AppLocalizations.translate(key, locale.languageCode);
+  }
+
+  List<DropdownMenuItem<String>> _matchModeItems() => [
+    DropdownMenuItem(value: 'image', child: Text(_tr('matchByItem'))),
+    DropdownMenuItem(value: 'text', child: Text(_tr('matchByText'))),
+  ];
+
+  String _extractErrorMessage(http.Response response) {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic> && decoded['detail'] != null) {
+        return decoded['detail'].toString();
+      }
+    } catch (_) {}
+
+    return response.body;
   }
 
   Future<void> _fetchMatchesForReport() async {
     final requestBody = Map<String, dynamic>.from(widget.initialRequestBody);
     requestBody['docId'] = widget.selectedDocId;
     requestBody['collection'] = widget.selectedCollection;
+    requestBody['matchMode'] = _selectedMatchMode;
     requestBody['top_k'] = 5;
 
     setState(() {
@@ -1515,13 +1548,14 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
         body: jsonEncode({
           'docId': widget.selectedDocId,
           'collection': widget.selectedCollection,
+          'matchMode': _selectedMatchMode,
           'top_k': 5,
         }),
       );
 
       if (response.statusCode >= 400) {
         throw Exception(
-          'Server error ${response.statusCode}: ${response.body}',
+          'Server error ${response.statusCode}: ${_extractErrorMessage(response)}',
         );
       }
 
@@ -1811,7 +1845,35 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
           Text('Avg Top-K: ${_formatScore(avgScore)}'),
           Text('Latency: ${latency ?? '-'} ms'),
           Text('Searched In: ${_searchResponse?['searched_in'] ?? '-'}'),
+          Text('Match Mode: ${_searchResponse?['matchMode'] ?? _selectedMatchMode}'),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMatchModeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedMatchMode,
+        decoration: InputDecoration(
+          labelText: _tr('matchingMethod'),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        items: _matchModeItems(),
+        onChanged: (value) {
+          if (value == null || value == _selectedMatchMode) return;
+          setState(() {
+            _selectedMatchMode = value;
+          });
+          _fetchMatchesForReport();
+        },
       ),
     );
   }
@@ -2158,6 +2220,8 @@ class _MatchResultsPageState extends State<MatchResultsPage> {
           : ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildMatchModeSelector(),
+          const SizedBox(height: 10),
           _buildResultSummary(),
           const SizedBox(height: 10),
           _buildResultHeader(results.length),

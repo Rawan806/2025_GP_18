@@ -65,6 +65,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
   File? _image;
   List<String> _altTypes = [];
   String? _aiColor;
+  String _selectedMatchMode = 'image';
   bool _busy = false;
 
   @override
@@ -142,6 +143,17 @@ class _FoundItemPageState extends State<FoundItemPage> {
   }
 
   List<String> _coverColors() => ['لا يوجد', ..._getColors()];
+
+  List<DropdownMenuItem<String>> _matchModeItems(String languageCode) => [
+    DropdownMenuItem(
+      value: 'image',
+      child: Text(AppLocalizations.translate('matchByItem', languageCode)),
+    ),
+    DropdownMenuItem(
+      value: 'text',
+      child: Text(AppLocalizations.translate('matchByText', languageCode)),
+    ),
+  ];
 
   String _normalizedType() => _typeCtrl.text.trim().toLowerCase();
 
@@ -410,6 +422,20 @@ class _FoundItemPageState extends State<FoundItemPage> {
       return;
     }
 
+    if (_selectedMatchMode == 'image' && _image == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate(
+              'matchByItemRequiresImage',
+              locale.languageCode,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _busy = true);
 
     try {
@@ -432,6 +458,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
             ? '-'
             : _storageLocCtrl.text.trim(),
         imageUrl: imageUrl,
+        matchMode: _selectedMatchMode,
         aiTypes: _altTypes,
         aiColor: _aiColor,
       );
@@ -463,6 +490,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
         'foundAt': Timestamp.fromDate(_foundAt),
 
         'itemCategory': 'found',
+        'requestedMatchMode': _selectedMatchMode,
         'aiSuggestions': _altTypes,
         'aiTypes': _altTypes,
         'aiColor': _aiColor ?? '',
@@ -536,6 +564,7 @@ class _FoundItemPageState extends State<FoundItemPage> {
               'id': docId,
               'doc_num': '',
               'collection': 'foundItems',
+              'matchMode': _selectedMatchMode,
               '_key': 'found:$docId',
             },
           ),
@@ -1217,6 +1246,26 @@ class _FoundItemPageState extends State<FoundItemPage> {
                         );
                       });
                     },
+                  ),
+                  const SizedBox(height: 20),
+
+                  DropdownButtonFormField<String>(
+                    value: _selectedMatchMode,
+                    decoration: _dec(
+                      AppLocalizations.translate(
+                        'matchingMethod',
+                        locale.languageCode,
+                      ),
+                    ),
+                    items: _matchModeItems(locale.languageCode),
+                    onChanged: _busy
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+                            setState(() {
+                              _selectedMatchMode = value;
+                            });
+                          },
                   ),
                   const SizedBox(height: 20),
 

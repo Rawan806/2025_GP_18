@@ -75,10 +75,11 @@ class _LostFormState extends State<LostForm> {
 
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
+  String _selectedMatchMode = 'image';
 
   bool _isUploading = false;
 
-  static const String baseUrl = 'http://192.168.1.119:8001';
+  static const String baseUrl = 'http://192.168.1.109:8001';
 
   List<String> _getCategories(String languageCode) {
     return [
@@ -106,6 +107,17 @@ class _LostFormState extends State<LostForm> {
   }
 
   List<String> _coverColors() => ['لا يوجد', ..._getColors()];
+
+  List<DropdownMenuItem<String>> _matchModeItems(String languageCode) => [
+    DropdownMenuItem(
+      value: 'image',
+      child: Text(AppLocalizations.translate('matchByItem', languageCode)),
+    ),
+    DropdownMenuItem(
+      value: 'text',
+      child: Text(AppLocalizations.translate('matchByText', languageCode)),
+    ),
+  ];
 
   bool _isElectronics(String languageCode) =>
       _selectedCategory ==
@@ -314,6 +326,7 @@ class _LostFormState extends State<LostForm> {
   Future<Map<String, dynamic>> _searchMatches({
     required String docId,
     required String collection,
+    required String matchMode,
     int topK = 5,
   }) async {
     final response = await http.post(
@@ -322,6 +335,7 @@ class _LostFormState extends State<LostForm> {
       body: jsonEncode({
         'docId': docId,
         'collection': collection,
+        'matchMode': matchMode,
         'top_k': topK,
       }),
     );
@@ -482,6 +496,20 @@ class _LostFormState extends State<LostForm> {
       return;
     }
 
+    if (_selectedMatchMode == 'image' && _selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.translate(
+              'matchByItemRequiresImage',
+              currentLocale.languageCode,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isUploading = true);
 
     try {
@@ -575,6 +603,7 @@ class _LostFormState extends State<LostForm> {
 
             'doc_num': DateTime.now().millisecondsSinceEpoch.toString(),
             'itemCategory': 'lost',
+            'requestedMatchMode': _selectedMatchMode,
             'userId':
                 FirebaseAuth.instance.currentUser?.uid ?? 'current_user_id',
             'pinCode': pinCode,
@@ -646,6 +675,7 @@ class _LostFormState extends State<LostForm> {
         final searchResponse = await _searchMatches(
           docId: docRef.id,
           collection: 'lostItems',
+          matchMode: _selectedMatchMode,
         );
 
         final rawResults = (searchResponse['results'] as List<dynamic>? ?? []);
@@ -1354,6 +1384,26 @@ class _LostFormState extends State<LostForm> {
                     ),
                   ),
                   const SizedBox(height: 10),
+
+                  DropdownButtonFormField<String>(
+                    value: _selectedMatchMode,
+                    decoration: _inputDeco(
+                      AppLocalizations.translate(
+                        'matchingMethod',
+                        currentLocale.languageCode,
+                      ),
+                    ),
+                    items: _matchModeItems(currentLocale.languageCode),
+                    onChanged: _isUploading
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+                            setState(() {
+                              _selectedMatchMode = value;
+                            });
+                          },
+                  ),
+                  const SizedBox(height: 20),
                 ],
 
                 OutlinedButton.icon(
