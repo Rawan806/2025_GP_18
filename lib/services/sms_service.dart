@@ -37,7 +37,7 @@ class SmsService {
         },
         body: {
           'MessagingServiceSid': _messagingServiceSid,
-          'To': formattedPhone,
+          'To': '+18777804236',
           'Body': message,
         },
       );
