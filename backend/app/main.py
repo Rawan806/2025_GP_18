@@ -566,6 +566,10 @@ class SearchRequest(BaseModel):
     docId: str = Field(..., description="The query item document ID")
     collection: Optional[str] = Field(None, description="Optional. If omitted, backend will infer lostItems/foundItems.")
     top_k: int = Field(5, ge=1, le=50)
+    matchMode: str = Field(
+        "auto",
+        description="Matching mode: auto, image, or text.",
+    )
 
 
 class IndexItemRequest(BaseModel):
@@ -817,9 +821,23 @@ def _empty_search_response(
     }
 
 
+def resolve_requested_match_mode(match_mode: Optional[str]) -> str:
+    value = (match_mode or "auto").strip().lower()
+
+    if value in {"", "auto"}:
+        return "auto"
+    if value in {"image", "item", "image_similarity", "item_similarity"}:
+        return "image"
+    if value in {"text", "texts", "text_similarity", "textsimilarity"}:
+        return "text"
+
+    raise HTTPException(status_code=400, detail="Invalid matchMode. Use auto, image, or text.")
+
+
 @app.post("/search", response_model=SearchResponse)
 def search_similar_items(payload: SearchRequest):
     start_time = time.perf_counter()
+    requested_match_mode = resolve_requested_match_mode(payload.matchMode)
 
     query_collection = resolve_collection(payload.collection, payload.docId)
     target_collection = get_opposite_collection(query_collection)
@@ -834,14 +852,29 @@ def search_similar_items(payload: SearchRequest):
     if query_item is None:
         return _empty_search_response(payload, query_collection, target_collection, "none", start_time)
 
-    # Decision rule:
-    # - If query has image embedding, use image matching.
-    # - If no image embedding, fall back to text matching.
-    # - This supports Lost with image OR text-only.
     query_image_embedding = get_embedding_by_doc_id(query_item["docId"])
     query_text_embedding, _ = ensure_text_embedding_for_item(query_item)
 
-    if query_image_embedding is not None:
+    # Decision rule:
+    # - auto: prefer image, otherwise text.
+    # - image/text: enforce the requested mode if the query supports it.
+    if requested_match_mode == "image":
+        if query_image_embedding is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Requested image matching, but the query item has no image embedding.",
+            )
+        match_mode = "image"
+        query_embedding = query_image_embedding
+    elif requested_match_mode == "text":
+        if query_text_embedding is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Requested text matching, but the query item has no searchable text embedding.",
+            )
+        match_mode = "text"
+        query_embedding = query_text_embedding
+    elif query_image_embedding is not None:
         match_mode = "image"
         query_embedding = query_image_embedding
     elif query_text_embedding is not None:
