@@ -10,7 +10,7 @@ class FoundItemService {
   final _storage = FirebaseStorage.instance;
 
   // Android emulator
-  static const String baseUrl = 'http://10.0.2.2:8001';
+  static const String baseUrl = 'http://192.168.1.109:8001';
 
   Future<String> uploadImage(File image) async {
     final name = 'found_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -40,6 +40,7 @@ class FoundItemService {
   Future<Map<String, dynamic>> searchMatches({
     required String docId,
     required String collection,
+    required String matchMode,
     int topK = 5,
   }) async {
     final response = await http.post(
@@ -48,6 +49,7 @@ class FoundItemService {
       body: jsonEncode({
         'docId': docId,
         'collection': collection,
+        'matchMode': matchMode,
         'top_k': topK,
       }),
     );
@@ -72,6 +74,7 @@ class FoundItemService {
     required DateTime foundAt,
     required String storageLocation,
     required String imageUrl,
+    required String matchMode,
     List<String>? aiTypes,
     String? aiColor,
   }) async {
@@ -93,6 +96,7 @@ class FoundItemService {
       'docId': '',
       'id': '',
       'itemCategory': 'found',
+      'requestedMatchMode': matchMode,
       'isIndexed': false,
       'indexStatus': 'pending',
       'indexError': '',
@@ -121,6 +125,7 @@ class FoundItemService {
       final searchResponse = await searchMatches(
         docId: docRef.id,
         collection: 'foundItems',
+        matchMode: matchMode,
       );
 
       final List<dynamic> rawResults =
@@ -134,6 +139,9 @@ class FoundItemService {
           'imageUrl': item['imageUrl'] ?? '',
           'similarity': item['similarity'] ?? 0.0,
           'match_label': item['match_label'] ?? '',
+          'matchMode': item['matchMode'] ?? searchResponse['matchMode'] ?? '',
+          'finalScore': item['finalScore'] ?? item['similarity'] ?? 0.0,
+          'textSimilarity': item['textSimilarity'],
           'type': item['type'] ?? '',
           'color': item['color'] ?? '',
           'location': item['location'] ?? '',
@@ -153,6 +161,7 @@ class FoundItemService {
         'potentialMatchesCount': searchResponse['potential_matches_count'] ?? 0,
         'candidatePoolSize': searchResponse['candidate_pool_size'] ?? 0,
         'searchedIn': searchResponse['searched_in'] ?? 'lostItems',
+        'matchMode': searchResponse['matchMode'] ?? matchMode,
         'topScore': searchResponse['top_score'],
         'avgTop5Score': searchResponse['avg_top5_score'],
         'searchTimeMs': searchResponse['search_time_ms'],
@@ -171,6 +180,7 @@ class FoundItemService {
         'potentialMatchesCount': 0,
         'candidatePoolSize': 0,
         'searchedIn': 'lostItems',
+        'matchMode': matchMode,
         'topScore': null,
         'avgTop5Score': null,
         'searchTimeMs': null,
